@@ -1,0 +1,22 @@
+[package]
+name = "mdnt-support"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+repository.workspace = true
+license-file.workspace = true
+
+[dependencies]
+thiserror= "2"
+num-bigint = "0.4"
+num-traits = "0.2"
+log = "0.4"
+
+ff.workspace = true
+midnight-curves.workspace = true 
+midnight-proofs.workspace = true
+haloumi-ir.workspace =true
+
+

@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/support-macros"]
+members = [ "crates/groups-support", "crates/support","crates/support-macros"]
 resolver = "2"
 
 [workspace.package]
@@ -10,3 +10,35 @@ rust-version = "1.85"
 readme = "README.md"
 repository = "https://github.com/Veridise/midnight-extractor"
 license-file = "LICENSE"
+
+[workspace.dependencies]
+ff = "0.13"
+
+[workspace.dependencies.midnight-proofs]
+git = "https://github.com/midnightntwrk/midnight-zk"
+default-features = false
+features = [
+    "bits",
+    "cost-estimator",
+    "circuit-params",
+    "committed-instances",
+    # Commented out until https://github.com/midnightntwrk/midnight-zk/pull/137 merges.
+    # "region-groups"
+] 
+
+[workspace.dependencies.midnight-curves]
+git = "https://github.com/midnightntwrk/midnight-zk"
+
+
+[workspace.dependencies.haloumi]
+git = "https://github.com/Veridise/llzk-rs"
+default-features = false
+features = ["picus-backend"]
+package = "halo2-llzk-frontend"
+
+[workspace.dependencies.haloumi-ir]
+git = "https://github.com/Veridise/llzk-rs"
+default-features = false
+features = ["picus-backend"]
+package = "halo2-llzk-frontend"
+

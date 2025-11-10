@@ -1,13 +1,29 @@
 //! Convenience macros for declaring a group out of a function declaration.
+//!
+//! The generated code requires the `groups-support` crate named as `picus-support`.
+//! You can add the dependencies as follows:
+//!
+//! ```text
+//! [dependencies.picus]
+//! git = "https://github.com/Veridise/midnight-extractor"
+//! package = "support-macros"
+//!
+//! [dependencies.picus-support]
+//! git = "https://github.com/Veridise/midnight-extractor"
+//! package = "groups-support"
+//! ```
 
 #![deny(rustdoc::broken_intra_doc_links)]
 #![deny(missing_debug_implementations)]
 #![deny(missing_docs)]
 
 use proc_macro::TokenStream;
+#[cfg(feature = "region-groups")]
 use syn::{parse_macro_input, DeriveInput, ItemFn};
 
+#[cfg(feature = "region-groups")]
 mod decompose;
+#[cfg(feature = "region-groups")]
 mod group_impl;
 
 /// Creates a group annotation around the body of a function.
@@ -38,6 +54,7 @@ mod group_impl;
 ///     // The return value is annotated as an output and gets forwarded untouched.
 /// }
 /// ```
+#[cfg(feature = "region-groups")]
 #[proc_macro_attribute]
 pub fn group(_: TokenStream, item: TokenStream) -> TokenStream {
     match group_impl::group_impl(parse_macro_input!(item as ItemFn)) {
@@ -47,11 +64,30 @@ pub fn group(_: TokenStream, item: TokenStream) -> TokenStream {
     .into()
 }
 
+/// Creates a group annotation around the body of a function.
+///
+/// The `region-groups` feature was not activated to this macro is a no-op.
+#[cfg(not(feature = "region-groups"))]
+#[proc_macro_attribute]
+pub fn group(_: TokenStream, item: TokenStream) -> TokenStream {
+    item
+}
+
 /// Derive macro for the `DecomposeInCells` trait.
 ///
 /// Requires that every inner element implements the trait and only structs are
 /// currently supported.
+#[cfg(feature = "region-groups")]
 #[proc_macro_derive(DecomposeInCells)]
 pub fn derive_decompose_in_cells(input: TokenStream) -> TokenStream {
     decompose::derive_decompose_in_cells_impl(parse_macro_input!(input as DeriveInput)).into()
+}
+
+/// Derive macro for the `DecomposeInCells` trait.
+///
+/// The `region-groups` feature was not activated to this macro is a no-op.
+#[cfg(not(feature = "region-groups"))]
+#[proc_macro_derive(DecomposeInCells)]
+pub fn derive_decompose_in_cells(_: TokenStream) -> TokenStream {
+    Default::default()
 }

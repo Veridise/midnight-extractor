@@ -26,7 +26,7 @@ pub fn group_impl(input_fn: ItemFn) -> syn::Result<TokenStream> {
         #vis fn #fn_ident(#(#cleaned_inputs, )*) #output {
 
             #layouter.group(|| stringify!(#fn_ident), midnight_proofs::default_group_key!(), |#layouter,#[allow(non_snake_case)] #group_ident| {
-                use picus_macros_support::DecomposeInCells as _;
+                use picus_support::DecomposeInCells as _;
                 #(#io_annotations)*
                 let inner_result = #user_block;
                 inner_result.annotate_as_output(#group_ident)?;

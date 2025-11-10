@@ -90,14 +90,14 @@ pub fn derive_decompose_in_cells_impl(input: DeriveInput) -> TokenStream {
         Data::Struct(data) => {
             for field in data.fields.iter() {
                 let ty = &field.ty;
-                bounds.push(quote! { #ty: picus_macros_support::DecomposeInCells });
+                bounds.push(quote! { #ty: picus_support::DecomposeInCells });
             }
         }
         Data::Enum(data) => {
             for variant in &data.variants {
                 for field in &variant.fields {
                     let ty = &field.ty;
-                    bounds.push(quote! { #ty: picus_macros_support::DecomposeInCells });
+                    bounds.push(quote! { #ty: picus_support::DecomposeInCells });
                 }
             }
         }
@@ -105,7 +105,7 @@ pub fn derive_decompose_in_cells_impl(input: DeriveInput) -> TokenStream {
     }
 
     quote! {
-        impl #impl_generics picus_macros_support::DecomposeInCells for #name #ty_generics
+        impl #impl_generics picus_support::DecomposeInCells for #name #ty_generics
         where
             #(#bounds,)*
             #where_clause

@@ -1,0 +1,19 @@
+[package]
+name = "groups-support"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+repository.workspace = true
+license-file.workspace = true
+
+[dependencies]
+midnight-proofs.workspace = true
+
+[features]
+default = []
+region-groups = [
+  # Commented out until https://github.com/midnightntwrk/midnight-zk/pull/137 merges.
+  #"midnight-proofs/region-groups"
+]
