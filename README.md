@@ -15,3 +15,5 @@ The `crates` directory contains the different crates that make up the tool:
 - `crates/harnesses`: All the harnesses created as entry points for extraction.
 
 The `docs` directory contains the user manual of the tool, describing how to run the tool, and how to add new harnesses and maintain existing ones.
+
+If any directory mentioned here is missing then that component has not been released yet.
