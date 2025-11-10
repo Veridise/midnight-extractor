@@ -1,0 +1,8 @@
+/target
+.envrc
+*.log
+*.picus
+*.rir
+*.txt
+findings.json
+compile_commands.json
