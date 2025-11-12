@@ -53,7 +53,7 @@ fn emit_wrapped_fn(
                 use picus_support::DecomposeIn as _;
                 #(#io_annotations)*
                 let inner_result = #user_block;
-                #group_ident.annotate_outputs(self.cells())?;
+                #group_ident.annotate_outputs(inner_result.cells())?;
                 inner_result
             })
         }
