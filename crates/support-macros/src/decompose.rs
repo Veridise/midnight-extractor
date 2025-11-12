@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens};
-use syn::{Data, DataEnum, DeriveInput, Fields, Index};
+use syn::{Data, DataEnum, DeriveInput, Fields, Generics, Ident, Index, Type};
 
 /// Internal implementation of [`super::derive_decompose_in_cells`].
 pub fn derive_decompose_in_cells_impl(input: DeriveInput) -> TokenStream {
@@ -24,7 +24,7 @@ pub fn derive_decompose_in_cells_impl(input: DeriveInput) -> TokenStream {
     };
 
     quote! {
-        impl #impl_generics picus_support::DecomposeInCells for #name #ty_generics
+        impl #impl_generics picus_support::DecomposeIn<midnight_proofs::circuit::Cell> for #name #ty_generics
         where
             #(#bounds,)*
             #where_clause
@@ -44,7 +44,7 @@ pub fn derive_decompose_in_cells_impl(input: DeriveInput) -> TokenStream {
 /// to an identifier with the format `f{idx}`.
 fn format_tuple_field(idx: usize, bind: bool) -> TokenStream {
     if bind {
-        format_ident!("f{idx}").into_token_stream()
+        format_ident!("__{idx}").into_token_stream()
     } else {
         Index::from(idx).into_token_stream()
     }
@@ -74,7 +74,7 @@ fn handle_fields(
             let ty = &f.ty;
             let ident = f.ident.as_ref().map(ToTokens::to_token_stream);
 
-            bounds.push(quote! { #ty: picus_support::DecomposeInCells });
+            bounds.push(quote! { #ty: picus_support::DecomposeIn<midnight_proofs::circuit::Cell> });
             if let Some(var_names) = &mut var_names {
                 var_names.push(ident.clone().unwrap_or_else(|| format_tuple_field(idx, true)));
             }

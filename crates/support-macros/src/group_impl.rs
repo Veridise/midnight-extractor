@@ -1,6 +1,8 @@
 use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote};
-use syn::{spanned::Spanned, Attribute, FnArg, Ident, ItemFn, Pat, PatType};
+use syn::{
+    spanned::Spanned, Attribute, Block, FnArg, Ident, ItemFn, Pat, PatType, ReturnType, Visibility,
+};
 
 const INPUT_ATTR: &str = "input";
 const OUTPUT_ATTR: &str = "output";
@@ -10,33 +12,74 @@ const LAYOUTER_ATTR: &str = "layouter";
 ///
 /// Refer to that macro for details about its user facing API.
 pub fn group_impl(input_fn: ItemFn) -> syn::Result<TokenStream> {
-    let vis = &input_fn.vis;
     let fn_ident = &input_fn.sig.ident;
-    let user_block = &input_fn.block;
-    let fn_attrs = &input_fn.attrs;
-    let output = &input_fn.sig.output;
-
     let group_ident = format_ident!("__{}__group", fn_ident);
 
     let (layouter, io) = locate_attributes(&input_fn)?;
     let layouter = select_layouter(&layouter, input_fn.sig.span())?;
     let io_annotations = generate_io_annotations(io, &group_ident);
-
     let cleaned_inputs = clean_inputs(input_fn.sig.inputs.iter());
 
-    Ok(quote! {
+    Ok(emit_wrapped_fn(
+        &input_fn.attrs,
+        &input_fn.vis,
+        &input_fn.sig.ident,
+        cleaned_inputs,
+        &input_fn.sig.output,
+        layouter,
+        &group_ident,
+        io_annotations,
+        &input_fn.block,
+    ))
+}
+
+#[cfg(feature = "region-groups")]
+fn emit_wrapped_fn(
+    fn_attrs: &[Attribute],
+    vis: &Visibility,
+    fn_ident: &Ident,
+    cleaned_inputs: impl Iterator<Item = FnArg>,
+    output: &ReturnType,
+    layouter: Ident,
+    group_ident: &Ident,
+    io_annotations: impl Iterator<Item = TokenStream>,
+    user_block: &Block,
+) -> TokenStream {
+    quote! {
         #(#fn_attrs)*
         #vis fn #fn_ident(#(#cleaned_inputs, )*) #output {
 
             #layouter.group(|| stringify!(#fn_ident), midnight_proofs::default_group_key!(), |#layouter,#[allow(non_snake_case)] #group_ident| {
-                use picus_support::DecomposeInCells as _;
+                use picus_support::DecomposeIn as _;
                 #(#io_annotations)*
                 let inner_result = #user_block;
-                inner_result.annotate_as_output(#group_ident)?;
+                #group_ident.annotate_outputs(self.cells())?;
                 inner_result
             })
         }
-    })
+    }
+}
+
+/// If region-groups is disabled we emit the function as is but with the inputs cleaned to avoid
+/// errors with the attributes.
+#[cfg(not(feature = "region-groups"))]
+fn emit_wrapped_fn(
+    fn_attrs: &[Attribute],
+    vis: &Visibility,
+    fn_ident: &Ident,
+    cleaned_inputs: impl Iterator<Item = FnArg>,
+    output: &ReturnType,
+    _: Ident,
+    _: &Ident,
+    _: impl Iterator<Item = TokenStream>,
+    user_block: &Block,
+) -> TokenStream {
+    quote! {
+        #(#fn_attrs)*
+        #vis fn #fn_ident(#(#cleaned_inputs, )*) #output {
+            #user_block
+        }
+    }
 }
 
 type AnnotatedPat<'a> = (ArgAttributes, &'a PatType);

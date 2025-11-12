@@ -300,13 +300,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "groups-support"
-version = "0.1.0"
-dependencies = [
- "midnight-proofs",
-]
-
-[[package]]
 name = "halo2-frontend-core"
 version = "0.1.0"
 source = "git+https://github.com/Veridise/llzk-rs#7bc95bfff1cac4888e8a40022e9f58e9f8c883c2"
@@ -468,6 +461,10 @@ dependencies = [
  "syn 2.0.110",
  "toml",
 ]
+
+[[package]]
+name = "mdnt-groups-support"
+version = "0.1.0"
 
 [[package]]
 name = "mdnt-support"
