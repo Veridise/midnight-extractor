@@ -1,5 +1,6 @@
 [package]
 name = "mdnt-groups-support"
+description = "Support traits for the `picus::group` macro"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
