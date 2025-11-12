@@ -75,12 +75,13 @@ pub fn group(_: TokenStream, item: TokenStream) -> TokenStream {
 
 /// Derive macro for the `DecomposeInCells` trait.
 ///
-/// Requires that every inner element implements the trait and only structs are
-/// currently supported.
+/// Requires that every inner element implements the trait and unions are
+/// currently not supported.
 #[cfg(feature = "region-groups")]
 #[proc_macro_derive(DecomposeInCells)]
 pub fn derive_decompose_in_cells(input: TokenStream) -> TokenStream {
-    decompose::derive_decompose_in_cells_impl(parse_macro_input!(input as DeriveInput)).into()
+    decompose::derive_decompose_in_cells_impl(syn::parse_macro_input!(input as syn::DeriveInput))
+        .into()
 }
 
 /// Derive macro for the `DecomposeInCells` trait.

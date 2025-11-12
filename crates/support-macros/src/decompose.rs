@@ -1,108 +1,27 @@
 use proc_macro2::TokenStream;
-use quote::quote;
-use syn::{spanned::Spanned as _, Data, DeriveInput, Fields};
+use quote::{format_ident, quote, ToTokens};
+use syn::{Data, DataEnum, DeriveInput, Fields, Index};
 
+/// Internal implementation of [`super::derive_decompose_in_cells`].
 pub fn derive_decompose_in_cells_impl(input: DeriveInput) -> TokenStream {
     let name = input.ident;
     let generics = input.generics;
 
+    // Collect field types for where bounds
+    let mut bounds = Vec::new();
+
     // Split generics into (impl generics) (ty generics) (where clause)
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
-    let body = match &input.data {
-        Data::Struct(data) => match &data.fields {
-            Fields::Named(fields) => {
-                let field_calls = fields.named.iter().map(|f| {
-                    let fname = &f.ident;
-                    quote! { .chain(self.#fname.cells()) }
-                });
-                quote! {
-                    fn cells(&self) -> impl IntoIterator<Item = midnight_proofs::circuit::Cell> {
-                        std::iter::empty() #(#field_calls)*
-                    }
-                }
-            }
-            Fields::Unnamed(fields) => {
-                let idx = (0..fields.unnamed.len()).map(syn::Index::from);
-                let field_calls = idx.map(|i| quote! { .chain(self.#i.cells()) });
-                quote! {
-                    fn cells(&self) -> impl IntoIterator<Item = midnight_proofs::circuit::Cell> {
-                        std::iter::empty() #(#field_calls)*
-                    }
-                }
-            }
-            Fields::Unit => {
-                quote! {
-                    fn cells(&self) -> impl IntoIterator<Item = midnight_proofs::circuit::Cell> {
-                        std::iter::empty()
-                    }
-                }
-            }
-        },
-        Data::Enum(data) => {
-            let variants = data.variants.iter().map(|v| {
-                let vname = &v.ident;
-                match &v.fields {
-                    Fields::Named(fields) => {
-                        let fnames: Vec<_> =
-                            fields.named.iter().map(|f| f.ident.as_ref().unwrap()).collect();
-                        let chains = fnames.iter().map(|f| quote! { .chain(#f.cells()) });
-                        quote! {
-                            Self::#vname { #( #fnames ),* } => {
-                                std::iter::empty() #(#chains)*
-                            }
-                        }
-                    }
-                    Fields::Unnamed(fields) => {
-                        let vars: Vec<_> = (0..fields.unnamed.len())
-                            .map(|i| syn::Ident::new(&format!("f{i}"), v.span()))
-                            .collect();
-                        let chains = vars.iter().map(|v| quote! { .chain(#v.cells()) });
-                        quote! {
-                            Self::#vname( #( #vars ),* ) => {
-                                std::iter::empty() #(#chains)*
-                            }
-                        }
-                    }
-                    Fields::Unit => {
-                        quote! {
-                            Self::#vname => std::iter::empty(),
-                        }
-                    }
-                }
-            });
 
-            quote! {
-                fn cells(&self) -> impl IntoIterator<Item = midnight_proofs::circuit::Cell> {
-                    match self {
-                        #(#variants),*
-                    }
-                }
-            }
+    let body = match &input.data {
+        Data::Struct(data) => {
+            handle_fields(&data.fields, &mut bounds, Some(quote! { self. }), None)
         }
+        Data::Enum(data) => handle_enum(data, &mut bounds),
         Data::Union(_) => {
             unimplemented!("Unions are not supported")
         }
     };
-
-    // Collect field types for where bounds
-    let mut bounds = Vec::new();
-    match &input.data {
-        Data::Struct(data) => {
-            for field in data.fields.iter() {
-                let ty = &field.ty;
-                bounds.push(quote! { #ty: picus_support::DecomposeInCells });
-            }
-        }
-        Data::Enum(data) => {
-            for variant in &data.variants {
-                for field in &variant.fields {
-                    let ty = &field.ty;
-                    bounds.push(quote! { #ty: picus_support::DecomposeInCells });
-                }
-            }
-        }
-        Data::Union(_) => {}
-    }
 
     quote! {
         impl #impl_generics picus_support::DecomposeInCells for #name #ty_generics
@@ -110,7 +29,83 @@ pub fn derive_decompose_in_cells_impl(input: DeriveInput) -> TokenStream {
             #(#bounds,)*
             #where_clause
         {
-            #body
+            fn cells(&self) -> impl IntoIterator<Item = midnight_proofs::circuit::Cell> {
+                #body
+            }
+        }
+    }
+}
+
+/// Creates the tokens for referencing a tuple field.
+///
+/// If `bind` is true then the tuple field is referenced by an identifier instead of the index.
+/// This is done to be able to handle the two possible cases; a tuple struct and a tuple enum variant.
+/// For former doesn't bind and is expected to do `self.{idx}` and the latter will bind the field
+/// to an identifier with the format `f{idx}`.
+fn format_tuple_field(idx: usize, bind: bool) -> TokenStream {
+    if bind {
+        format_ident!("f{idx}").into_token_stream()
+    } else {
+        Index::from(idx).into_token_stream()
+    }
+}
+
+/// Gathers all the emitted code for handling the fields of a type.
+///
+/// Returns the body of the method required by the trait as a chained iterators calling the method
+/// on each inner field. The where-clause bounds for each type are gathered in `bounds` and,
+/// optionally, if it's necessary to create bindings they will get written to `var_names`. You
+/// must pass a value for either `receiver` or `var_names`. Cannot pass both at the same time.
+///
+/// # Panics
+///
+/// If both `receiver` and `var_names` are [`Some`].
+fn handle_fields(
+    fields: &Fields,
+    bounds: &mut Vec<TokenStream>,
+    receiver: Option<TokenStream>,
+    mut var_names: Option<&mut Vec<TokenStream>>,
+) -> TokenStream {
+    assert!(!(receiver.is_some() && var_names.is_some()));
+    let field_calls = fields
+        .iter()
+        .enumerate()
+        .map(|(idx, f)| {
+            let ty = &f.ty;
+            let ident = f.ident.as_ref().map(ToTokens::to_token_stream);
+
+            bounds.push(quote! { #ty: picus_support::DecomposeInCells });
+            if let Some(var_names) = &mut var_names {
+                var_names.push(ident.clone().unwrap_or_else(|| format_tuple_field(idx, true)));
+            }
+
+            ident.unwrap_or_else(|| format_tuple_field(idx, receiver.is_none()))
+        })
+        .map(|f| quote! { .chain(#receiver #f.cells()) });
+    quote! {
+            std::iter::empty() #(#field_calls)*
+    }
+}
+
+fn handle_enum(data: &DataEnum, bounds: &mut Vec<TokenStream>) -> TokenStream {
+    let variants = data.variants.iter().map(|v| {
+        let name = &v.ident;
+        let mut var_names = vec![];
+        let body = handle_fields(&v.fields, bounds, None, Some(&mut var_names));
+        let var_names = match v.fields {
+            Fields::Named(_) => Some(quote! { { #( #var_names ),* } }),
+            Fields::Unnamed(_) => Some(quote! { ( #( #var_names ),* ) }),
+            Fields::Unit => None,
+        };
+
+        quote! {
+            Self::#name #var_names => { #body }
+        }
+    });
+
+    quote! {
+        match self {
+            #(#variants),*
         }
     }
 }

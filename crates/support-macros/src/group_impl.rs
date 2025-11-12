@@ -6,6 +6,9 @@ const INPUT_ATTR: &str = "input";
 const OUTPUT_ATTR: &str = "output";
 const LAYOUTER_ATTR: &str = "layouter";
 
+/// Internal implementation of [`super::group`].
+///
+/// Refer to that macro for details about its user facing API.
 pub fn group_impl(input_fn: ItemFn) -> syn::Result<TokenStream> {
     let vis = &input_fn.vis;
     let fn_ident = &input_fn.sig.ident;
