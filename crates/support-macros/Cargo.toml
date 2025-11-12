@@ -1,5 +1,6 @@
 [package]
 name = "mdnt-support-macros"
+description = "Proc-macros for defining groups for extraction"
 version = {workspace = true}
 authors = {workspace = true}
 edition = {workspace = true}
