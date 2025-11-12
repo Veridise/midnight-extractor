@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens};
-use syn::{Data, DataEnum, DeriveInput, Fields, Generics, Ident, Index, Type};
+use syn::{Data, DataEnum, DeriveInput, Fields, Index};
 
 /// Internal implementation of [`super::derive_decompose_in_cells`].
 pub fn derive_decompose_in_cells_impl(input: DeriveInput) -> TokenStream {
