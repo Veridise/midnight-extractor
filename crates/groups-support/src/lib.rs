@@ -11,44 +11,12 @@
 #![deny(missing_debug_implementations)]
 #![deny(missing_docs)]
 
-//#[cfg(feature = "region-groups")]
-//use midnight_proofs::{circuit::groups::RegionsGroup, plonk::Error};
-//use midnight_proofs::{circuit::AssignedCell, halo2curves::ff::Field};
-
 /// Implementations of this trait represent complex types that aggregate a
 /// collection of [`AssignedCell`] values.
 pub trait DecomposeIn<Cell> {
     /// Returns an iterator of [`Cell`] instances.
     fn cells(&self) -> impl IntoIterator<Item = Cell>;
-
-    ///// Annotates the type as an input.
-    /////
-    ///// By default annotates all the cells of the type as inputs.
-    //#[cfg(feature = "region-groups")]
-    //fn annotate_as_input(&self, group: &mut RegionsGroup) -> Result<(), Error> {
-    //    group.annotate_inputs(self.cells())
-    //}
-    //
-    ///// Annotates the type as an output.
-    /////
-    ///// By default annotates all the cells of the type as outputs.
-    //#[cfg(feature = "region-groups")]
-    //fn annotate_as_output(&self, group: &mut RegionsGroup) -> Result<(), Error> {
-    //    group.annotate_outputs(self.cells())
-    //}
 }
-
-//impl DecomposeIn<Cell> for Cell {
-//    fn cells(&self) -> impl IntoIterator<Item = Cell> {
-//        [*self]
-//    }
-//}
-//
-//impl<V, F: Field> DecomposeIn<Cell> for AssignedCell<V, F> {
-//    fn cells(&self) -> impl IntoIterator<Item = Cell> {
-//        [self.cell()]
-//    }
-//}
 
 impl<Cell> DecomposeIn<Cell> for u32 {
     fn cells(&self) -> impl IntoIterator<Item = Cell> {
