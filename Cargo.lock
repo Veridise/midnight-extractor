@@ -464,11 +464,11 @@ dependencies = [
 
 [[package]]
 name = "mdnt-groups-support"
-version = "0.1.0"
+version = "0.1.1"
 
 [[package]]
 name = "mdnt-support"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "ff",
  "halo2-llzk-frontend",
@@ -482,7 +482,7 @@ dependencies = [
 
 [[package]]
 name = "mdnt-support-macros"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "macrotest",
  "proc-macro2",
