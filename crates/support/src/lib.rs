@@ -27,6 +27,29 @@ pub mod ir {
     pub use haloumi_ir::ir::*;
 }
 
+/// This trait defines the halo2 types required by this crate.
+/// An implementation of halo2 compatible with this crate must have
+/// some type that implements this trait s.t. it can be passed to traits
+/// and types in this crate.
+pub trait Halo2Types {
+    /// Type for instance columns.
+    type InstanceCol: std::fmt::Debug + Copy + Clone;
+    /// Type for advice columns.
+    type AdviceCol: std::fmt::Debug + Copy + Clone;
+    /// Type for a cell.
+    type Cell: std::fmt::Debug + Copy + Clone;
+    /// Type for an assigned cell.
+    type AssignedCell;
+    /// Region type.
+    type Region<'a>;
+    /// Error type.
+    type Error: Into<crate::error::Error> + From<crate::error::Error>;
+    /// Region index type
+    type RegionIndex: std::hash::Hash + Copy + Eq;
+    /// Expression type
+    type Expression;
+}
+
 /// Parses a value of F from the given string.
 pub fn parse_field<F: PrimeField>(s: &str) -> Result<F, Error> {
     if s.is_empty() {

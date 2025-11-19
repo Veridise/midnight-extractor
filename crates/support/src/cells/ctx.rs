@@ -12,12 +12,12 @@ use mdnt_groups_support::DecomposeIn;
 //    plonk::{Advice, Any, Column, ColumnType, Instance},
 //};
 
-use crate::{error::Error, parse_field};
+use crate::{error::Error, parse_field, Halo2Types};
 
 //#[cfg(feature = "proofs")]
 
 /// Adaptor trait that defines the required behavior from a Layouter.
-pub trait LayoutAdaptor<F: Field, AC> {
+pub trait LayoutAdaptor<F: Field, Halo2: Halo2Types> {
     /// Type for instance columns.
     type InstanceCol: std::fmt::Debug + Copy + Clone;
     /// Type for advice columns.
@@ -32,41 +32,41 @@ pub trait LayoutAdaptor<F: Field, AC> {
     /// The left hand side cell could be any cell and the right hand side is an instance cell.
     fn constrain_instance(
         &mut self,
-        cell: Self::Cell,
-        instance_col: Self::InstanceCol,
+        cell: Halo2::Cell,
+        instance_col: Halo2::InstanceCol,
         instance_row: usize,
-    ) -> Result<(), Error>;
+    ) -> Result<(), Halo2::Error>;
 
     /// Constraints an advice cell to a constant value.
     fn constrain_advice_constant(
         &mut self,
-        advice_col: Self::AdviceCol,
+        advice_col: Halo2::AdviceCol,
         advice_row: usize,
         constant: F,
-    ) -> Result<Self::Cell, Error>;
+    ) -> Result<Halo2::Cell, Halo2::Error>;
 
     /// Assigns an advice cell from an instance cell.
     fn assign_advice_from_instance(
         &mut self,
-        advice_col: Self::AdviceCol,
+        advice_col: Halo2::AdviceCol,
         advice_row: usize,
-        instance_col: Self::InstanceCol,
+        instance_col: Halo2::InstanceCol,
         instance_row: usize,
-    ) -> Result<AC, Error>;
+    ) -> Result<Halo2::AssignedCell, Halo2::Error>;
 
     /// Copies the cell's contents into the given advice cell.
     fn copy_advice(
         &mut self,
-        ac: &AC,
-        region: &mut Self::Region<'_>,
-        advice_col: Self::AdviceCol,
+        ac: &Halo2::AssignedCell,
+        region: &mut Halo2::Region<'_>,
+        advice_col: Halo2::AdviceCol,
         advice_row: usize,
-    ) -> Result<AC, Error>;
+    ) -> Result<Halo2::AssignedCell, Halo2::Error>;
 
     /// Enters the scope of a region.
-    fn region<A, AR, N, NR>(&mut self, name: N, assignment: A) -> Result<AR, Error>
+    fn region<A, AR, N, NR>(&mut self, name: N, assignment: A) -> Result<AR, Halo2::Error>
     where
-        A: FnMut(Self::Region<'_>) -> Result<AR, Error>,
+        A: FnMut(Halo2::Region<'_>) -> Result<AR, Halo2::Error>,
         N: Fn() -> NR,
         NR: Into<String>;
 }
@@ -113,14 +113,14 @@ impl<C> From<(C, usize)> for Cell<C> {
 /// actual input and an advice cell that is used for integrating better with
 /// regions.
 #[derive(Debug)]
-pub struct InputDescr<I, A> {
-    cell: Cell<I>,
-    temp: Cell<A>,
+pub struct InputDescr<H: Halo2Types> {
+    cell: Cell<H::InstanceCol>,
+    temp: Cell<H::AdviceCol>,
 }
 
-impl<I: Copy, A: Copy> InputDescr<I, A> {
+impl<H: Halo2Types> InputDescr<H> {
     /// Creates a new input description.
-    pub fn new(cell: Cell<I>, temp: A) -> Self {
+    pub fn new(cell: Cell<H::InstanceCol>, temp: H::AdviceCol) -> Self {
         Self {
             cell,
             temp: Cell::first_row(temp),
@@ -128,7 +128,7 @@ impl<I: Copy, A: Copy> InputDescr<I, A> {
     }
 
     /// Returns the column of the instance cell.
-    pub fn col(&self) -> I {
+    pub fn col(&self) -> H::InstanceCol {
         self.cell.col()
     }
 
@@ -138,7 +138,7 @@ impl<I: Copy, A: Copy> InputDescr<I, A> {
     }
 
     /// Returns the column of the helper advice cell.
-    pub fn temp(&self) -> A {
+    pub fn temp(&self) -> H::AdviceCol {
         self.temp.col()
     }
 
@@ -148,8 +148,8 @@ impl<I: Copy, A: Copy> InputDescr<I, A> {
     }
 }
 
-impl<I: Copy, A: Copy> From<OutputDescr<I, A>> for InputDescr<I, A> {
-    fn from(descr: OutputDescr<I, A>) -> Self {
+impl<H: Halo2Types> From<OutputDescr<H>> for InputDescr<H> {
+    fn from(descr: OutputDescr<H>) -> Self {
         InputDescr {
             cell: (descr.cell.col(), descr.cell.row).into(),
             temp: descr.helper,
@@ -160,14 +160,14 @@ impl<I: Copy, A: Copy> From<OutputDescr<I, A>> for InputDescr<I, A> {
 /// A description for an output. Comprises an instance cell acting as the output
 /// and a support advice cell.
 #[derive(Debug)]
-pub struct OutputDescr<I, A> {
-    cell: Cell<I>,
-    helper: Cell<A>,
+pub struct OutputDescr<H: Halo2Types> {
+    cell: Cell<H::InstanceCol>,
+    helper: Cell<H::AdviceCol>,
 }
 
-impl<I: Copy, A: Copy> OutputDescr<I, A> {
+impl<H: Halo2Types> OutputDescr<H> {
     /// Creates a new output description.
-    pub fn new(cell: Cell<I>, helper: A) -> Self {
+    pub fn new(cell: Cell<H::InstanceCol>, helper: H::AdviceCol) -> Self {
         Self {
             cell,
             helper: Cell {
@@ -177,24 +177,21 @@ impl<I: Copy, A: Copy> OutputDescr<I, A> {
         }
     }
 
-    fn set_to_zero<F: Field, AC>(
-        &self,
-        layouter: &mut impl LayoutAdaptor<F, AC, InstanceCol = I, AdviceCol = A>,
-    ) -> Result<(), Error> {
+    fn set_to_zero<F>(&self, layouter: &mut impl LayoutAdaptor<F, H>) -> Result<(), H::Error>
+    where
+        F: Field,
+    {
         let helper_cell =
             layouter.constrain_advice_constant(self.helper.col, self.helper.row, F::ZERO)?;
         layouter.constrain_instance(helper_cell, self.cell.col, self.cell.row)?;
         Ok(())
     }
 
-    fn assign<F: Field, AC, L: LayoutAdaptor<F, AC, InstanceCol = I, AdviceCol = A>>(
+    fn assign<F: Field>(
         &self,
-        cell: L::Cell,
-        layouter: &mut L,
-    ) -> Result<(), Error>
-    where
-        L::Cell: std::fmt::Debug,
-    {
+        cell: H::Cell,
+        layouter: &mut impl LayoutAdaptor<F, H>,
+    ) -> Result<(), H::Error> {
         layouter.constrain_instance(cell, self.cell.col(), self.cell.row())?;
         Ok(())
     }
@@ -225,14 +222,14 @@ impl<IO> std::fmt::Debug for IOCtx<'_, IO> {
 }
 
 /// Context type for the [`LoadFromCells`](super::load::LoadFromCells) trait.
-pub struct ICtx<'i, 's, I, A> {
-    inner: IOCtx<'i, InputDescr<I, A>>,
+pub struct ICtx<'i, 's, H: Halo2Types> {
+    inner: IOCtx<'i, InputDescr<H>>,
     constants: Box<dyn Iterator<Item = &'s str> + 's>,
 }
 
-impl<'i, 's, I: Copy, A: Copy> ICtx<'i, 's, I, A> {
+impl<'i, 's, H: Halo2Types> ICtx<'i, 's, H> {
     /// Creates a new input context.
-    pub fn new(i: impl Iterator<Item = InputDescr<I, A>> + 'i, constants: &'s [String]) -> Self {
+    pub fn new(i: impl Iterator<Item = InputDescr<H>> + 'i, constants: &'s [String]) -> Self {
         Self {
             inner: IOCtx::new(i),
             constants: Box::new(constants.iter().map(|s| s.as_str())),
@@ -259,30 +256,30 @@ impl<'i, 's, I: Copy, A: Copy> ICtx<'i, 's, I, A> {
     }
 
     /// Assigns the next input to a cell.
-    pub fn assign_next<F: PrimeField, C>(
+    pub fn assign_next<F: PrimeField>(
         &mut self,
-        layouter: &mut impl LayoutAdaptor<F, C, InstanceCol = I, AdviceCol = A>,
-    ) -> Result<C, Error> {
+        layouter: &mut impl LayoutAdaptor<F, H>,
+    ) -> Result<H::AssignedCell, H::Error> {
         let i = self.next()?;
         layouter.assign_advice_from_instance(i.temp(), i.temp_offset(), i.col(), i.row())
     }
 }
 
-impl<'i, I, A> Deref for ICtx<'i, '_, I, A> {
-    type Target = IOCtx<'i, InputDescr<I, A>>;
+impl<'i, H: Halo2Types> Deref for ICtx<'i, '_, H> {
+    type Target = IOCtx<'i, InputDescr<H>>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
 }
 
-impl<I, A> DerefMut for ICtx<'_, '_, I, A> {
+impl<H: Halo2Types> DerefMut for ICtx<'_, '_, H> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
 }
 
-impl<I, A> std::fmt::Debug for ICtx<'_, '_, I, A> {
+impl<H: Halo2Types> std::fmt::Debug for ICtx<'_, '_, H> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ICtx")
             .field("inner", &self.inner)
@@ -293,35 +290,34 @@ impl<I, A> std::fmt::Debug for ICtx<'_, '_, I, A> {
 
 /// Context type for the [`StoreIntoCells`](super::store::StoreIntoCells) trait.
 #[derive(Debug)]
-pub struct OCtx<'o, I, A> {
-    inner: IOCtx<'o, OutputDescr<I, A>>,
+pub struct OCtx<'o, H: Halo2Types> {
+    inner: IOCtx<'o, OutputDescr<H>>,
 }
 
-impl<'o, I: Copy, A: Copy> OCtx<'o, I, A> {
+impl<'o, H: Halo2Types> OCtx<'o, H> {
     /// Creates a new output context.
-    pub fn new(input: impl Iterator<Item = OutputDescr<I, A>> + 'o) -> Self {
+    pub fn new(input: impl Iterator<Item = OutputDescr<H>> + 'o) -> Self {
         Self {
             inner: IOCtx::new(input),
         }
     }
 
     /// Sets the next output to zero.
-    pub fn set_next_to_zero<F: Field, AC>(
+    pub fn set_next_to_zero<F: Field>(
         &mut self,
-        layouter: &mut impl LayoutAdaptor<F, AC, InstanceCol = I, AdviceCol = A>,
-    ) -> Result<(), Error> {
+        layouter: &mut impl LayoutAdaptor<F, H>,
+    ) -> Result<(), H::Error> {
         self.next()?.set_to_zero(layouter)
     }
 
     /// Sets the next output to the given value.
-    pub fn assign_next<F, C, AC>(
+    pub fn assign_next<F>(
         &mut self,
-        value: impl DecomposeIn<C>,
-        layouter: &mut impl LayoutAdaptor<F, AC, Cell = C, InstanceCol = I, AdviceCol = A>,
-    ) -> Result<(), Error>
+        value: impl DecomposeIn<H::Cell>,
+        layouter: &mut impl LayoutAdaptor<F, H>,
+    ) -> Result<(), H::Error>
     where
         F: PrimeField,
-        C: std::fmt::Debug,
     {
         for cell in value.cells() {
             self.next()?.assign(cell, layouter)?;
@@ -330,15 +326,15 @@ impl<'o, I: Copy, A: Copy> OCtx<'o, I, A> {
     }
 }
 
-impl<'o, I, A> Deref for OCtx<'o, I, A> {
-    type Target = IOCtx<'o, OutputDescr<I, A>>;
+impl<'o, H: Halo2Types> Deref for OCtx<'o, H> {
+    type Target = IOCtx<'o, OutputDescr<H>>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
 }
 
-impl<I, A> DerefMut for OCtx<'_, I, A> {
+impl<H: Halo2Types> DerefMut for OCtx<'_, H> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }

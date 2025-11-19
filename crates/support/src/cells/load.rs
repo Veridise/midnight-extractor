@@ -12,27 +12,26 @@ use crate::{
     },
     circuit::injected::InjectedIR,
     error::Error,
+    Halo2Types,
 };
 
 /// Trait for deserializing arbitrary types from a set of circuit cells.
-pub trait LoadFromCells<F: Field, C, AC>: Sized + CellReprSize {
+pub trait LoadFromCells<F: Field, C, H: Halo2Types>: Sized + CellReprSize {
     /// Loads an instance of Self from a set of cells.
-    fn load<L, R, E>(
-        ctx: &mut ICtx<L::InstanceCol, L::AdviceCol>,
+    fn load(
+        ctx: &mut ICtx<H>,
         chip: &C,
-        layouter: &mut L,
-        injected_ir: &mut InjectedIR<R, E>,
-    ) -> Result<Self, Error>
-    where
-        L: LayoutAdaptor<F, AC>;
+        layouter: &mut impl LayoutAdaptor<F, H>,
+        injected_ir: &mut InjectedIR<H::RegionIndex, H::Expression>,
+    ) -> Result<Self, Error>;
 }
 
 //impl<F: PrimeField, C> LoadFromCells<F, C> for AssignedCell<F, F> {
 //    fn load<L, R, E>(
-//        ctx: &mut ICtx<L::InstanceCol, L::AdviceCol>,
+//        ctx: &mut ICtx<H>,
 //        _: &C,
 //        layouter: &mut L,
-//        _: &mut InjectedIR<R, E>,
+//        _: &mut InjectedIR<H::RegionIndex, H::Expression>,
 //    ) -> Result<Self, Error>
 //    where
 //        L: LayoutAdaptor<F>,
@@ -41,18 +40,15 @@ pub trait LoadFromCells<F: Field, C, AC>: Sized + CellReprSize {
 //    }
 //}
 
-impl<const N: usize, F: PrimeField, C, AC, T: LoadFromCells<F, C, AC>> LoadFromCells<F, C, AC>
-    for [T; N]
+impl<const N: usize, F: PrimeField, C, H: Halo2Types, T: LoadFromCells<F, C, H>>
+    LoadFromCells<F, C, H> for [T; N]
 {
-    fn load<L, R, E>(
-        ctx: &mut ICtx<L::InstanceCol, L::AdviceCol>,
+    fn load(
+        ctx: &mut ICtx<H>,
         chip: &C,
-        layouter: &mut L,
-        injected_ir: &mut InjectedIR<R, E>,
-    ) -> Result<Self, Error>
-    where
-        L: LayoutAdaptor<F, AC>,
-    {
+        layouter: &mut impl LayoutAdaptor<F, H>,
+        injected_ir: &mut InjectedIR<H::RegionIndex, H::Expression>,
+    ) -> Result<Self, Error> {
         let mut out: [MaybeUninit<T>; N] = [const { MaybeUninit::uninit() }; N];
         for e in &mut out[..] {
             e.write(T::load(ctx, chip, layouter, injected_ir)?);
@@ -63,16 +59,13 @@ impl<const N: usize, F: PrimeField, C, AC, T: LoadFromCells<F, C, AC>> LoadFromC
 
 macro_rules! load_const {
     ($t:ty) => {
-        impl<C, F: PrimeField, AC> LoadFromCells<F, C, AC> for $t {
-            fn load<L, R, E>(
-                ctx: &mut ICtx<L::InstanceCol, L::AdviceCol>,
+        impl<C, F: PrimeField, H: Halo2Types> LoadFromCells<F, C, H> for $t {
+            fn load(
+                ctx: &mut ICtx<H>,
                 _chip: &C,
-                _layouter: &mut L,
-                _injected_ir: &mut InjectedIR<R, E>,
-            ) -> Result<Self, Error>
-            where
-                L: LayoutAdaptor<F, AC>,
-            {
+                _layouter: &mut impl LayoutAdaptor<F, H>,
+                _injected_ir: &mut InjectedIR<H::RegionIndex, H::Expression>,
+            ) -> Result<Self, Error> {
                 ctx.primitive_constant()
             }
         }
@@ -84,34 +77,29 @@ load_const!(u8);
 load_const!(usize);
 load_const!(BigUint);
 
-impl<F: Field, C, AC> LoadFromCells<F, C, AC> for () {
-    fn load<L, R, E>(
-        _: &mut ICtx<L::InstanceCol, L::AdviceCol>,
+impl<F: Field, C, H: Halo2Types> LoadFromCells<F, C, H> for () {
+    fn load(
+        _: &mut ICtx<H>,
         _: &C,
-        _: &mut L,
-        _: &mut InjectedIR<R, E>,
-    ) -> Result<Self, Error>
-    where
-        L: LayoutAdaptor<F, AC>,
-    {
+        _: &mut impl LayoutAdaptor<F, H>,
+        _: &mut InjectedIR<H::RegionIndex, H::Expression>,
+    ) -> Result<Self, Error> {
         Ok(())
     }
 }
 
 macro_rules! load_tuple {
     ($($t:ident),+) => {
-        impl<F:Field, C, AC, $( $t: LoadFromCells<F,C,AC>, )+> LoadFromCells<F,C,AC> for (
+        impl<F:Field, C, H:Halo2Types, $( $t: LoadFromCells<F,C,H>, )+> LoadFromCells<F,C,H> for (
                 $( $t, )+
             )
         {
-            fn load<L,R,E>(
-                ctx: &mut ICtx<L::InstanceCol, L::AdviceCol>,
+            fn load(
+                ctx: &mut ICtx<H>,
                 chip: &C,
-                layouter: &mut L,
-                injected_ir: &mut InjectedIR<R,E>,
+                layouter: &mut impl LayoutAdaptor<F,H>,
+                injected_ir: &mut InjectedIR<H::RegionIndex,H::Expression>,
             ) -> Result<Self, Error>
-            where
-                L: LayoutAdaptor<F, AC>
             {
                 Ok(($( $t::load(ctx, chip, layouter, injected_ir)?, )+))
             }
