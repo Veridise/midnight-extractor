@@ -19,6 +19,15 @@ use crate::{error::Error, parse_field, Halo2Types};
 
 /// Adaptor trait that defines the required behavior from a Layouter.
 pub trait LayoutAdaptor<F: Field, Halo2: Halo2Types<F>> {
+    /// Adapted type
+    type Adaptee;
+
+    /// Returns a reference to the adaptee.
+    fn adaptee_ref(&self) -> &Self::Adaptee;
+
+    /// Returns a mutable reference to the adaptee.
+    fn adaptee_ref_mut(&mut self) -> &mut Self::Adaptee;
+
     /// Constraints two cells to be equal.
     ///
     /// The left hand side cell could be any cell and the right hand side is an instance cell.
