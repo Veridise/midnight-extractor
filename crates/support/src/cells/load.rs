@@ -11,42 +11,27 @@ use crate::{
         CellReprSize,
     },
     circuit::injected::InjectedIR,
-    error::Error,
     Halo2Types,
 };
 
 /// Trait for deserializing arbitrary types from a set of circuit cells.
-pub trait LoadFromCells<F: Field, C, H: Halo2Types<F>>: Sized + CellReprSize {
+pub trait LoadFromCells<F: Field, C, H: Halo2Types<F>, L>: Sized + CellReprSize {
     /// Loads an instance of Self from a set of cells.
     fn load(
         ctx: &mut ICtx<F, H>,
         chip: &C,
-        layouter: &mut impl LayoutAdaptor<F, H>,
+        layouter: &mut impl LayoutAdaptor<F, H, Adaptee = L>,
         injected_ir: &mut InjectedIR<H::RegionIndex, H::Expression>,
     ) -> Result<Self, H::Error>;
 }
 
-//impl<F: PrimeField, C> LoadFromCells<F, C> for AssignedCell<F, F> {
-//    fn load<L, R, E>(
-//        ctx: &mut ICtx<H>,
-//        _: &C,
-//        layouter: &mut L,
-//        _: &mut InjectedIR<H::RegionIndex, H::Expression>,
-//    ) -> Result<Self, Error>
-//    where
-//        L: LayoutAdaptor<F>,
-//    {
-//        ctx.assign_next(layouter)
-//    }
-//}
-
-impl<const N: usize, F: PrimeField, C, H: Halo2Types<F>, T: LoadFromCells<F, C, H>>
-    LoadFromCells<F, C, H> for [T; N]
+impl<const N: usize, F: PrimeField, C, H: Halo2Types<F>, L, T: LoadFromCells<F, C, H, L>>
+    LoadFromCells<F, C, H, L> for [T; N]
 {
     fn load(
         ctx: &mut ICtx<F, H>,
         chip: &C,
-        layouter: &mut impl LayoutAdaptor<F, H>,
+        layouter: &mut impl LayoutAdaptor<F, H, Adaptee = L>,
         injected_ir: &mut InjectedIR<H::RegionIndex, H::Expression>,
     ) -> Result<Self, H::Error> {
         let mut out: [MaybeUninit<T>; N] = [const { MaybeUninit::uninit() }; N];
@@ -59,11 +44,11 @@ impl<const N: usize, F: PrimeField, C, H: Halo2Types<F>, T: LoadFromCells<F, C, 
 
 macro_rules! load_const {
     ($t:ty) => {
-        impl<C, F: PrimeField, H: Halo2Types<F>> LoadFromCells<F, C, H> for $t {
+        impl<C, F: PrimeField, H: Halo2Types<F>, L> LoadFromCells<F, C, H, L> for $t {
             fn load(
                 ctx: &mut ICtx<F, H>,
                 _chip: &C,
-                _layouter: &mut impl LayoutAdaptor<F, H>,
+                _layouter: &mut impl LayoutAdaptor<F, H, Adaptee = L>,
                 _injected_ir: &mut InjectedIR<H::RegionIndex, H::Expression>,
             ) -> Result<Self, H::Error> {
                 Ok(ctx.primitive_constant()?)
@@ -77,11 +62,11 @@ load_const!(u8);
 load_const!(usize);
 load_const!(BigUint);
 
-impl<F: Field, C, H: Halo2Types<F>> LoadFromCells<F, C, H> for () {
+impl<F: Field, C, H: Halo2Types<F>, L> LoadFromCells<F, C, H, L> for () {
     fn load(
         _: &mut ICtx<F, H>,
         _: &C,
-        _: &mut impl LayoutAdaptor<F, H>,
+        _: &mut impl LayoutAdaptor<F, H, Adaptee = L>,
         _: &mut InjectedIR<H::RegionIndex, H::Expression>,
     ) -> Result<Self, H::Error> {
         Ok(())
@@ -90,14 +75,14 @@ impl<F: Field, C, H: Halo2Types<F>> LoadFromCells<F, C, H> for () {
 
 macro_rules! load_tuple {
     ($($t:ident),+) => {
-        impl<F:Field, C, H:Halo2Types<F>, $( $t: LoadFromCells<F,C,H>, )+> LoadFromCells<F,C,H> for (
+        impl<F:Field, C, H:Halo2Types<F>,L, $( $t: LoadFromCells<F,C,H,L>, )+> LoadFromCells<F,C,H,L> for (
                 $( $t, )+
             )
         {
             fn load(
                 ctx: &mut ICtx<F,H>,
                 chip: &C,
-                layouter: &mut impl LayoutAdaptor<F,H>,
+                layouter: &mut impl LayoutAdaptor<F,H,Adaptee=L>,
                 injected_ir: &mut InjectedIR<H::RegionIndex,H::Expression>,
             ) -> Result<Self, H::Error>
             {

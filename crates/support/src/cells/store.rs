@@ -8,56 +8,61 @@ use crate::{
         CellReprSize,
     },
     circuit::injected::InjectedIR,
-    error::Error,
     Halo2Types,
 };
 
 /// Trait for serializing arbitrary types to a set of circuit cells.
-pub trait StoreIntoCells<F: Field, C, H: Halo2Types<F>>: CellReprSize {
+pub trait StoreIntoCells<F: Field, C, H: Halo2Types<F>, L>: CellReprSize {
     /// Stores an instance of Self into a set of cells.
     fn store(
         self,
         ctx: &mut OCtx<F, H>,
         chip: &C,
-        layouter: &mut impl LayoutAdaptor<F, H>,
+        layouter: &mut impl LayoutAdaptor<F, H, Adaptee = L>,
         injected_ir: &mut InjectedIR<H::RegionIndex, H::Expression>,
     ) -> Result<(), H::Error>;
 }
 
-impl<const N: usize, F: PrimeField, C, H: Halo2Types<F>, T: StoreIntoCells<F, C, H>>
-    StoreIntoCells<F, C, H> for [T; N]
+impl<const N: usize, F: PrimeField, C, H: Halo2Types<F>, L, T: StoreIntoCells<F, C, H, L>>
+    StoreIntoCells<F, C, H, L> for [T; N]
 {
     fn store(
         self,
         ctx: &mut OCtx<F, H>,
         chip: &C,
-        layouter: &mut impl LayoutAdaptor<F, H>,
+        layouter: &mut impl LayoutAdaptor<F, H, Adaptee = L>,
         injected_ir: &mut InjectedIR<H::RegionIndex, H::Expression>,
     ) -> Result<(), H::Error> {
         self.into_iter().try_for_each(|t| t.store(ctx, chip, layouter, injected_ir))
     }
 }
 
-impl<F: Field, C, H: Halo2Types<F>> StoreIntoCells<F, C, H> for () {
+impl<F: Field, C, H: Halo2Types<F>, L> StoreIntoCells<F, C, H, L> for () {
     fn store(
         self,
         _ctx: &mut OCtx<F, H>,
         _chip: &C,
-        _layouter: &mut impl LayoutAdaptor<F, H>,
+        _layouter: &mut impl LayoutAdaptor<F, H, Adaptee = L>,
         _injected_ir: &mut InjectedIR<H::RegionIndex, H::Expression>,
     ) -> Result<(), H::Error> {
         Ok(())
     }
 }
 
-impl<F: Field, C, H: Halo2Types<F>, A1: StoreIntoCells<F, C, H>, A2: StoreIntoCells<F, C, H>>
-    StoreIntoCells<F, C, H> for (A1, A2)
+impl<
+        F: Field,
+        C,
+        H: Halo2Types<F>,
+        L,
+        A1: StoreIntoCells<F, C, H, L>,
+        A2: StoreIntoCells<F, C, H, L>,
+    > StoreIntoCells<F, C, H, L> for (A1, A2)
 {
     fn store(
         self,
         ctx: &mut OCtx<F, H>,
         chip: &C,
-        layouter: &mut impl LayoutAdaptor<F, H>,
+        layouter: &mut impl LayoutAdaptor<F, H, Adaptee = L>,
         injected_ir: &mut InjectedIR<H::RegionIndex, H::Expression>,
     ) -> Result<(), H::Error> {
         self.0.store(ctx, chip, layouter, injected_ir)?;
