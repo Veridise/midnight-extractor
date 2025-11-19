@@ -15,7 +15,7 @@ use crate::{
 };
 
 /// Trait for deserializing arbitrary types from a set of circuit cells.
-pub trait LoadFromCells<F: Field, C>: Sized + CellReprSize {
+pub trait LoadFromCells<F: Field, C, AC>: Sized + CellReprSize {
     /// Loads an instance of Self from a set of cells.
     fn load<L, R, E>(
         ctx: &mut ICtx<L::InstanceCol, L::AdviceCol>,
@@ -24,7 +24,7 @@ pub trait LoadFromCells<F: Field, C>: Sized + CellReprSize {
         injected_ir: &mut InjectedIR<R, E>,
     ) -> Result<Self, Error>
     where
-        L: LayoutAdaptor<F>;
+        L: LayoutAdaptor<F, AC>;
 }
 
 //impl<F: PrimeField, C> LoadFromCells<F, C> for AssignedCell<F, F> {
@@ -41,7 +41,9 @@ pub trait LoadFromCells<F: Field, C>: Sized + CellReprSize {
 //    }
 //}
 
-impl<const N: usize, F: PrimeField, C, T: LoadFromCells<F, C>> LoadFromCells<F, C> for [T; N] {
+impl<const N: usize, F: PrimeField, C, AC, T: LoadFromCells<F, C, AC>> LoadFromCells<F, C, AC>
+    for [T; N]
+{
     fn load<L, R, E>(
         ctx: &mut ICtx<L::InstanceCol, L::AdviceCol>,
         chip: &C,
@@ -49,7 +51,7 @@ impl<const N: usize, F: PrimeField, C, T: LoadFromCells<F, C>> LoadFromCells<F, 
         injected_ir: &mut InjectedIR<R, E>,
     ) -> Result<Self, Error>
     where
-        L: LayoutAdaptor<F>,
+        L: LayoutAdaptor<F, AC>,
     {
         let mut out: [MaybeUninit<T>; N] = [const { MaybeUninit::uninit() }; N];
         for e in &mut out[..] {
@@ -61,7 +63,7 @@ impl<const N: usize, F: PrimeField, C, T: LoadFromCells<F, C>> LoadFromCells<F, 
 
 macro_rules! load_const {
     ($t:ty) => {
-        impl<C, F: PrimeField> LoadFromCells<F, C> for $t {
+        impl<C, F: PrimeField, AC> LoadFromCells<F, C, AC> for $t {
             fn load<L, R, E>(
                 ctx: &mut ICtx<L::InstanceCol, L::AdviceCol>,
                 _chip: &C,
@@ -69,7 +71,7 @@ macro_rules! load_const {
                 _injected_ir: &mut InjectedIR<R, E>,
             ) -> Result<Self, Error>
             where
-                L: LayoutAdaptor<F>,
+                L: LayoutAdaptor<F, AC>,
             {
                 ctx.primitive_constant()
             }
@@ -82,7 +84,7 @@ load_const!(u8);
 load_const!(usize);
 load_const!(BigUint);
 
-impl<F: Field, C> LoadFromCells<F, C> for () {
+impl<F: Field, C, AC> LoadFromCells<F, C, AC> for () {
     fn load<L, R, E>(
         _: &mut ICtx<L::InstanceCol, L::AdviceCol>,
         _: &C,
@@ -90,7 +92,7 @@ impl<F: Field, C> LoadFromCells<F, C> for () {
         _: &mut InjectedIR<R, E>,
     ) -> Result<Self, Error>
     where
-        L: LayoutAdaptor<F>,
+        L: LayoutAdaptor<F, AC>,
     {
         Ok(())
     }
@@ -98,7 +100,7 @@ impl<F: Field, C> LoadFromCells<F, C> for () {
 
 macro_rules! load_tuple {
     ($($t:ident),+) => {
-        impl<F:Field,C,$( $t: LoadFromCells<F,C>, )+> LoadFromCells<F,C> for (
+        impl<F:Field, C, AC, $( $t: LoadFromCells<F,C,AC>, )+> LoadFromCells<F,C,AC> for (
                 $( $t, )+
             )
         {
@@ -107,8 +109,10 @@ macro_rules! load_tuple {
                 chip: &C,
                 layouter: &mut L,
                 injected_ir: &mut InjectedIR<R,E>,
-            ) -> Result<Self, Error> where
-        L: LayoutAdaptor<F>{
+            ) -> Result<Self, Error>
+            where
+                L: LayoutAdaptor<F, AC>
+            {
                 Ok(($( $t::load(ctx, chip, layouter, injected_ir)?, )+))
             }
         }

@@ -89,15 +89,13 @@ impl<F: Field, L: midnight_proofs::circuit::Layouter<F>> LayoutAdaptor<F> for L 
 }
 
 /// Adaptor trait that defines the required behavior from a Layouter.
-pub trait LayoutAdaptor<F: Field> {
+pub trait LayoutAdaptor<F: Field, AC> {
     /// Type for instance columns.
     type InstanceCol: std::fmt::Debug + Copy + Clone;
     /// Type for advice columns.
     type AdviceCol: std::fmt::Debug + Copy + Clone;
     /// Type for a cell.
     type Cell: std::fmt::Debug + Copy + Clone;
-    /// Type for an assigned cell.
-    type AssignedCell; //: DecomposeIn<Self::Cell>;
 
     /// Constraints two cells to be equal.
     ///
@@ -124,7 +122,7 @@ pub trait LayoutAdaptor<F: Field> {
         advice_row: usize,
         instance_col: Self::InstanceCol,
         instance_row: usize,
-    ) -> Result<Self::AssignedCell, Error>;
+    ) -> Result<AC, Error>;
 }
 
 /// A cell in the table.
@@ -233,9 +231,9 @@ impl<I: Copy, A: Copy> OutputDescr<I, A> {
         }
     }
 
-    fn set_to_zero<F: Field>(
+    fn set_to_zero<F: Field, AC>(
         &self,
-        layouter: &mut impl LayoutAdaptor<F, InstanceCol = I, AdviceCol = A>,
+        layouter: &mut impl LayoutAdaptor<F, AC, InstanceCol = I, AdviceCol = A>,
     ) -> Result<(), Error> {
         let helper_cell =
             layouter.constrain_advice_constant(self.helper.col, self.helper.row, F::ZERO)?;
@@ -243,9 +241,8 @@ impl<I: Copy, A: Copy> OutputDescr<I, A> {
         Ok(())
     }
 
-    fn assign<F: Field, L: LayoutAdaptor<F, InstanceCol = I, AdviceCol = A>>(
+    fn assign<F: Field, AC, L: LayoutAdaptor<F, AC, InstanceCol = I, AdviceCol = A>>(
         &self,
-        //value: impl Into<AssignedCell<V, F>>,
         cell: L::Cell,
         layouter: &mut L,
     ) -> Result<(), Error>
@@ -318,7 +315,7 @@ impl<'i, 's, I: Copy, A: Copy> ICtx<'i, 's, I, A> {
     /// Assigns the next input to a cell.
     pub fn assign_next<F: PrimeField, C>(
         &mut self,
-        layouter: &mut impl LayoutAdaptor<F, AssignedCell = C, InstanceCol = I, AdviceCol = A>,
+        layouter: &mut impl LayoutAdaptor<F, C, InstanceCol = I, AdviceCol = A>,
     ) -> Result<C, Error> {
         let i = self.next()?;
         layouter.assign_advice_from_instance(i.temp(), i.temp_offset(), i.col(), i.row())
@@ -363,18 +360,18 @@ impl<'o, I: Copy, A: Copy> OCtx<'o, I, A> {
     }
 
     /// Sets the next output to zero.
-    pub fn set_next_to_zero<F: Field>(
+    pub fn set_next_to_zero<F: Field, AC>(
         &mut self,
-        layouter: &mut impl LayoutAdaptor<F, InstanceCol = I, AdviceCol = A>,
+        layouter: &mut impl LayoutAdaptor<F, AC, InstanceCol = I, AdviceCol = A>,
     ) -> Result<(), Error> {
         self.next()?.set_to_zero(layouter)
     }
 
     /// Sets the next output to the given value.
-    pub fn assign_next<F, C>(
+    pub fn assign_next<F, C, AC>(
         &mut self,
         value: impl DecomposeIn<C>,
-        layouter: &mut impl LayoutAdaptor<F, Cell = C, InstanceCol = I, AdviceCol = A>,
+        layouter: &mut impl LayoutAdaptor<F, AC, Cell = C, InstanceCol = I, AdviceCol = A>,
     ) -> Result<(), Error>
     where
         F: PrimeField,
