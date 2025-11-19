@@ -16,10 +16,10 @@ use crate::{
 };
 
 /// Trait for deserializing arbitrary types from a set of circuit cells.
-pub trait LoadFromCells<F: Field, C, H: Halo2Types>: Sized + CellReprSize {
+pub trait LoadFromCells<F: Field, C, H: Halo2Types<F>>: Sized + CellReprSize {
     /// Loads an instance of Self from a set of cells.
     fn load(
-        ctx: &mut ICtx<H>,
+        ctx: &mut ICtx<F, H>,
         chip: &C,
         layouter: &mut impl LayoutAdaptor<F, H>,
         injected_ir: &mut InjectedIR<H::RegionIndex, H::Expression>,
@@ -40,11 +40,11 @@ pub trait LoadFromCells<F: Field, C, H: Halo2Types>: Sized + CellReprSize {
 //    }
 //}
 
-impl<const N: usize, F: PrimeField, C, H: Halo2Types, T: LoadFromCells<F, C, H>>
+impl<const N: usize, F: PrimeField, C, H: Halo2Types<F>, T: LoadFromCells<F, C, H>>
     LoadFromCells<F, C, H> for [T; N]
 {
     fn load(
-        ctx: &mut ICtx<H>,
+        ctx: &mut ICtx<F, H>,
         chip: &C,
         layouter: &mut impl LayoutAdaptor<F, H>,
         injected_ir: &mut InjectedIR<H::RegionIndex, H::Expression>,
@@ -59,9 +59,9 @@ impl<const N: usize, F: PrimeField, C, H: Halo2Types, T: LoadFromCells<F, C, H>>
 
 macro_rules! load_const {
     ($t:ty) => {
-        impl<C, F: PrimeField, H: Halo2Types> LoadFromCells<F, C, H> for $t {
+        impl<C, F: PrimeField, H: Halo2Types<F>> LoadFromCells<F, C, H> for $t {
             fn load(
-                ctx: &mut ICtx<H>,
+                ctx: &mut ICtx<F, H>,
                 _chip: &C,
                 _layouter: &mut impl LayoutAdaptor<F, H>,
                 _injected_ir: &mut InjectedIR<H::RegionIndex, H::Expression>,
@@ -77,9 +77,9 @@ load_const!(u8);
 load_const!(usize);
 load_const!(BigUint);
 
-impl<F: Field, C, H: Halo2Types> LoadFromCells<F, C, H> for () {
+impl<F: Field, C, H: Halo2Types<F>> LoadFromCells<F, C, H> for () {
     fn load(
-        _: &mut ICtx<H>,
+        _: &mut ICtx<F, H>,
         _: &C,
         _: &mut impl LayoutAdaptor<F, H>,
         _: &mut InjectedIR<H::RegionIndex, H::Expression>,
@@ -90,12 +90,12 @@ impl<F: Field, C, H: Halo2Types> LoadFromCells<F, C, H> for () {
 
 macro_rules! load_tuple {
     ($($t:ident),+) => {
-        impl<F:Field, C, H:Halo2Types, $( $t: LoadFromCells<F,C,H>, )+> LoadFromCells<F,C,H> for (
+        impl<F:Field, C, H:Halo2Types<F>, $( $t: LoadFromCells<F,C,H>, )+> LoadFromCells<F,C,H> for (
                 $( $t, )+
             )
         {
             fn load(
-                ctx: &mut ICtx<H>,
+                ctx: &mut ICtx<F,H>,
                 chip: &C,
                 layouter: &mut impl LayoutAdaptor<F,H>,
                 injected_ir: &mut InjectedIR<H::RegionIndex,H::Expression>,

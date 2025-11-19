@@ -4,7 +4,7 @@
 #![deny(missing_debug_implementations)]
 #![deny(missing_docs)]
 
-use ff::PrimeField;
+use ff::{Field, PrimeField};
 //use ir::{stmt::IRStmt, CmpOp};
 //use midnight_proofs::{
 //    circuit::{AssignedCell, Cell, RegionIndex},
@@ -31,7 +31,7 @@ pub mod ir {
 /// An implementation of halo2 compatible with this crate must have
 /// some type that implements this trait s.t. it can be passed to traits
 /// and types in this crate.
-pub trait Halo2Types {
+pub trait Halo2Types<F: Field> {
     /// Type for instance columns.
     type InstanceCol: std::fmt::Debug + Copy + Clone;
     /// Type for advice columns.

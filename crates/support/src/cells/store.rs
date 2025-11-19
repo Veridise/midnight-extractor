@@ -13,23 +13,23 @@ use crate::{
 };
 
 /// Trait for serializing arbitrary types to a set of circuit cells.
-pub trait StoreIntoCells<F: Field, C, H: Halo2Types>: CellReprSize {
+pub trait StoreIntoCells<F: Field, C, H: Halo2Types<F>>: CellReprSize {
     /// Stores an instance of Self into a set of cells.
     fn store(
         self,
-        ctx: &mut OCtx<H>,
+        ctx: &mut OCtx<F, H>,
         chip: &C,
         layouter: &mut impl LayoutAdaptor<F, H>,
         injected_ir: &mut InjectedIR<H::RegionIndex, H::Expression>,
     ) -> Result<(), Error>;
 }
 
-impl<const N: usize, F: PrimeField, C, H: Halo2Types, T: StoreIntoCells<F, C, H>>
+impl<const N: usize, F: PrimeField, C, H: Halo2Types<F>, T: StoreIntoCells<F, C, H>>
     StoreIntoCells<F, C, H> for [T; N]
 {
     fn store(
         self,
-        ctx: &mut OCtx<H>,
+        ctx: &mut OCtx<F, H>,
         chip: &C,
         layouter: &mut impl LayoutAdaptor<F, H>,
         injected_ir: &mut InjectedIR<H::RegionIndex, H::Expression>,
@@ -38,10 +38,10 @@ impl<const N: usize, F: PrimeField, C, H: Halo2Types, T: StoreIntoCells<F, C, H>
     }
 }
 
-impl<F: Field, C, H: Halo2Types> StoreIntoCells<F, C, H> for () {
+impl<F: Field, C, H: Halo2Types<F>> StoreIntoCells<F, C, H> for () {
     fn store(
         self,
-        _ctx: &mut OCtx<H>,
+        _ctx: &mut OCtx<F, H>,
         _chip: &C,
         _layouter: &mut impl LayoutAdaptor<F, H>,
         _injected_ir: &mut InjectedIR<H::RegionIndex, H::Expression>,
@@ -50,12 +50,12 @@ impl<F: Field, C, H: Halo2Types> StoreIntoCells<F, C, H> for () {
     }
 }
 
-impl<F: Field, C, H: Halo2Types, A1: StoreIntoCells<F, C, H>, A2: StoreIntoCells<F, C, H>>
+impl<F: Field, C, H: Halo2Types<F>, A1: StoreIntoCells<F, C, H>, A2: StoreIntoCells<F, C, H>>
     StoreIntoCells<F, C, H> for (A1, A2)
 {
     fn store(
         self,
-        ctx: &mut OCtx<H>,
+        ctx: &mut OCtx<F, H>,
         chip: &C,
         layouter: &mut impl LayoutAdaptor<F, H>,
         injected_ir: &mut InjectedIR<H::RegionIndex, H::Expression>,
