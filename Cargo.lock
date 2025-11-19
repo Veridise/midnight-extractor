@@ -208,6 +208,12 @@ dependencies = [
 
 [[package]]
 name = "mdnt-groups-support"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "92930a250447b06f3b6b64caaa63add0c0314e630d1486bce5e6c607d17f9b42"
+
+[[package]]
+name = "mdnt-groups-support"
 version = "0.1.1"
 
 [[package]]
@@ -217,7 +223,7 @@ dependencies = [
  "ff",
  "halo2-llzk-frontend",
  "log",
- "mdnt-groups-support",
+ "mdnt-groups-support 0.1.0",
  "num-bigint",
  "num-traits",
  "thiserror",

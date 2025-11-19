@@ -14,7 +14,7 @@ num-bigint = "0.4"
 num-traits = "0.2"
 log = "0.4"
 
-mdnt-groups-support = { path = "../groups-support", version = "*"}
+mdnt-groups-support = { version = "0.1.0"}
 
 ff.workspace = true
 # midnight-curves.workspace = true 
