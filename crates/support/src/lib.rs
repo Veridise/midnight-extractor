@@ -70,16 +70,22 @@ pub fn fe_to_big<F: PrimeField>(fe: F) -> BigUint {
     BigUint::from_bytes_le(fe.to_repr().as_ref())
 }
 
-///// Creates an [`Expression`] that queries the given cell relative to the
-///// beginning of the cell's region.
-//pub fn cell_to_expr<F: PrimeField>(x: &AssignedCell<F, F>) -> Result<Expression<F>, Error> {
-//    cell_to_expr_inner(x.cell())
-//}
-//
+/// Creates an [`Expression`] that queries the given cell relative to the
+/// beginning of the cell's region.
+#[macro_export]
+macro_rules! cell_to_expr {
+    ($x:expr, $F:ty) => {{
+        let c = $x.cell();
+        i32::try_from(c.row_offset)
+            .map(midnight_proofs::poly::Rotation)
+            .map(|r| c.column.query_cell::<$F>(r))
+    }};
+}
+
 //fn cell_to_expr_inner<F: PrimeField>(c: Cell) -> Result<Expression<F>, Error> {
 //    Ok(c.column.query_cell::<F>(Rotation(c.row_offset.try_into()?)))
 //}
-//
+
 ///// Convenience method for creating a less-than constraint between a cell and a
 ///// constant.
 //pub fn injectable_less_than<F: PrimeField>(
