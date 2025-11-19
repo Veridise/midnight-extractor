@@ -12,7 +12,7 @@ use crate::{
 };
 
 /// Trait for serializing arbitrary types to a set of circuit cells.
-pub trait StoreIntoCells<F: Field, C, AC>: CellReprSize {
+pub trait StoreIntoCells<F: Field, C, AC, Cell>: CellReprSize {
     /// Stores an instance of Self into a set of cells.
     fn store<L, R, E>(
         self,
@@ -22,26 +22,11 @@ pub trait StoreIntoCells<F: Field, C, AC>: CellReprSize {
         injected_ir: &mut InjectedIR<R, E>,
     ) -> Result<(), Error>
     where
-        L: LayoutAdaptor<F, AC>;
+        L: LayoutAdaptor<F, AC, Cell = Cell>;
 }
 
-//impl<F: PrimeField, C> StoreIntoCells<F, C> for AssignedCell<F, F> {
-//    fn store<L, R, E>(
-//        self,
-//        ctx: &mut OCtx<L::InstanceCol, L::AdviceCol>,
-//        _: &C,
-//        layouter: &mut L,
-//        _: &mut InjectedIR<R, E>,
-//    ) -> Result<(), Error>
-//    where
-//        L: LayoutAdaptor<F>,
-//    {
-//        ctx.assign_next(self, layouter)
-//    }
-//}
-
-impl<const N: usize, F: PrimeField, C, AC, T: StoreIntoCells<F, C, AC>> StoreIntoCells<F, C, AC>
-    for [T; N]
+impl<const N: usize, F: PrimeField, C, AC, Cell, T: StoreIntoCells<F, C, AC, Cell>>
+    StoreIntoCells<F, C, AC, Cell> for [T; N]
 {
     fn store<L, R, E>(
         self,
@@ -51,13 +36,13 @@ impl<const N: usize, F: PrimeField, C, AC, T: StoreIntoCells<F, C, AC>> StoreInt
         injected_ir: &mut InjectedIR<R, E>,
     ) -> Result<(), Error>
     where
-        L: LayoutAdaptor<F, AC>,
+        L: LayoutAdaptor<F, AC, Cell = Cell>,
     {
         self.into_iter().try_for_each(|t| t.store(ctx, chip, layouter, injected_ir))
     }
 }
 
-impl<F: Field, C, AC> StoreIntoCells<F, C, AC> for () {
+impl<F: Field, C, AC, Cell> StoreIntoCells<F, C, AC, Cell> for () {
     fn store<L, R, E>(
         self,
         _ctx: &mut OCtx<L::InstanceCol, L::AdviceCol>,
@@ -66,14 +51,20 @@ impl<F: Field, C, AC> StoreIntoCells<F, C, AC> for () {
         _injected_ir: &mut InjectedIR<R, E>,
     ) -> Result<(), Error>
     where
-        L: LayoutAdaptor<F, AC>,
+        L: LayoutAdaptor<F, AC, Cell = Cell>,
     {
         Ok(())
     }
 }
 
-impl<F: Field, C, AC, A1: StoreIntoCells<F, C, AC>, A2: StoreIntoCells<F, C, AC>>
-    StoreIntoCells<F, C, AC> for (A1, A2)
+impl<
+        F: Field,
+        C,
+        AC,
+        Cell,
+        A1: StoreIntoCells<F, C, AC, Cell>,
+        A2: StoreIntoCells<F, C, AC, Cell>,
+    > StoreIntoCells<F, C, AC, Cell> for (A1, A2)
 {
     fn store<L, R, E>(
         self,
@@ -83,7 +74,7 @@ impl<F: Field, C, AC, A1: StoreIntoCells<F, C, AC>, A2: StoreIntoCells<F, C, AC>
         injected_ir: &mut InjectedIR<R, E>,
     ) -> Result<(), Error>
     where
-        L: LayoutAdaptor<F, AC>,
+        L: LayoutAdaptor<F, AC, Cell = Cell>,
     {
         self.0.store(ctx, chip, layouter, injected_ir)?;
         self.1.store(ctx, chip, layouter, injected_ir)
