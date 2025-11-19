@@ -102,6 +102,7 @@ macro_rules! cell_to_expr {
         i32::try_from(c.row_offset)
             .map(midnight_proofs::poly::Rotation)
             .map(|r| c.column.query_cell::<$F>(r))
+            .map_err($crate::error::Error::from)
     }};
 }
 
