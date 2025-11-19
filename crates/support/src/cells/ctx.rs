@@ -25,7 +25,7 @@ pub trait LayoutAdaptor<F: Field, AC> {
     /// Type for a cell.
     type Cell: std::fmt::Debug + Copy + Clone;
     /// Region type.
-    type Region;
+    type Region<'a>;
 
     /// Constraints two cells to be equal.
     ///
@@ -58,7 +58,7 @@ pub trait LayoutAdaptor<F: Field, AC> {
     fn copy_advice(
         &mut self,
         ac: &AC,
-        region: &mut Self::Region,
+        region: &mut Self::Region<'_>,
         advice_col: Self::AdviceCol,
         advice_row: usize,
     ) -> Result<AC, Error>;
@@ -66,7 +66,7 @@ pub trait LayoutAdaptor<F: Field, AC> {
     /// Enters the scope of a region.
     fn region<A, AR, N, NR>(&mut self, name: N, assignment: A) -> Result<AR, Error>
     where
-        A: FnMut(Self::Region) -> Result<AR, Error>,
+        A: FnMut(Self::Region<'_>) -> Result<AR, Error>,
         N: Fn() -> NR,
         NR: Into<String>;
 }
