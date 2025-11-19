@@ -5,7 +5,7 @@
 #[macro_export]
 macro_rules! circuit_initialization_from_scratch {
     ($C:ty, $F:ident $(, $other:ident)* $(where $($conds:tt)+ )?) => {
-        impl<L, $F, $( $other,)*> $crate::circuit::CircuitInitialization<$F> for $C
+        impl<L, $F, $( $other,)*> $crate::circuit::CircuitInitialization<L> for $C
         where
             L: midnight_proofs::circuit::Layouter<$F>,
             $F: ff::PrimeField,
