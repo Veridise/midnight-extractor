@@ -23,7 +23,7 @@ pub trait LoadFromCells<F: Field, C, H: Halo2Types<F>>: Sized + CellReprSize {
         chip: &C,
         layouter: &mut impl LayoutAdaptor<F, H>,
         injected_ir: &mut InjectedIR<H::RegionIndex, H::Expression>,
-    ) -> Result<Self, Error>;
+    ) -> Result<Self, H::Error>;
 }
 
 //impl<F: PrimeField, C> LoadFromCells<F, C> for AssignedCell<F, F> {
@@ -48,7 +48,7 @@ impl<const N: usize, F: PrimeField, C, H: Halo2Types<F>, T: LoadFromCells<F, C, 
         chip: &C,
         layouter: &mut impl LayoutAdaptor<F, H>,
         injected_ir: &mut InjectedIR<H::RegionIndex, H::Expression>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, H::Error> {
         let mut out: [MaybeUninit<T>; N] = [const { MaybeUninit::uninit() }; N];
         for e in &mut out[..] {
             e.write(T::load(ctx, chip, layouter, injected_ir)?);
@@ -65,8 +65,8 @@ macro_rules! load_const {
                 _chip: &C,
                 _layouter: &mut impl LayoutAdaptor<F, H>,
                 _injected_ir: &mut InjectedIR<H::RegionIndex, H::Expression>,
-            ) -> Result<Self, Error> {
-                ctx.primitive_constant()
+            ) -> Result<Self, H::Error> {
+                Ok(ctx.primitive_constant()?)
             }
         }
     };
@@ -83,7 +83,7 @@ impl<F: Field, C, H: Halo2Types<F>> LoadFromCells<F, C, H> for () {
         _: &C,
         _: &mut impl LayoutAdaptor<F, H>,
         _: &mut InjectedIR<H::RegionIndex, H::Expression>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, H::Error> {
         Ok(())
     }
 }
@@ -99,7 +99,7 @@ macro_rules! load_tuple {
                 chip: &C,
                 layouter: &mut impl LayoutAdaptor<F,H>,
                 injected_ir: &mut InjectedIR<H::RegionIndex,H::Expression>,
-            ) -> Result<Self, Error>
+            ) -> Result<Self, H::Error>
             {
                 Ok(($( $t::load(ctx, chip, layouter, injected_ir)?, )+))
             }

@@ -21,7 +21,7 @@ pub trait StoreIntoCells<F: Field, C, H: Halo2Types<F>>: CellReprSize {
         chip: &C,
         layouter: &mut impl LayoutAdaptor<F, H>,
         injected_ir: &mut InjectedIR<H::RegionIndex, H::Expression>,
-    ) -> Result<(), Error>;
+    ) -> Result<(), H::Error>;
 }
 
 impl<const N: usize, F: PrimeField, C, H: Halo2Types<F>, T: StoreIntoCells<F, C, H>>
@@ -33,7 +33,7 @@ impl<const N: usize, F: PrimeField, C, H: Halo2Types<F>, T: StoreIntoCells<F, C,
         chip: &C,
         layouter: &mut impl LayoutAdaptor<F, H>,
         injected_ir: &mut InjectedIR<H::RegionIndex, H::Expression>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), H::Error> {
         self.into_iter().try_for_each(|t| t.store(ctx, chip, layouter, injected_ir))
     }
 }
@@ -45,7 +45,7 @@ impl<F: Field, C, H: Halo2Types<F>> StoreIntoCells<F, C, H> for () {
         _chip: &C,
         _layouter: &mut impl LayoutAdaptor<F, H>,
         _injected_ir: &mut InjectedIR<H::RegionIndex, H::Expression>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), H::Error> {
         Ok(())
     }
 }
@@ -59,7 +59,7 @@ impl<F: Field, C, H: Halo2Types<F>, A1: StoreIntoCells<F, C, H>, A2: StoreIntoCe
         chip: &C,
         layouter: &mut impl LayoutAdaptor<F, H>,
         injected_ir: &mut InjectedIR<H::RegionIndex, H::Expression>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), H::Error> {
         self.0.store(ctx, chip, layouter, injected_ir)?;
         self.1.store(ctx, chip, layouter, injected_ir)
     }
