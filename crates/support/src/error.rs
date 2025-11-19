@@ -67,6 +67,9 @@ impl From<&'static str> for Error {
     }
 }
 
+unsafe impl Send for Error {}
+unsafe impl Sync for Error {}
+
 #[cfg(feature = "proofs")]
 /// Alias for the error emitted by Halo2 during synthesis.
 pub type PlonkError = midnight_proofs::plonk::Error;
