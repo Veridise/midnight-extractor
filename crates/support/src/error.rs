@@ -28,10 +28,9 @@ pub enum Error {
     /// BigUint parse error.
     #[error("Parse failure")]
     BigUintParse(#[from] ParseBigIntError),
-    #[cfg(feature = "proofs")]
     /// Plonk synthesis error.
     #[error("Synthesis error")]
-    Plonk(#[from] PlonkError),
+    Plonk(Box<dyn std::error::Error>),
     /// An error represented with an static string.
     #[error("Error")]
     StrError(&'static str),
