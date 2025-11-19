@@ -1,49 +1,53 @@
 //! Traits related to circuit configuration.
 
-use ff::PrimeField;
-use midnight_proofs::plonk::{Advice, Column, ConstraintSystem, Fixed, Instance, TableColumn};
+//use midnight_proofs::plonk::{Advice, Column, ConstraintSystem, Fixed, Instance, TableColumn};
 
 /// Helper trait that enables composing types that can handle circuit
 /// configuration.
-pub trait AutoConfigure<Output = Self> {
+pub trait AutoConfigure<CS, Output = Self> {
     /// Creates an instance of self using the constraint system.
-    fn configure<F: PrimeField>(meta: &mut ConstraintSystem<F>) -> Output;
+    fn configure(meta: &mut CS) -> Output;
 }
 
+/// Creates an implementation of [`AutoConfigure`].
+#[macro_export]
 macro_rules! auto_conf_impl {
     ($T:ty, $method:ident) => {
-        impl AutoConfigure for $T {
-            fn configure<F: PrimeField>(meta: &mut ConstraintSystem<F>) -> $T {
+        $crate::auto_conf_impl!($T, $method, midnight_proofs);
+    };
+    ($T:ty, $method:ident, $proofs:ident) => {
+        impl<F: ff::Field> AutoConfigure<$proofs::plonk::ConstraintSystem<F>, $T> for $T {
+            fn configure(meta: &mut $proofs::plonk::ConstraintSystem<F>) -> $T {
                 meta.$method()
             }
         }
     };
 }
 
-auto_conf_impl!(Column<Fixed>, fixed_column);
-auto_conf_impl!(Column<Instance>, instance_column);
-auto_conf_impl!(Column<Advice>, advice_column);
-auto_conf_impl!(TableColumn, lookup_table_column);
+//auto_conf_impl!(Column<Fixed>, fixed_column);
+//auto_conf_impl!(Column<Instance>, instance_column);
+//auto_conf_impl!(Column<Advice>, advice_column);
+//auto_conf_impl!(TableColumn, lookup_table_column);
 
-impl<T, const N: usize> AutoConfigure for [T; N]
+impl<CS, T, const N: usize> AutoConfigure<CS> for [T; N]
 where
-    T: AutoConfigure,
+    T: AutoConfigure<CS>,
 {
-    fn configure<F: PrimeField>(meta: &mut ConstraintSystem<F>) -> [T; N] {
+    fn configure(meta: &mut CS) -> [T; N] {
         std::array::from_fn(|_| T::configure(meta))
     }
 }
 
-impl AutoConfigure for () {
-    fn configure<F: PrimeField>(_: &mut ConstraintSystem<F>) -> Self {
+impl<CS> AutoConfigure<CS> for () {
+    fn configure(_: &mut CS) -> Self {
         ()
     }
 }
 
 macro_rules! tuple_auto_conf_impl {
     ($($t:ident),+) => {
-        impl<$( $t: AutoConfigure, )+> AutoConfigure for ( $( $t, )+ ) {
-            fn configure<F: PrimeField>(meta: &mut ConstraintSystem<F>) -> ( $( $t, )+ ) {
+        impl<CS, $( $t: AutoConfigure<CS>, )+> AutoConfigure<CS> for ( $( $t, )+ ) {
+            fn configure(meta: &mut CS) -> ( $( $t, )+ ) {
                 (
                     $( $t::configure(meta), )+
                 )

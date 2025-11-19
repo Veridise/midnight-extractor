@@ -473,7 +473,7 @@ dependencies = [
  "ff",
  "halo2-llzk-frontend",
  "log",
- "midnight-curves",
+ "mdnt-groups-support",
  "midnight-proofs",
  "num-bigint",
  "num-traits",

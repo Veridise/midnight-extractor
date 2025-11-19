@@ -6,73 +6,72 @@ use std::{
 };
 
 use crate::ir::stmt::IRStmt;
-use midnight_proofs::{circuit::RegionIndex, plonk::Expression};
 
 /// Records additional IR that gets added after synthesis.
-pub struct InjectedIR<F>(HashMap<RegionIndex, Vec<IRStmt<(usize, Expression<F>)>>>);
+pub struct InjectedIR<R, E>(HashMap<R, Vec<IRStmt<(usize, E)>>>);
 
-impl<F> InjectedIR<F> {
+impl<R, E> InjectedIR<R, E> {
     /// Adds the IR of the other into self.
-    pub fn combine_ir(&mut self, other: Self) {
+    pub fn combine_ir(&mut self, other: Self)
+    where
+        R: std::hash::Hash + Copy + Eq,
+    {
         for (region, ir) in other {
             self.entry(region).or_default().extend(ir);
         }
     }
 }
 
-impl<F> Deref for InjectedIR<F> {
-    type Target = HashMap<RegionIndex, Vec<IRStmt<(usize, Expression<F>)>>>;
+impl<R, E> Deref for InjectedIR<R, E> {
+    type Target = HashMap<R, Vec<IRStmt<(usize, E)>>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl<F> DerefMut for InjectedIR<F> {
+impl<R, E> DerefMut for InjectedIR<R, E> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
-impl<F> Default for InjectedIR<F> {
+impl<R, E> Default for InjectedIR<R, E> {
     fn default() -> Self {
         Self(Default::default())
     }
 }
 
-impl<F: std::fmt::Debug> std::fmt::Debug for InjectedIR<F> {
+impl<R: std::fmt::Debug, E: std::fmt::Debug> std::fmt::Debug for InjectedIR<R, E> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self.0)
     }
 }
 
-impl<F> IntoIterator for InjectedIR<F> {
-    type Item = (RegionIndex, Vec<IRStmt<(usize, Expression<F>)>>);
+impl<R, E> IntoIterator for InjectedIR<R, E> {
+    type Item = (R, Vec<IRStmt<(usize, E)>>);
 
-    type IntoIter =
-        <HashMap<RegionIndex, Vec<IRStmt<(usize, Expression<F>)>>> as IntoIterator>::IntoIter;
+    type IntoIter = <HashMap<R, Vec<IRStmt<(usize, E)>>> as IntoIterator>::IntoIter;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
     }
 }
 
-impl<'a, F> IntoIterator for &'a InjectedIR<F> {
-    type Item = (&'a RegionIndex, &'a Vec<IRStmt<(usize, Expression<F>)>>);
+impl<'a, R, E> IntoIterator for &'a InjectedIR<R, E> {
+    type Item = (&'a R, &'a Vec<IRStmt<(usize, E)>>);
 
-    type IntoIter =
-        <&'a HashMap<RegionIndex, Vec<IRStmt<(usize, Expression<F>)>>> as IntoIterator>::IntoIter;
+    type IntoIter = <&'a HashMap<R, Vec<IRStmt<(usize, E)>>> as IntoIterator>::IntoIter;
 
     fn into_iter(self) -> Self::IntoIter {
         (&self.0).into_iter()
     }
 }
 
-impl<'a, F> IntoIterator for &'a mut InjectedIR<F> {
-    type Item = (&'a RegionIndex, &'a mut Vec<IRStmt<(usize, Expression<F>)>>);
+impl<'a, R, E> IntoIterator for &'a mut InjectedIR<R, E> {
+    type Item = (&'a R, &'a mut Vec<IRStmt<(usize, E)>>);
 
-    type IntoIter =
-        <&'a mut HashMap<RegionIndex, Vec<IRStmt<(usize, Expression<F>)>>> as IntoIterator>::IntoIter;
+    type IntoIter = <&'a mut HashMap<R, Vec<IRStmt<(usize, E)>>> as IntoIterator>::IntoIter;
 
     fn into_iter(self) -> Self::IntoIter {
         (&mut self.0).into_iter()

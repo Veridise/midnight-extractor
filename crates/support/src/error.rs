@@ -5,7 +5,7 @@ use std::{num::ParseIntError, str::ParseBoolError};
 use num_bigint::{BigInt, ParseBigIntError, TryFromBigIntError};
 use thiserror::Error;
 
-use crate::fields::{Blstrs, MidnightFp, Secp256k1Fp};
+//use crate::fields::{Blstrs, MidnightFp, Secp256k1Fp};
 
 /// Error type.
 #[derive(Error, Debug)]
@@ -28,21 +28,22 @@ pub enum Error {
     /// BigUint parse error.
     #[error("Parse failure")]
     BigUintParse(#[from] ParseBigIntError),
+    #[cfg(feature = "proofs")]
     /// Plonk synthesis error.
     #[error("Synthesis error")]
     Plonk(#[from] PlonkError),
     /// An error represented with an static string.
     #[error("Error")]
     StrError(&'static str),
-    /// Error when a constant point is not in the elliptic curve
-    #[error("Point ({0}, {1}) is not in the curve")]
-    PointNotInCurve(Blstrs, Blstrs),
-    /// Error when a constant point is not in the elliptic curve (3D version)
-    #[error("Point ({0}, {1}, {2}) is not in the curve")]
-    Point3NotInCurve(MidnightFp, MidnightFp, MidnightFp),
-    /// Error when a constant point is not in the elliptic curve (3D version)
-    #[error("Point ({0:?}, {1:?}, {2:?}) is not in the curve")]
-    Point3NotInCurveSecp256k1(Secp256k1Fp, Secp256k1Fp, Secp256k1Fp),
+    ///// Error when a constant point is not in the elliptic curve
+    //#[error("Point ({0}, {1}) is not in the curve")]
+    //PointNotInCurve(Blstrs, Blstrs),
+    ///// Error when a constant point is not in the elliptic curve (3D version)
+    //#[error("Point ({0}, {1}, {2}) is not in the curve")]
+    //Point3NotInCurve(MidnightFp, MidnightFp, MidnightFp),
+    ///// Error when a constant point is not in the elliptic curve (3D version)
+    //#[error("Point ({0:?}, {1:?}, {2:?}) is not in the curve")]
+    //Point3NotInCurveSecp256k1(Secp256k1Fp, Secp256k1Fp, Secp256k1Fp),
     /// Int cast error.
     #[error(transparent)]
     IntCast(#[from] std::num::TryFromIntError),
@@ -67,9 +68,11 @@ impl From<&'static str> for Error {
     }
 }
 
+#[cfg(feature = "proofs")]
 /// Alias for the error emitted by Halo2 during synthesis.
 pub type PlonkError = midnight_proofs::plonk::Error;
 
+#[cfg(feature = "proofs")]
 impl From<Error> for PlonkError {
     fn from(value: Error) -> Self {
         match value {

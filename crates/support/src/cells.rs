@@ -1,7 +1,7 @@
 //! Types and traits related to loading and storing data from cells.
 
 use ff::PrimeField;
-use midnight_proofs::circuit::AssignedCell;
+//use midnight_proofs::circuit::AssignedCell;
 use num_bigint::BigUint;
 
 pub mod ctx;
@@ -18,9 +18,9 @@ impl<const N: usize, T: CellReprSize> CellReprSize for [T; N] {
     const SIZE: usize = N * T::SIZE;
 }
 
-impl<F: PrimeField> CellReprSize for AssignedCell<F, F> {
-    const SIZE: usize = 1;
-}
+//impl<F: PrimeField> CellReprSize for AssignedCell<F, F> {
+//    const SIZE: usize = 1;
+//}
 
 macro_rules! zero_size_repr {
     ($t:ty) => {
@@ -30,15 +30,15 @@ macro_rules! zero_size_repr {
     };
 }
 
-zero_size_repr!(crate::fields::Blstrs);
-zero_size_repr!(crate::fields::MidnightFp);
-zero_size_repr!(crate::fields::JubjubFr);
-zero_size_repr!(crate::fields::Jubjub);
-zero_size_repr!(crate::fields::JubjubSubgroup);
-zero_size_repr!(crate::fields::G1);
-zero_size_repr!(crate::fields::Secp256k1);
-zero_size_repr!(crate::fields::Secp256k1Fp);
-zero_size_repr!(crate::fields::Secp256k1Fq);
+//zero_size_repr!(crate::fields::Blstrs);
+//zero_size_repr!(crate::fields::MidnightFp);
+//zero_size_repr!(crate::fields::JubjubFr);
+//zero_size_repr!(crate::fields::Jubjub);
+//zero_size_repr!(crate::fields::JubjubSubgroup);
+//zero_size_repr!(crate::fields::G1);
+//zero_size_repr!(crate::fields::Secp256k1);
+//zero_size_repr!(crate::fields::Secp256k1Fp);
+//zero_size_repr!(crate::fields::Secp256k1Fq);
 zero_size_repr!(bool);
 zero_size_repr!(u8);
 zero_size_repr!(usize);

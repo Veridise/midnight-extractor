@@ -19,7 +19,7 @@ git = "https://github.com/midnightntwrk/midnight-zk"
 default-features = false
 features = [
     "bits",
-    # "cost-estimator",
+    "cost-estimator",
     "circuit-params",
     "committed-instances",
     # Commented out until https://github.com/midnightntwrk/midnight-zk/pull/137 merges.

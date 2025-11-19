@@ -12,9 +12,9 @@
 #![deny(missing_docs)]
 
 /// Implementations of this trait represent complex types that aggregate a
-/// collection of [`AssignedCell`] values.
+/// collection of `AssignedCell` values.
 pub trait DecomposeIn<Cell> {
-    /// Returns an iterator of [`Cell`] instances.
+    /// Returns an iterator of `Cell` instances.
     fn cells(&self) -> impl IntoIterator<Item = Cell>;
 }
 

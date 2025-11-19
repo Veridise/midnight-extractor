@@ -14,9 +14,12 @@ num-bigint = "0.4"
 num-traits = "0.2"
 log = "0.4"
 
+mdnt-groups-support = { path = "../groups-support", version = "*"}
+
 ff.workspace = true
-midnight-curves.workspace = true 
-midnight-proofs.workspace = true
+# midnight-curves.workspace = true 
+midnight-proofs = {workspace = true, optional = true}
 haloumi-ir.workspace =true
 
-
+[features]
+proofs = ["midnight-proofs"]

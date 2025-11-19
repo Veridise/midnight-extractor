@@ -6,33 +6,150 @@ use std::{
 };
 
 use ff::{Field, PrimeField};
-use midnight_proofs::{
-    circuit::{AssignedCell, Layouter},
-    plonk::{Advice, Any, Column, ColumnType, Instance},
-};
+use mdnt_groups_support::DecomposeIn;
+//use midnight_proofs::{
+//    circuit::{AssignedCell, Layouter},
+//    plonk::{Advice, Any, Column, ColumnType, Instance},
+//};
 
 use crate::{error::Error, parse_field};
 
+#[cfg(feature = "proofs")]
+impl<F: Field, L: midnight_proofs::circuit::Layouter<F>> LayoutAdaptor<F> for L {
+    type InstanceCol = midnight_proofs::plonk::Column<midnight_proofs::plonk::Instance>;
+
+    type AdviceCol = midnight_proofs::plonk::Column<midnight_proofs::plonk::Advice>;
+
+    type Cell = midnight_proofs::circuit::Cell;
+
+    type AssignedCell = midnight_proofs::circuit::AssignedCell<F, F>;
+
+    fn constrain_instance(
+        &mut self,
+        cell: Self::Cell,
+        instance_col: Self::InstanceCol,
+        instance_row: usize,
+    ) -> Result<(), Error> {
+        use midnight_proofs::circuit::Layouter;
+        Ok(Layouter::constrain_instance(
+            self,
+            cell,
+            instance_col,
+            instance_row,
+        )?)
+    }
+
+    fn constrain_advice_constant(
+        &mut self,
+        advice_col: Self::AdviceCol,
+        advice_row: usize,
+        constant: F,
+    ) -> Result<Self::Cell, Error> {
+        Ok(self
+            .assign_region(
+                || format!("Adv[{}, {advice_row}] == 0", advice_col.index()),
+                |mut region| {
+                    region.assign_advice_from_constant(
+                        || format!("Adv[{}, {advice_row}]", advice_col.index()),
+                        advice_col,
+                        advice_row,
+                        constant,
+                    )
+                },
+            )?
+            .cell())
+    }
+
+    fn assign_advice_from_instance(
+        &mut self,
+        advice_col: Self::AdviceCol,
+        advice_row: usize,
+        instance_col: Self::InstanceCol,
+        instance_row: usize,
+    ) -> Result<Self::AssignedCell, Error> {
+        Ok(self.assign_region(
+            || "ins",
+            |mut region| {
+                region.assign_advice_from_instance(
+                    || {
+                        format!(
+                            "Adv[{}, +{advice_row}] == Ins[{}, {instance_row}]",
+                            advice_col.index(),
+                            instance_col.index()
+                        )
+                    },
+                    instance_col,
+                    instance_row,
+                    advice_col,
+                    advice_row,
+                )
+            },
+        )?)
+    }
+}
+
+/// Adaptor trait that defines the required behavior from a Layouter.
+pub trait LayoutAdaptor<F: Field> {
+    /// Type for instance columns.
+    type InstanceCol: std::fmt::Debug + Copy + Clone;
+    /// Type for advice columns.
+    type AdviceCol: std::fmt::Debug + Copy + Clone;
+    /// Type for a cell.
+    type Cell: std::fmt::Debug + Copy + Clone;
+    /// Type for an assigned cell.
+    type AssignedCell; //: DecomposeIn<Self::Cell>;
+
+    /// Constraints two cells to be equal.
+    ///
+    /// The left hand side cell could be any cell and the right hand side is an instance cell.
+    fn constrain_instance(
+        &mut self,
+        cell: Self::Cell,
+        instance_col: Self::InstanceCol,
+        instance_row: usize,
+    ) -> Result<(), Error>;
+
+    /// Constraints an advice cell to a constant value.
+    fn constrain_advice_constant(
+        &mut self,
+        advice_col: Self::AdviceCol,
+        advice_row: usize,
+        constant: F,
+    ) -> Result<Self::Cell, Error>;
+
+    /// Assigns an advice cell from an instance cell.
+    fn assign_advice_from_instance(
+        &mut self,
+        advice_col: Self::AdviceCol,
+        advice_row: usize,
+        instance_col: Self::InstanceCol,
+        instance_row: usize,
+    ) -> Result<Self::AssignedCell, Error>;
+}
+
 /// A cell in the table.
 #[derive(Debug)]
-pub struct Cell<C: ColumnType> {
-    col: Column<C>,
+pub struct Cell<C> {
+    col: C,
     row: usize,
 }
 
-impl<C: ColumnType> Cell<C> {
+impl<C> Cell<C> {
     /// Creates a new cell.
-    pub fn new(col: Column<C>, row: usize) -> Self {
+    pub fn new(col: C, row: usize) -> Self {
         Self { col, row }
     }
 
     /// Creates a new cell in row 0.
-    pub fn first_row(col: Column<C>) -> Self {
+    pub fn first_row(col: C) -> Self {
         Self::new(col, 0)
     }
 
     /// Returns the column of the cell.
-    pub fn col(&self) -> Column<C> {
+    pub fn col(&self) -> C
+    where
+        C: Copy,
+    {
         self.col
     }
 
@@ -42,8 +159,8 @@ impl<C: ColumnType> Cell<C> {
     }
 }
 
-impl<C: ColumnType> From<(Column<C>, usize)> for Cell<C> {
-    fn from((col, row): (Column<C>, usize)) -> Self {
+impl<C> From<(C, usize)> for Cell<C> {
+    fn from((col, row): (C, usize)) -> Self {
         Self::new(col, row)
     }
 }
@@ -52,14 +169,14 @@ impl<C: ColumnType> From<(Column<C>, usize)> for Cell<C> {
 /// actual input and an advice cell that is used for integrating better with
 /// regions.
 #[derive(Debug)]
-pub struct InputDescr {
-    cell: Cell<Any>,
-    temp: Cell<Advice>,
+pub struct InputDescr<I, A> {
+    cell: Cell<I>,
+    temp: Cell<A>,
 }
 
-impl InputDescr {
+impl<I: Copy, A: Copy> InputDescr<I, A> {
     /// Creates a new input description.
-    pub fn new(cell: Cell<Any>, temp: Column<Advice>) -> Self {
+    pub fn new(cell: Cell<I>, temp: A) -> Self {
         Self {
             cell,
             temp: Cell::first_row(temp),
@@ -67,18 +184,8 @@ impl InputDescr {
     }
 
     /// Returns the column of the instance cell.
-    pub fn col(&self) -> Column<Any> {
+    pub fn col(&self) -> I {
         self.cell.col()
-    }
-
-    /// Tries to cast the column to the expected type.
-    pub fn try_col<C, E>(&self) -> Result<Column<C>, Error>
-    where
-        C: ColumnType,
-        Column<Any>: TryInto<Column<C>, Error = E>,
-        Error: From<E>,
-    {
-        Ok(self.col().try_into()?)
     }
 
     /// Returns the row of the instance cell.
@@ -87,7 +194,7 @@ impl InputDescr {
     }
 
     /// Returns the column of the helper advice cell.
-    pub fn temp(&self) -> Column<Advice> {
+    pub fn temp(&self) -> A {
         self.temp.col()
     }
 
@@ -97,10 +204,10 @@ impl InputDescr {
     }
 }
 
-impl From<OutputDescr> for InputDescr {
-    fn from(descr: OutputDescr) -> Self {
+impl<I: Copy, A: Copy> From<OutputDescr<I, A>> for InputDescr<I, A> {
+    fn from(descr: OutputDescr<I, A>) -> Self {
         InputDescr {
-            cell: (Column::<Any>::from(descr.cell.col()), descr.cell.row).into(),
+            cell: (descr.cell.col(), descr.cell.row).into(),
             temp: descr.helper,
         }
     }
@@ -109,14 +216,14 @@ impl From<OutputDescr> for InputDescr {
 /// A description for an output. Comprises an instance cell acting as the output
 /// and a support advice cell.
 #[derive(Debug)]
-pub struct OutputDescr {
-    cell: Cell<Instance>,
-    helper: Cell<Advice>,
+pub struct OutputDescr<I, A> {
+    cell: Cell<I>,
+    helper: Cell<A>,
 }
 
-impl OutputDescr {
+impl<I: Copy, A: Copy> OutputDescr<I, A> {
     /// Creates a new output description.
-    pub fn new(cell: Cell<Instance>, helper: Column<Advice>) -> Self {
+    pub fn new(cell: Cell<I>, helper: A) -> Self {
         Self {
             cell,
             helper: Cell {
@@ -126,36 +233,26 @@ impl OutputDescr {
         }
     }
 
-    fn set_to_zero<F: Field>(&self, layouter: &mut impl Layouter<F>) -> Result<(), Error> {
-        let helper_cell = layouter.assign_region(
-            || "output == 0",
-            |mut region| {
-                region.assign_advice_from_constant(
-                    || "helper",
-                    self.helper.col,
-                    self.helper.row,
-                    F::ZERO,
-                )
-            },
-        )?;
-        log::debug!("Output {self:?} was constrained to be equal to zero");
-        layouter.constrain_instance(helper_cell.cell(), self.cell.col, self.cell.row)?;
+    fn set_to_zero<F: Field>(
+        &self,
+        layouter: &mut impl LayoutAdaptor<F, InstanceCol = I, AdviceCol = A>,
+    ) -> Result<(), Error> {
+        let helper_cell =
+            layouter.constrain_advice_constant(self.helper.col, self.helper.row, F::ZERO)?;
+        layouter.constrain_instance(helper_cell, self.cell.col, self.cell.row)?;
         Ok(())
     }
 
-    fn assign<F: Field, V>(
+    fn assign<F: Field, L: LayoutAdaptor<F, InstanceCol = I, AdviceCol = A>>(
         &self,
-        value: impl Into<AssignedCell<V, F>>,
-        layouter: &mut impl Layouter<F>,
-    ) -> Result<(), Error> {
-        let cell = value.into();
-        log::debug!(
-            "Constraining instance cell ({}, {}) to be equal to {:?}",
-            self.cell.col().index(),
-            self.cell.row(),
-            cell.cell()
-        );
-        layouter.constrain_instance(cell.cell(), self.cell.col(), self.cell.row())?;
+        //value: impl Into<AssignedCell<V, F>>,
+        cell: L::Cell,
+        layouter: &mut L,
+    ) -> Result<(), Error>
+    where
+        L::Cell: std::fmt::Debug,
+    {
+        layouter.constrain_instance(cell, self.cell.col(), self.cell.row())?;
         Ok(())
     }
 }
@@ -185,14 +282,14 @@ impl<IO> std::fmt::Debug for IOCtx<'_, IO> {
 }
 
 /// Context type for the [`LoadFromCells`](super::load::LoadFromCells) trait.
-pub struct ICtx<'i, 's> {
-    inner: IOCtx<'i, InputDescr>,
+pub struct ICtx<'i, 's, I, A> {
+    inner: IOCtx<'i, InputDescr<I, A>>,
     constants: Box<dyn Iterator<Item = &'s str> + 's>,
 }
 
-impl<'i, 's> ICtx<'i, 's> {
+impl<'i, 's, I: Copy, A: Copy> ICtx<'i, 's, I, A> {
     /// Creates a new input context.
-    pub fn new(i: impl Iterator<Item = InputDescr> + 'i, constants: &'s [String]) -> Self {
+    pub fn new(i: impl Iterator<Item = InputDescr<I, A>> + 'i, constants: &'s [String]) -> Self {
         Self {
             inner: IOCtx::new(i),
             constants: Box::new(constants.iter().map(|s| s.as_str())),
@@ -219,41 +316,30 @@ impl<'i, 's> ICtx<'i, 's> {
     }
 
     /// Assigns the next input to a cell.
-    pub fn assign_next<F: PrimeField>(
+    pub fn assign_next<F: PrimeField, C>(
         &mut self,
-        layouter: &mut impl Layouter<F>,
-    ) -> Result<AssignedCell<F, F>, Error> {
+        layouter: &mut impl LayoutAdaptor<F, AssignedCell = C, InstanceCol = I, AdviceCol = A>,
+    ) -> Result<C, Error> {
         let i = self.next()?;
-        Ok(layouter.assign_region(
-            || "ins",
-            |mut region| {
-                region.assign_advice_from_instance(
-                    || "input",
-                    i.try_col()?,
-                    i.row(),
-                    i.temp(),
-                    i.temp_offset(),
-                )
-            },
-        )?)
+        layouter.assign_advice_from_instance(i.temp(), i.temp_offset(), i.col(), i.row())
     }
 }
 
-impl<'i> Deref for ICtx<'i, '_> {
-    type Target = IOCtx<'i, InputDescr>;
+impl<'i, I, A> Deref for ICtx<'i, '_, I, A> {
+    type Target = IOCtx<'i, InputDescr<I, A>>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
 }
 
-impl DerefMut for ICtx<'_, '_> {
+impl<I, A> DerefMut for ICtx<'_, '_, I, A> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
 }
 
-impl std::fmt::Debug for ICtx<'_, '_> {
+impl<I, A> std::fmt::Debug for ICtx<'_, '_, I, A> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ICtx")
             .field("inner", &self.inner)
@@ -264,13 +350,13 @@ impl std::fmt::Debug for ICtx<'_, '_> {
 
 /// Context type for the [`StoreIntoCells`](super::store::StoreIntoCells) trait.
 #[derive(Debug)]
-pub struct OCtx<'o> {
-    inner: IOCtx<'o, OutputDescr>,
+pub struct OCtx<'o, I, A> {
+    inner: IOCtx<'o, OutputDescr<I, A>>,
 }
 
-impl<'o> OCtx<'o> {
+impl<'o, I: Copy, A: Copy> OCtx<'o, I, A> {
     /// Creates a new output context.
-    pub fn new(input: impl Iterator<Item = OutputDescr> + 'o) -> Self {
+    pub fn new(input: impl Iterator<Item = OutputDescr<I, A>> + 'o) -> Self {
         Self {
             inner: IOCtx::new(input),
         }
@@ -279,33 +365,37 @@ impl<'o> OCtx<'o> {
     /// Sets the next output to zero.
     pub fn set_next_to_zero<F: Field>(
         &mut self,
-        layouter: &mut impl Layouter<F>,
+        layouter: &mut impl LayoutAdaptor<F, InstanceCol = I, AdviceCol = A>,
     ) -> Result<(), Error> {
         self.next()?.set_to_zero(layouter)
     }
 
     /// Sets the next output to the given value.
-    pub fn assign_next<F, V>(
+    pub fn assign_next<F, C>(
         &mut self,
-        value: impl Into<AssignedCell<V, F>>,
-        layouter: &mut impl Layouter<F>,
+        value: impl DecomposeIn<C>,
+        layouter: &mut impl LayoutAdaptor<F, Cell = C, InstanceCol = I, AdviceCol = A>,
     ) -> Result<(), Error>
     where
         F: PrimeField,
+        C: std::fmt::Debug,
     {
-        self.next()?.assign(value, layouter)
+        for cell in value.cells() {
+            self.next()?.assign(cell, layouter)?;
+        }
+        Ok(())
     }
 }
 
-impl<'o> Deref for OCtx<'o> {
-    type Target = IOCtx<'o, OutputDescr>;
+impl<'o, I, A> Deref for OCtx<'o, I, A> {
+    type Target = IOCtx<'o, OutputDescr<I, A>>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
 }
 
-impl DerefMut for OCtx<'_> {
+impl<I, A> DerefMut for OCtx<'_, I, A> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
