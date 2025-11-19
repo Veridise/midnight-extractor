@@ -18,8 +18,8 @@ mdnt-groups-support = { path = "../groups-support", version = "*"}
 
 ff.workspace = true
 # midnight-curves.workspace = true 
-midnight-proofs = {workspace = true, optional = true}
+# midnight-proofs = {workspace = true, optional = true}
 haloumi-ir.workspace =true
 
 [features]
-proofs = ["midnight-proofs"]
+proofs = []
