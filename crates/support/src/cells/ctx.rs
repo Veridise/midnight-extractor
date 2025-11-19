@@ -19,15 +19,6 @@ use crate::{error::Error, parse_field, Halo2Types};
 
 /// Adaptor trait that defines the required behavior from a Layouter.
 pub trait LayoutAdaptor<F: Field, Halo2: Halo2Types<F>> {
-    /// Type for instance columns.
-    type InstanceCol: std::fmt::Debug + Copy + Clone;
-    /// Type for advice columns.
-    type AdviceCol: std::fmt::Debug + Copy + Clone;
-    /// Type for a cell.
-    type Cell: std::fmt::Debug + Copy + Clone;
-    /// Region type.
-    type Region<'a>;
-
     /// Constraints two cells to be equal.
     ///
     /// The left hand side cell could be any cell and the right hand side is an instance cell.
