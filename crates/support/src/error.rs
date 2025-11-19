@@ -1,6 +1,6 @@
 //! Error type for the support crate.
 
-use std::{num::ParseIntError, str::ParseBoolError};
+use std::{num::ParseIntError, str::ParseBoolError, sync::Arc};
 
 use num_bigint::{BigInt, ParseBigIntError, TryFromBigIntError};
 use thiserror::Error;
@@ -30,7 +30,7 @@ pub enum Error {
     BigUintParse(#[from] ParseBigIntError),
     /// Plonk synthesis error.
     #[error("Synthesis error")]
-    Plonk(Box<dyn std::error::Error>),
+    Plonk(Arc<dyn std::error::Error>),
     /// An error represented with an static string.
     #[error("Error")]
     StrError(&'static str),

@@ -24,11 +24,6 @@ macro_rules! auto_conf_impl {
     };
 }
 
-//auto_conf_impl!(Column<Fixed>, fixed_column);
-//auto_conf_impl!(Column<Instance>, instance_column);
-//auto_conf_impl!(Column<Advice>, advice_column);
-//auto_conf_impl!(TableColumn, lookup_table_column);
-
 impl<CS, T, const N: usize> AutoConfigure<CS> for [T; N]
 where
     T: AutoConfigure<CS>,
