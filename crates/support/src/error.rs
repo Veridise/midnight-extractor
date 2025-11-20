@@ -61,6 +61,24 @@ pub enum Error {
     },
 }
 
+/// Ensures that the given predicate is true, returning error if not.
+pub fn assert_expected_elements(
+    header: &'static str,
+    expected: usize,
+    actual: usize,
+    pred: impl FnOnce(usize, usize) -> bool,
+) -> Result<(), Error> {
+    if pred(expected, actual) {
+        Ok(())
+    } else {
+        Err(Error::UnexpectedElements {
+            header,
+            expected,
+            actual,
+        })
+    }
+}
+
 impl From<&'static str> for Error {
     fn from(value: &'static str) -> Self {
         Self::StrError(value)

@@ -13,7 +13,10 @@ use mdnt_groups_support::DecomposeIn;
 //    plonk::{Advice, Any, Column, ColumnType, Instance},
 //};
 
-use crate::{error::Error, parse_field, Halo2Types};
+use crate::{
+    cells::load::LoadFromCells, circuit::injected::InjectedIR, error::Error, parse_field,
+    Halo2Types,
+};
 
 //#[cfg(feature = "proofs")]
 
@@ -268,6 +271,19 @@ impl<'i, 's, F: Field, H: Halo2Types<F>> ICtx<'i, 's, F, H> {
     ) -> Result<H::AssignedCell, H::Error> {
         let i = self.next()?;
         layouter.assign_advice_from_instance(i.temp(), i.temp_offset(), i.col(), i.row())
+    }
+
+    /// Loads an instance from a set of cells.
+    pub fn load<T, C, L>(
+        &mut self,
+        chip: &C,
+        layouter: &mut impl LayoutAdaptor<F, H, Adaptee = L>,
+        injected_ir: &mut InjectedIR<H::RegionIndex, H::Expression>,
+    ) -> Result<T, H::Error>
+    where
+        T: LoadFromCells<F, C, H, L>,
+    {
+        T::load(self, chip, layouter, injected_ir)
     }
 }
 

@@ -23,6 +23,19 @@ pub trait LoadFromCells<F: Field, C, H: Halo2Types<F>, L>: Sized + CellReprSize 
         layouter: &mut impl LayoutAdaptor<F, H, Adaptee = L>,
         injected_ir: &mut InjectedIR<H::RegionIndex, H::Expression>,
     ) -> Result<Self, H::Error>;
+
+    /// Loads `n` instances of Self from a set of cells.
+    fn load_many(
+        n: usize,
+        ctx: &mut ICtx<F, H>,
+        chip: &C,
+        layouter: &mut impl LayoutAdaptor<F, H, Adaptee = L>,
+        injected_ir: &mut InjectedIR<H::RegionIndex, H::Expression>,
+    ) -> Result<Vec<Self>, H::Error> {
+        std::iter::repeat_with(|| Self::load(ctx, chip, layouter, injected_ir))
+            .take(n)
+            .collect()
+    }
 }
 
 impl<const N: usize, F: PrimeField, C, H: Halo2Types<F>, L, T: LoadFromCells<F, C, H, L>>
