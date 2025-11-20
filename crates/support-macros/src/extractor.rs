@@ -31,8 +31,8 @@ pub fn derive_circuit_initialization_from_scratch_impl(
     let mut generics = input.generics;
 
     let l = unique_layouter_ident(&generics);
-    let f = find_field_param(&generics, input_span)?;
-    let other_params = find_annotated_params(&generics);
+    let f = find_field_param(&generics, &input.attrs, input_span)?;
+    let other_params = find_annotated_params(&input.attrs)?;
 
     cleanup_helper_attrs(&mut generics);
     let where_clause = generics.make_where_clause();
@@ -120,15 +120,10 @@ fn select_param(ty: &TypeParam) -> Option<syn::Result<Ident>> {
     }
 }
 
-fn find_annotated_params(generics: &Generics) -> Vec<Ident> {
-    generics
-        .type_params()
-        .filter_map(|ty| {
-            ty.attrs
-                .iter()
-                .any(|a| a.path().is_ident("from_scratch"))
-                .then(|| ty.ident.clone())
-        })
+fn find_annotated_params(attrs: &[Attribute]) -> syn::Result<Vec<Path>> {
+    attrs
+        .iter()
+        .filter_map(|a| a.path().is_ident("from_scratch").then(|| a.parse_args::<Path>()))
         .collect()
 }
 
@@ -190,41 +185,17 @@ impl PartialEq<syn::Ident> for FieldParam {
     }
 }
 
-struct MaybePath(Option<Path>);
-
-impl Parse for MaybePath {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let peek = input.lookahead1();
-        if peek.peek(Ident) {
-            Ok(Self(Some(input.parse()?)))
-        } else if peek.peek(End) {
-            Ok(Self(None))
-        } else {
-            Err(peek.error())
-        }
-    }
-}
-
-fn from_attr(a: &Attribute, ty: &TypeParam) -> syn::Result<FieldParam> {
-    match &a.meta {
-        Meta::Path(_) => return Ok(FieldParam::Ident(ty.ident.clone())),
-        _ => {}
-    }
-    a.parse_args::<MaybePath>()?
-        .0
-        .ok_or_else(|| syn::Error::new_spanned(a, "was expecting a path to the field type"))
-        .map(FieldParam::Path)
-}
-
-fn find_field_param(generics: &Generics, input_span: Span) -> syn::Result<FieldParam> {
+fn find_field_param(
+    generics: &Generics,
+    attrs: &[Attribute],
+    input_span: Span,
+) -> syn::Result<FieldParam> {
     use TypeParamBound::Trait;
     // First look for types annotated with #[field].
-    generics
-        .type_params()
-        .find_map(|ty| {
-            ty.attrs
-                .iter()
-                .find_map(|a| a.path().is_ident("field").then(|| from_attr(a, ty)))
+    attrs
+        .iter()
+        .find_map(|a| {
+            a.path().is_ident("field").then(|| a.parse_args::<Path>().map(FieldParam::Path))
         })
         // If none was annotated that way then check for types that declare satisfying
         // the Field trait.
@@ -548,7 +519,8 @@ mod tests {
     #[case(
         r"
         #[derive(InitFromScratch)]
-        struct S<'a, #[field] A> { f: &'a A }
+        #[field(A)]
+        struct S<'a,  A> { f: &'a A }
         ",
         r"
         struct S<'a, A> { f: &'a A }
@@ -671,7 +643,8 @@ mod tests {
         r"
         trait CT { type Base; }
         #[derive(InitFromScratch)]
-        struct S<#[field(C::Base)] C: CT> { f: C::Base }
+        #[field(C::Base)]
+        struct S< C: CT> { f: C::Base }
         ",
         r"
         trait CT { type Base; }
@@ -713,7 +686,9 @@ mod tests {
         r"
         trait CT { type Base; }
         #[derive(InitFromScratch)]
-        struct S<#[field(C::Base)] C: CT, #[from_scratch] N> { f: C::Base, n: N }
+        #[field(C::Base)]
+        #[from_scratch(N)]
+        struct S< C: CT,  N> { f: C::Base, n: N }
         ",
         r"
         trait CT { type Base; }
