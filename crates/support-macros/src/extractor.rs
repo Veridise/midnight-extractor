@@ -71,6 +71,18 @@ pub fn derive_circuit_initialization_from_scratch_impl(
             )
         })?
         .clone();
+    let other_params = generics
+        .type_params()
+        .filter_map(|ty| {
+            if ty.ident == f {
+                return None;
+            }
+            let i = &ty.ident;
+            Some(quote! {
+                #i: crate::testing_utils::FromScratch<#f>
+            })
+        })
+        .collect::<Vec<_>>();
     let where_clause = generics.make_where_clause();
 
     let predicates = &mut where_clause.predicates;
@@ -81,6 +93,9 @@ pub fn derive_circuit_initialization_from_scratch_impl(
     predicates.push(syn::parse2(quote! {
         #f: ff::PrimeField
     })?);
+    for bound in other_params {
+        predicates.push(syn::parse2(bound)?);
+    }
 
     let type_params = generics.type_params();
     let lifetimes = generics.lifetimes();
