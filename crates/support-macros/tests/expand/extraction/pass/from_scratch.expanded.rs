@@ -30,7 +30,7 @@ where
     }
     fn load_chip(
         &self,
-        layouter: &mut L,
+        layouter: &mut __Layouter,
         _config: &Self::Config,
     ) -> Result<(), Self::Error> {
         use crate::testing_utils::FromScratch;
