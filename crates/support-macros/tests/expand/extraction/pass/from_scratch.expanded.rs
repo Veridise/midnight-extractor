@@ -5,6 +5,7 @@ struct S2<F> {
 impl<__Layouter, F> extractor_support::circuit::CircuitInitialization<__Layouter>
 for S2<F>
 where
+    S2<F>: crate::testing_utils::FromScratch<F>,
     __Layouter: midnight_proofs::circuit::Layouter<F>,
     F: ff::PrimeField,
 {

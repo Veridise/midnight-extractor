@@ -34,11 +34,18 @@ pub fn derive_circuit_initialization_from_scratch_impl(
     let f = find_field_param(&generics, &input.attrs, input_span)?;
     let other_params = find_annotated_params(&input.attrs)?;
 
+    let self_bound = {
+        let (_, ty_generics, _) = generics.split_for_impl();
+        quote! {
+            #name #ty_generics: crate::testing_utils::FromScratch<#f>
+        }
+    };
     cleanup_helper_attrs(&mut generics);
     let where_clause = generics.make_where_clause();
 
     let predicates = &mut where_clause.predicates;
 
+    predicates.push(syn::parse2(self_bound)?);
     predicates.push(syn::parse2(quote! {
         #l: midnight_proofs::circuit::Layouter<#f>
     })?);
@@ -291,6 +298,7 @@ mod tests {
         struct S<F> { f: F }
         impl<__Layouter, F> extractor_support::circuit::CircuitInitialization<__Layouter> for S<F> 
         where 
+            S<F>: crate::testing_utils::FromScratch<F>,
             __Layouter: midnight_proofs::circuit::Layouter<F>,
             F: ff::PrimeField,
         {
@@ -365,6 +373,7 @@ mod tests {
         struct S<'a, F> { f: &'a F }
         impl<'a, __Layouter, F> extractor_support::circuit::CircuitInitialization<__Layouter> for S<'a, F> 
         where 
+            S<'a,F>: crate::testing_utils::FromScratch<F>,
             __Layouter: midnight_proofs::circuit::Layouter<F>,
             F: ff::PrimeField,
         {
@@ -405,6 +414,7 @@ mod tests {
         struct S<'a, F: Copy> { f: &'a F }
         impl<'a, __Layouter, F: Copy> extractor_support::circuit::CircuitInitialization<__Layouter> for S<'a, F> 
         where 
+            S<'a,F>: crate::testing_utils::FromScratch<F>,
             __Layouter: midnight_proofs::circuit::Layouter<F>,
             F: ff::PrimeField,
         {
@@ -445,6 +455,7 @@ mod tests {
         struct S<'a, A: Field> { f: &'a A }
         impl<'a, __Layouter, A: Field> extractor_support::circuit::CircuitInitialization<__Layouter> for S<'a, A> 
         where 
+            S<'a,A>: crate::testing_utils::FromScratch<A>,
             __Layouter: midnight_proofs::circuit::Layouter<A>,
             A: ff::PrimeField,
         {
@@ -485,6 +496,7 @@ mod tests {
         struct S<'a, A: PrimeField> { f: &'a A }
         impl<'a, __Layouter, A: PrimeField> extractor_support::circuit::CircuitInitialization<__Layouter> for S<'a, A> 
         where 
+            S<'a,A>: crate::testing_utils::FromScratch<A>,
             __Layouter: midnight_proofs::circuit::Layouter<A>,
             A: ff::PrimeField,
         {
@@ -526,6 +538,7 @@ mod tests {
         struct S<'a, A> { f: &'a A }
         impl<'a, __Layouter,  A> extractor_support::circuit::CircuitInitialization<__Layouter> for S<'a, A> 
         where 
+            S<'a,A>: crate::testing_utils::FromScratch<A>,
             __Layouter: midnight_proofs::circuit::Layouter<A>,
             A: ff::PrimeField,
         {
@@ -567,6 +580,7 @@ mod tests {
         impl<'a, __Layouter, F> extractor_support::circuit::CircuitInitialization<__Layouter> for S<'a, F> 
         where 
             F: Copy,
+            S<'a,F>: crate::testing_utils::FromScratch<F>,
             __Layouter: midnight_proofs::circuit::Layouter<F>,
             F: ff::PrimeField,
         {
@@ -608,6 +622,7 @@ mod tests {
         impl<'a, __Layouter, F, const N: usize> extractor_support::circuit::CircuitInitialization<__Layouter> for S<'a, F, N> 
         where 
             F: Copy,
+            S<'a,F,N>: crate::testing_utils::FromScratch<F>,
             __Layouter: midnight_proofs::circuit::Layouter<F>,
             F: ff::PrimeField,
         {
@@ -651,6 +666,7 @@ mod tests {
         struct S<C: CT> { f: C::Base }
         impl<__Layouter, C: CT> extractor_support::circuit::CircuitInitialization<__Layouter> for S<C> 
         where 
+            S<C>: crate::testing_utils::FromScratch<C::Base>,
             __Layouter: midnight_proofs::circuit::Layouter<C::Base>,
             C::Base: ff::PrimeField,
         {
@@ -696,6 +712,7 @@ mod tests {
         impl<__Layouter, C: CT, N> 
             extractor_support::circuit::CircuitInitialization<__Layouter> for S<C, N> 
         where 
+            S<C,N>: crate::testing_utils::FromScratch<C::Base>,
             __Layouter: midnight_proofs::circuit::Layouter<C::Base>,
             C::Base: ff::PrimeField,
             N: crate::testing_utils::FromScratch<C::Base>
