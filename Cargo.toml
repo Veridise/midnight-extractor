@@ -35,10 +35,12 @@ git = "https://github.com/Veridise/llzk-rs"
 default-features = false
 features = ["picus-backend"]
 package = "halo2-llzk-frontend"
+branch = "dani/convenience-methods"
 
 [workspace.dependencies.haloumi-ir]
 git = "https://github.com/Veridise/llzk-rs"
 default-features = false
 features = ["picus-backend"]
 package = "halo2-llzk-frontend"
+branch = "dani/convenience-methods"
 
