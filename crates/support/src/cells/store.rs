@@ -76,7 +76,7 @@ impl<
 /// convenient for types such as Vec or Option.
 pub trait StoreIntoCellsDyn<F: Field, C, H: Halo2Types<F>, L> {
     /// Stores an instance of Self into a set of cells.
-    fn store(
+    fn store_dyn(
         self,
         ctx: &mut OCtx<F, H>,
         chip: &C,
@@ -91,7 +91,7 @@ where
     F: Field,
     H: Halo2Types<F>,
 {
-    fn store(
+    fn store_dyn(
         self,
         ctx: &mut OCtx<F, H>,
         chip: &C,
@@ -111,7 +111,7 @@ where
     F: Field,
     H: Halo2Types<F>,
 {
-    fn store(
+    fn store_dyn(
         self,
         ctx: &mut OCtx<F, H>,
         chip: &C,
@@ -121,7 +121,7 @@ where
             <H as Halo2Types<F>>::Expression,
         >,
     ) -> Result<(), <H as Halo2Types<F>>::Error> {
-        self.into_iter().try_for_each(|e| e.store(ctx, chip, layouter, injected_ir))
+        self.into_iter().try_for_each(|e| e.store_dyn(ctx, chip, layouter, injected_ir))
     }
 }
 
@@ -131,7 +131,7 @@ where
     F: Field,
     H: Halo2Types<F>,
 {
-    fn store(
+    fn store_dyn(
         self,
         ctx: &mut OCtx<F, H>,
         chip: &C,
@@ -141,7 +141,7 @@ where
             <H as Halo2Types<F>>::Expression,
         >,
     ) -> Result<(), <H as Halo2Types<F>>::Error> {
-        self.into_iter().try_for_each(|e| e.store(ctx, chip, layouter, injected_ir))
+        self.into_iter().try_for_each(|e| e.store_dyn(ctx, chip, layouter, injected_ir))
     }
 }
 
@@ -152,7 +152,7 @@ where
     H: Halo2Types<F>,
     H::Error: From<E>,
 {
-    fn store(
+    fn store_dyn(
         self,
         ctx: &mut OCtx<F, H>,
         chip: &C,
@@ -162,6 +162,6 @@ where
             <H as Halo2Types<F>>::Expression,
         >,
     ) -> Result<(), <H as Halo2Types<F>>::Error> {
-        self?.store(ctx, chip, layouter, injected_ir)
+        self?.store_dyn(ctx, chip, layouter, injected_ir)
     }
 }
