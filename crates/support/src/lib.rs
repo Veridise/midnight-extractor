@@ -23,7 +23,7 @@ pub mod error;
 pub mod macros;
 
 #[cfg(feature = "derive")]
-pub use mdnt_support_macros::NoChipArgs;
+pub use mdnt_support_macros::{InitFromScratch, NoChipArgs};
 
 pub mod ir {
     //! Re-export of IR types from the frontend.

@@ -16,9 +16,15 @@ proc-macro = true
 proc-macro2 = "1.0"
 quote = "1.0"
 syn = { version = "2.0", features = ["full", "extra-traits"] }
+log = "0.4"
 
 [dev-dependencies]
 macrotest = "1.2"
+macro_expand = "0.1"
+rstest = "0"
+prettyplease = "0.2"
+similar-asserts = "1.7"
+simplelog = {version = "0.12", features = ["test"] }
 
 [features]
 default = ["extractor-derive"]

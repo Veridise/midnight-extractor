@@ -77,3 +77,18 @@ pub fn derive_decompose_in_cells(input: TokenStream) -> TokenStream {
 pub fn derive_no_chip_args(input: TokenStream) -> TokenStream {
     extractor::derive_no_chip_args_impl(parse_macro_input!(input as DeriveInput)).into()
 }
+
+/// Derive macro for the `CircuitInitialization` trait that leverages an implementation of
+/// `FromScratch`
+
+#[cfg(feature = "extractor-derive")]
+#[proc_macro_derive(InitFromScratch)]
+pub fn derive_circuit_initialization_from_scratch(input: TokenStream) -> TokenStream {
+    match extractor::derive_circuit_initialization_from_scratch_impl(parse_macro_input!(
+        input as DeriveInput
+    )) {
+        Ok(tok) => tok,
+        Err(e) => e.to_compile_error(),
+    }
+    .into()
+}
