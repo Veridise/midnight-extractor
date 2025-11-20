@@ -21,6 +21,8 @@ use proc_macro::TokenStream;
 use syn::{parse_macro_input, DeriveInput, ItemFn};
 
 mod decompose;
+#[cfg(feature = "extractor-derive")]
+mod extractor;
 mod group_impl;
 
 /// Creates a group annotation around the body of a function.
@@ -67,4 +69,11 @@ pub fn group(_: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro_derive(DecomposeInCells)]
 pub fn derive_decompose_in_cells(input: TokenStream) -> TokenStream {
     decompose::derive_decompose_in_cells_impl(parse_macro_input!(input as DeriveInput)).into()
+}
+
+/// Derive macro for the `NoChipArgs` trait.
+#[cfg(feature = "extractor-derive")]
+#[proc_macro_derive(NoChipArgs)]
+pub fn derive_no_chip_args(input: TokenStream) -> TokenStream {
+    extractor::derive_no_chip_args_impl(parse_macro_input!(input as DeriveInput)).into()
 }

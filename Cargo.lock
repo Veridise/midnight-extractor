@@ -224,6 +224,7 @@ dependencies = [
  "halo2-llzk-frontend",
  "log",
  "mdnt-groups-support 0.1.0",
+ "mdnt-support-macros",
  "num-bigint",
  "num-traits",
  "thiserror",

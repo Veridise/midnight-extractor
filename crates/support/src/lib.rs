@@ -22,6 +22,9 @@ pub mod error;
 //pub mod fields;
 pub mod macros;
 
+#[cfg(feature = "derive")]
+pub use mdnt_support_macros::NoChipArgs;
+
 pub mod ir {
     //! Re-export of IR types from the frontend.
     pub use haloumi_ir::ir::*;
