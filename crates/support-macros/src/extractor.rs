@@ -34,6 +34,7 @@ pub fn derive_circuit_initialization_from_scratch_impl(
     let f = find_field_param(&generics, input_span)?;
     let other_params = find_annotated_params(&generics);
 
+    cleanup_helper_attrs(&mut generics);
     let where_clause = generics.make_where_clause();
 
     let predicates = &mut where_clause.predicates;
@@ -96,6 +97,13 @@ pub fn derive_circuit_initialization_from_scratch_impl(
     };
     log::debug!("generated:\n==============\n{code}\n==============");
     Ok(code)
+}
+
+fn cleanup_helper_attrs(generics: &mut Generics) {
+    for ty in generics.type_params_mut() {
+        ty.attrs
+            .retain(|a| !(a.path().is_ident("field") || a.path().is_ident("from_scratch")))
+    }
 }
 
 fn select_param(ty: &TypeParam) -> Option<syn::Result<Ident>> {
@@ -544,7 +552,7 @@ mod tests {
         ",
         r"
         struct S<'a, A> { f: &'a A }
-        impl<'a, __Layouter, #[field] A> extractor_support::circuit::CircuitInitialization<__Layouter> for S<'a, A> 
+        impl<'a, __Layouter,  A> extractor_support::circuit::CircuitInitialization<__Layouter> for S<'a, A> 
         where 
             __Layouter: midnight_proofs::circuit::Layouter<A>,
             A: ff::PrimeField,
@@ -668,7 +676,7 @@ mod tests {
         r"
         trait CT { type Base; }
         struct S<C: CT> { f: C::Base }
-        impl<__Layouter,#[field(C::Base)] C: CT> extractor_support::circuit::CircuitInitialization<__Layouter> for S<C> 
+        impl<__Layouter, C: CT> extractor_support::circuit::CircuitInitialization<__Layouter> for S<C> 
         where 
             __Layouter: midnight_proofs::circuit::Layouter<C::Base>,
             C::Base: ff::PrimeField,
@@ -710,7 +718,7 @@ mod tests {
         r"
         trait CT { type Base; }
         struct S<C: CT, N> { f: C::Base, n: N }
-        impl<__Layouter,#[field(C::Base)] C: CT, #[from_scratch]N> 
+        impl<__Layouter, C: CT, N> 
             extractor_support::circuit::CircuitInitialization<__Layouter> for S<C, N> 
         where 
             __Layouter: midnight_proofs::circuit::Layouter<C::Base>,
