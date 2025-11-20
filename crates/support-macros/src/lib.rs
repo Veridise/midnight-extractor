@@ -82,7 +82,7 @@ pub fn derive_no_chip_args(input: TokenStream) -> TokenStream {
 /// Derive macro for the `CircuitInitialization` trait that leverages an implementation of
 /// `FromScratch`
 #[cfg(feature = "extractor-derive")]
-#[proc_macro_derive(InitFromScratch)]
+#[proc_macro_derive(InitFromScratch, attributes(field, from_scratch))]
 pub fn derive_circuit_initialization_from_scratch(input: TokenStream) -> TokenStream {
     match extractor::derive_circuit_initialization_from_scratch_impl(parse_macro_input!(
         input as DeriveInput
@@ -93,8 +93,8 @@ pub fn derive_circuit_initialization_from_scratch(input: TokenStream) -> TokenSt
     .into()
 }
 
-/// Marker attribute used by the derive macros
-#[proc_macro_attribute]
-pub fn extractor(_: TokenStream, item: TokenStream) -> TokenStream {
-    item
-}
+///// Marker attribute used by the derive macros
+//#[proc_macro_attribute]
+//pub fn extractor(_: TokenStream, item: TokenStream) -> TokenStream {
+//    item
+//}

@@ -3,8 +3,9 @@ use std::collections::HashSet;
 use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote};
 use syn::{
-    spanned::Spanned, Attribute, DeriveInput, Generics, Ident, Meta, Path, TypeParam,
-    TypeParamBound,
+    parse::{End, Parse},
+    spanned::Spanned,
+    Attribute, DeriveInput, Generics, Ident, Meta, Path, TypeParam, TypeParamBound,
 };
 
 use crate::parse::extractor::{ExtractorCmd, FieldCmd};
@@ -31,7 +32,7 @@ pub fn derive_circuit_initialization_from_scratch_impl(
 
     let l = unique_layouter_ident(&generics);
     let f = find_field_param(&generics, input_span)?;
-    let other_params = find_annotated_params(&generics)?;
+    let other_params = find_annotated_params(&generics);
 
     let where_clause = generics.make_where_clause();
 
@@ -111,8 +112,16 @@ fn select_param(ty: &TypeParam) -> Option<syn::Result<Ident>> {
     }
 }
 
-fn find_annotated_params(generics: &Generics) -> syn::Result<Vec<Ident>> {
-    generics.type_params().filter_map(select_param).collect()
+fn find_annotated_params(generics: &Generics) -> Vec<Ident> {
+    generics
+        .type_params()
+        .filter_map(|ty| {
+            ty.attrs
+                .iter()
+                .any(|a| a.path().is_ident("from_scratch"))
+                .then(|| ty.ident.clone())
+        })
+        .collect()
 }
 
 fn unique_layouter_ident(generics: &Generics) -> syn::Ident {
@@ -173,28 +182,63 @@ impl PartialEq<syn::Ident> for FieldParam {
     }
 }
 
+struct MaybePath(Option<Path>);
+
+impl Parse for MaybePath {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let peek = input.lookahead1();
+        if peek.peek(Ident) {
+            Ok(Self(Some(input.parse()?)))
+        } else if peek.peek(End) {
+            Ok(Self(None))
+        } else {
+            Err(peek.error())
+        }
+    }
+}
+
+fn from_attr(a: &Attribute, ty: &TypeParam) -> syn::Result<FieldParam> {
+    match &a.meta {
+        Meta::Path(_) => return Ok(FieldParam::Ident(ty.ident.clone())),
+        _ => {}
+    }
+    a.parse_args::<MaybePath>()?
+        .0
+        .ok_or_else(|| syn::Error::new_spanned(a, "was expecting a path to the field type"))
+        .map(FieldParam::Path)
+}
+
 fn find_field_param(generics: &Generics, input_span: Span) -> syn::Result<FieldParam> {
     use TypeParamBound::Trait;
+    // First look for types annotated with #[field].
     generics
         .type_params()
         .find_map(|ty| {
             ty.attrs
                 .iter()
-                .find_map(|a| {
-                    ExtractorCmd::from_attr(a).and_then(|cmd| try_field_attribute(cmd, &ty.ident))
-                })
-                .or_else(|| {
-                    let has_bound = ty.bounds.iter().any(|b| {
+                .find_map(|a| a.path().is_ident("field").then(|| from_attr(a, ty)))
+        })
+        // If none was annotated that way then check for types that declare satisfying
+        // the Field trait.
+        .or_else(|| {
+            generics.type_params().find_map(|ty| {
+                ty.bounds
+                    .iter()
+                    .any(|b| {
                         let Trait(trait_bound) = b else {
                             return false;
                         };
                         let ident = trait_bound.path.segments.last().map(|s| s.ident.to_string());
                         matches!(ident.as_deref(), Some("Field" | "PrimeField"))
-                    });
-                    // Fallback to the name 'F' since that's the custom.
-                    (has_bound || ty.ident == "F")
-                        .then_some(Ok(FieldParam::Ident(ty.ident.clone())))
-                })
+                    })
+                    .then(|| Ok(FieldParam::Ident(ty.ident.clone())))
+            })
+        })
+        // Lastly default to being named 'F'
+        .or_else(|| {
+            generics
+                .type_params()
+                .find_map(|ty| (ty.ident == "F").then(|| Ok(FieldParam::Ident(ty.ident.clone()))))
         })
         .ok_or_else(|| {
             syn::Error::new(
@@ -216,20 +260,14 @@ mod tests {
         derive_circuit_initialization_from_scratch_impl(input).unwrap()
     }
 
-    fn extractor_mock(_: ExtractorCmd, item: TokenStream) -> TokenStream {
-        log::debug!("item = {item:?}");
-        item
-    }
-
     #[fixture]
     fn ctx() -> Context<'static> {
         let _ = TestLogger::init(LevelFilter::Debug, Config::default());
         let mut ctx = Context::new();
-        ctx.register_proc_macro_attribute("extractor".into(), extractor_mock);
         ctx.register_proc_macro_derive(
             "InitFromScratch".into(),
             derive_circuit_initialization_from_scratch_test,
-            vec![],
+            vec!["field".to_string(), "from_scratch".to_string()],
         );
 
         ctx
@@ -502,6 +540,46 @@ mod tests {
     #[case(
         r"
         #[derive(InitFromScratch)]
+        struct S<'a, #[field] A> { f: &'a A }
+        ",
+        r"
+        struct S<'a, A> { f: &'a A }
+        impl<'a, __Layouter, #[field] A> extractor_support::circuit::CircuitInitialization<__Layouter> for S<'a, A> 
+        where 
+            __Layouter: midnight_proofs::circuit::Layouter<A>,
+            A: ff::PrimeField,
+        {
+            type Config = <S<'a, A> as crate::testing_utils::FromScratch<A>>::Config;
+            type Args = ();
+            type ConfigCols =
+                [midnight_proofs::plonk::Column<midnight_proofs::plonk::Instance>; 2];
+            type CS = midnight_proofs::plonk::ConstraintSystem<A>;
+            type Error = midnight_proofs::plonk::Error;
+
+            fn new_chip(config: &Self::Config, _: Self::Args) -> Self {
+                <S<'a, A> as crate::testing_utils::FromScratch<A>>::new_from_scratch(config)
+            }
+
+            fn configure_circuit(
+                meta: &mut Self::CS,
+                instance_columns: &Self::ConfigCols,
+            ) -> Self::Config {
+                <S<'a, A> as crate::testing_utils::FromScratch<A>>::configure_from_scratch(meta, instance_columns)
+            }
+
+            fn load_chip(
+                &self,
+                layouter: &mut __Layouter,
+                _config: &Self::Config,
+            ) -> Result<(), Self::Error> {
+                use crate::testing_utils::FromScratch;
+                self.load_from_scratch(layouter)
+            }}
+        "
+    )]
+    #[case(
+        r"
+        #[derive(InitFromScratch)]
         struct S<'a, F> where F: Copy { f: &'a F }
         ",
         r"
@@ -585,12 +663,12 @@ mod tests {
         r"
         trait CT { type Base; }
         #[derive(InitFromScratch)]
-        struct S<#[extractor(field = C::Base)] C: CT> { f: C::Base }
+        struct S<#[field(C::Base)] C: CT> { f: C::Base }
         ",
         r"
         trait CT { type Base; }
-        struct S<#[extractor(field = C::Base)] C: CT> { f: C::Base }
-        impl<__Layouter,#[extractor(field = C::Base)] C: CT> extractor_support::circuit::CircuitInitialization<__Layouter> for S<C> 
+        struct S<C: CT> { f: C::Base }
+        impl<__Layouter,#[field(C::Base)] C: CT> extractor_support::circuit::CircuitInitialization<__Layouter> for S<C> 
         where 
             __Layouter: midnight_proofs::circuit::Layouter<C::Base>,
             C::Base: ff::PrimeField,
@@ -627,12 +705,12 @@ mod tests {
         r"
         trait CT { type Base; }
         #[derive(InitFromScratch)]
-        struct S<#[extractor(field = C::Base)] C: CT, #[extractor(from_scratch)] N> { f: C::Base, n: N }
+        struct S<#[field(C::Base)] C: CT, #[from_scratch] N> { f: C::Base, n: N }
         ",
         r"
         trait CT { type Base; }
-        struct S<#[extractor(field = C::Base)] C: CT, #[extractor(from_scratch)] N> { f: C::Base, n: N }
-        impl<__Layouter,#[extractor(field = C::Base)] C: CT, #[extractor(from_scratch)] N> 
+        struct S<C: CT, N> { f: C::Base, n: N }
+        impl<__Layouter,#[field(C::Base)] C: CT, #[from_scratch]N> 
             extractor_support::circuit::CircuitInitialization<__Layouter> for S<C, N> 
         where 
             __Layouter: midnight_proofs::circuit::Layouter<C::Base>,
