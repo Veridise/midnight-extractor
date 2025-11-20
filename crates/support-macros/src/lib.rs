@@ -24,6 +24,7 @@ mod decompose;
 #[cfg(feature = "extractor-derive")]
 mod extractor;
 mod group_impl;
+mod parse;
 
 /// Creates a group annotation around the body of a function.
 ///
@@ -80,7 +81,6 @@ pub fn derive_no_chip_args(input: TokenStream) -> TokenStream {
 
 /// Derive macro for the `CircuitInitialization` trait that leverages an implementation of
 /// `FromScratch`
-
 #[cfg(feature = "extractor-derive")]
 #[proc_macro_derive(InitFromScratch)]
 pub fn derive_circuit_initialization_from_scratch(input: TokenStream) -> TokenStream {
@@ -91,4 +91,10 @@ pub fn derive_circuit_initialization_from_scratch(input: TokenStream) -> TokenSt
         Err(e) => e.to_compile_error(),
     }
     .into()
+}
+
+/// Marker attribute used by the derive macros
+#[proc_macro_attribute]
+pub fn extractor(_: TokenStream, item: TokenStream) -> TokenStream {
+    item
 }
