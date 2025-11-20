@@ -1,7 +1,6 @@
 //! Traits for working at the circuit level.
 
-use ff::PrimeField;
-//use midnight_proofs::circuit::Layouter;
+use ff::Field;
 
 use crate::{cells::CellReprSize, circuit::configuration::AutoConfigure};
 
@@ -9,9 +8,9 @@ pub mod configuration;
 pub mod injected;
 
 /// Super trait for extracting IO from an abstract circuit.
-pub trait AbstractCircuitIO<L> {
+pub trait AbstractCircuitIO<F: Field, L> {
     /// Type that implements the main logic.
-    type Chip: CircuitInitialization<L>;
+    type Chip: CircuitInitialization<F, L>;
     /// Input type of the chip.
     type Input: CellReprSize;
     /// Output type of the chip.
@@ -46,7 +45,7 @@ where
 }
 
 /// Adaptor trait for integrating chips with the extractor.
-pub trait CircuitInitialization<L> {
+pub trait CircuitInitialization<F: Field, L> {
     /// Configuration of the circuit.
     type Config: Clone + std::fmt::Debug;
     /// Arguments required by the circuit.
