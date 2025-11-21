@@ -334,11 +334,11 @@ checksum = "92930a250447b06f3b6b64caaa63add0c0314e630d1486bce5e6c607d17f9b42"
 
 [[package]]
 name = "mdnt-groups-support"
-version = "0.1.1"
+version = "0.2.0"
 
 [[package]]
 name = "mdnt-support"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "ff",
  "halo2-llzk-frontend",
@@ -352,7 +352,7 @@ dependencies = [
 
 [[package]]
 name = "mdnt-support-macros"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "log",
  "macro_expand",

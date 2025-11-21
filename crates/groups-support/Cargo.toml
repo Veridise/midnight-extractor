@@ -9,12 +9,6 @@ readme = "README.md"
 repository.workspace = true
 license-file.workspace = true
 
-[dependencies]
-# midnight-proofs.workspace = true
 
-[features]
-default = []
-# region-groups = [
-#   # Commented out until https://github.com/midnightntwrk/midnight-zk/pull/137 merges.
-#   #"midnight-proofs/region-groups"
-# ]
+
+
