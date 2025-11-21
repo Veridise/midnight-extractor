@@ -2,13 +2,7 @@ use std::collections::HashSet;
 
 use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote};
-use syn::{
-    parse::{End, Parse},
-    spanned::Spanned,
-    Attribute, DeriveInput, Generics, Ident, Meta, Path, TypeParam, TypeParamBound,
-};
-
-use crate::parse::extractor::{ExtractorCmd, FieldCmd};
+use syn::{spanned::Spanned, Attribute, DeriveInput, Generics, Ident, Path, TypeParamBound};
 
 /// Internal implementation of [`super::derive_no_chip_args`].
 pub fn derive_no_chip_args_impl(input: DeriveInput) -> TokenStream {
@@ -40,7 +34,6 @@ pub fn derive_circuit_initialization_from_scratch_impl(
             #name #ty_generics: crate::testing_utils::FromScratch<#f>
         }
     };
-    cleanup_helper_attrs(&mut generics);
     let where_clause = generics.make_where_clause();
 
     let predicates = &mut where_clause.predicates;
@@ -106,27 +99,6 @@ pub fn derive_circuit_initialization_from_scratch_impl(
     Ok(code)
 }
 
-fn cleanup_helper_attrs(generics: &mut Generics) {
-    for ty in generics.type_params_mut() {
-        ty.attrs
-            .retain(|a| !(a.path().is_ident("field") || a.path().is_ident("from_scratch")))
-    }
-}
-
-fn select_param(ty: &TypeParam) -> Option<syn::Result<Ident>> {
-    let cmds = ty
-        .attrs
-        .iter()
-        .filter_map(ExtractorCmd::from_attr)
-        .filter(|cmd| matches!(cmd, Ok(ExtractorCmd::FromScratch(_)) | Err(_)))
-        .collect::<syn::Result<Vec<_>>>();
-    match cmds.as_deref() {
-        Ok([]) => None,
-        Ok(_) => Some(Ok(ty.ident.clone())),
-        Err(err) => Some(Err(err.clone())),
-    }
-}
-
 fn find_annotated_params(attrs: &[Attribute]) -> syn::Result<Vec<Path>> {
     attrs
         .iter()
@@ -151,22 +123,6 @@ fn unique_layouter_ident(generics: &Generics) -> syn::Ident {
         })
         .find(|i| !idents.contains(&i))
         .unwrap()
-}
-
-fn try_field_attribute(
-    cmd: syn::Result<ExtractorCmd>,
-    type_ident: &Ident,
-) -> Option<syn::Result<FieldParam>> {
-    match cmd {
-        Err(err) => Some(Err(err)),
-        Ok(ExtractorCmd::FromScratch(_)) => None,
-        Ok(ExtractorCmd::Field(FieldCmd {
-            path: Some(path), ..
-        })) => Some(Ok(FieldParam::Path(path.path))),
-        Ok(ExtractorCmd::Field(FieldCmd { path: None, .. })) => {
-            Some(Ok(FieldParam::Ident(type_ident.clone())))
-        }
-    }
 }
 
 enum FieldParam {

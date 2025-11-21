@@ -1,5 +1,6 @@
 [package]
 name = "mdnt-support"
+description = "Support for integrating Midnight with the extractor"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -15,7 +16,6 @@ num-traits = "0.2"
 log = "0.4"
 
 mdnt-groups-support = { version = "0.1.0"}
-mdnt-support-macros = { path = "../support-macros/", optional = true }
 
 ff.workspace = true
 # midnight-curves.workspace = true 
@@ -25,6 +25,4 @@ haloumi-ir.workspace =true
 [dev-dependencies]
 rstest = "0.26"
 
-[features]
-proofs = []
-derive = ["mdnt-support-macros"]
+

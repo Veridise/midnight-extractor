@@ -1,18 +1,4 @@
-//! Convenience macros for declaring a group out of a function declaration.
-//!
-//! The generated code requires the `groups-support` crate named as `picus-support`.
-//! You can add the dependencies as follows:
-//!
-//! ```text
-//! [dependencies.picus]
-//! git = "https://github.com/Veridise/midnight-extractor"
-//! package = "support-macros"
-//!
-//! [dependencies.picus-support]
-//! git = "https://github.com/Veridise/midnight-extractor"
-//! package = "groups-support"
-//! ```
-
+#![doc = include_str!("../README.md")]
 #![deny(rustdoc::broken_intra_doc_links)]
 #![deny(missing_debug_implementations)]
 #![deny(missing_docs)]
@@ -24,7 +10,6 @@ mod decompose;
 #[cfg(feature = "extractor-derive")]
 mod extractor;
 mod group_impl;
-mod parse;
 
 /// Creates a group annotation around the body of a function.
 ///
@@ -81,6 +66,33 @@ pub fn derive_no_chip_args(input: TokenStream) -> TokenStream {
 
 /// Derive macro for the `CircuitInitialization` trait that leverages an implementation of
 /// `FromScratch`
+///
+/// The trait is referred to as `crate::testing_utils::FromScratch` by the
+/// macro and therefore this derive macro can only be used in the `midnight-circuits` crate. The macro requires that the
+/// type has at least one type parameter that implements the `ff::PrimeField` trait and tries to search for it. For circumstances
+/// where the macro can't figure it out the macro includes a helper attribute for setting what type should be used as the field.
+/// In addition, to support when the type has parameters that require implementing `FromScratch` the macro has another helper for annotating
+/// this requirements. To see how these helpers work check the examples below.
+///
+/// # Examples
+///
+/// ```ignore
+/// // Basic case without any necessary configuration
+/// #[derive(InitFromScratch)]
+/// struct ChipA<F: Field> { ... }
+///
+/// // Configuring the field
+/// trait Foo { type Bar: ff::PrimeField; }
+/// #[derive(InitFromScratch)]
+/// #[field(C::Bar)]
+/// struct ChipB<C: Foo> { ... }
+///
+/// // Annotating required implementations of FromScratch
+/// // ChipC<F, D> only implements FromScratch if D implements it.
+/// #[derive(InitFromScratch)]
+/// #[from_scratch(D)]
+/// struct ChipC<F: Field, D> { ... }
+/// ```
 #[cfg(feature = "extractor-derive")]
 #[proc_macro_derive(InitFromScratch, attributes(field, from_scratch))]
 pub fn derive_circuit_initialization_from_scratch(input: TokenStream) -> TokenStream {
@@ -92,9 +104,3 @@ pub fn derive_circuit_initialization_from_scratch(input: TokenStream) -> TokenSt
     }
     .into()
 }
-
-///// Marker attribute used by the derive macros
-//#[proc_macro_attribute]
-//pub fn extractor(_: TokenStream, item: TokenStream) -> TokenStream {
-//    item
-//}

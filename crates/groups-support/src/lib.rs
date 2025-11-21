@@ -1,4 +1,4 @@
-//! Support traits for the `picus::group` macro.
+#![doc = include_str!("../README.md")]
 //!
 //! Includes some implementations of the [`DecomposeIn<Cell>`] trait for standard
 //! types but is not exhaustive. The implemented types cover the needs of the
