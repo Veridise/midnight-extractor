@@ -205,7 +205,7 @@ checksum = "0cc23270f6e1808e30a928bdc84dea0b9b4136a8bc82338574f23baf47bbd280"
 [[package]]
 name = "halo2-frontend-core"
 version = "0.1.0"
-source = "git+https://github.com/Veridise/llzk-rs#7bc95bfff1cac4888e8a40022e9f58e9f8c883c2"
+source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#7f78bbb32e0f65fb1fecfc1de599e49364a98e63"
 dependencies = [
  "anyhow",
  "ff",
@@ -214,7 +214,7 @@ dependencies = [
 [[package]]
 name = "halo2-llzk-frontend"
 version = "0.1.0"
-source = "git+https://github.com/Veridise/llzk-rs#7bc95bfff1cac4888e8a40022e9f58e9f8c883c2"
+source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#7f78bbb32e0f65fb1fecfc1de599e49364a98e63"
 dependencies = [
  "anyhow",
  "bit-set",
@@ -347,6 +347,7 @@ dependencies = [
  "mdnt-support-macros",
  "num-bigint",
  "num-traits",
+ "rstest",
  "thiserror",
 ]
 
@@ -430,7 +431,7 @@ checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 [[package]]
 name = "picus"
 version = "0.1.0"
-source = "git+https://github.com/Veridise/llzk-rs#7bc95bfff1cac4888e8a40022e9f58e9f8c883c2"
+source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#7f78bbb32e0f65fb1fecfc1de599e49364a98e63"
 dependencies = [
  "anyhow",
  "disjoint",

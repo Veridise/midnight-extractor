@@ -53,30 +53,12 @@ pub enum Error {
     #[error("{header}Was expecting {expected} elements but got {actual}")]
     UnexpectedElements {
         /// Context header for the error
-        header: &'static str,
+        header: String,
         /// The expected number of elements.
         expected: usize,
         /// The number of elements.
         actual: usize,
     },
-}
-
-/// Ensures that the given predicate is true, returning error if not.
-pub fn assert_expected_elements(
-    header: &'static str,
-    expected: usize,
-    actual: usize,
-    pred: impl FnOnce(usize, usize) -> bool,
-) -> Result<(), Error> {
-    if pred(expected, actual) {
-        Ok(())
-    } else {
-        Err(Error::UnexpectedElements {
-            header,
-            expected,
-            actual,
-        })
-    }
 }
 
 impl From<&'static str> for Error {
@@ -88,16 +70,238 @@ impl From<&'static str> for Error {
 unsafe impl Send for Error {}
 unsafe impl Sync for Error {}
 
-#[cfg(feature = "proofs")]
-/// Alias for the error emitted by Halo2 during synthesis.
-pub type PlonkError = midnight_proofs::plonk::Error;
+/// Macro for creating [`Error::UnexpectedElements`] errors.
+///
+/// The macro accepts a comparison expression between two values (expected and actual) and an
+/// optional message. The message itself can accept formatting argument.
+/// It will return an [`Err`] with an [`Error::UnexpectedElements`] error so the
+/// caller of the macro should have a return type of `Result<_, E>` s.t. `E` implements `From<Error>`.
+///
+/// Because of how the macro is implemented, when passign a custom message is necessary to surround the comparison with parenthesis.
+///
+/// # Examples
+///
+/// ```no_run
+/// use mdnt_support::error::Error;
+/// use mdnt_support::expect_elements;
+///
+/// fn foo(c: usize) -> Result<(), Error> {
+///     let a = 6;
+///     let b = 7;
+///     // Default message
+///     expect_elements!(a == b);
+///     // With a custom message
+///     expect_elements!((a <= b), "During call to foo()");
+///     // With a custom formatted message
+///     expect_elements!((a > c), "During call to foo({c})");
+///     Ok(())
+/// }
+/// ```
+#[macro_export]
+macro_rules! expect_elements {
+    // With custom message
+    (($($tokens:tt)+) , $($fmt:tt)+) => {
+        $crate::__expect_elements_parse! { [] [$($tokens)+] format!($($fmt)+) }
+    };
 
-#[cfg(feature = "proofs")]
-impl From<Error> for PlonkError {
-    fn from(value: Error) -> Self {
-        match value {
-            Error::Plonk(err) => err,
-            err => Self::Transcript(std::io::Error::other(err)),
+    // Without message → default
+    ($($tokens:tt)+) => {
+        $crate::__expect_elements_parse! { [] [$($tokens)+] String::new() }
+    };
+}
+
+//
+// TT MUNCHER: split into lhs / op / rhs
+//
+#[macro_export]
+#[doc(hidden)]
+macro_rules! __expect_elements_parse {
+    // ==
+    ([$lhs_head:tt $($lhs_tail:tt)*] [== $rhs_head:tt $($rhs_tail:tt)*] $msg:expr) => {
+        $crate::__expect_elements_finish! {
+            ($lhs_head $($lhs_tail)*)
+            (==)
+            ($rhs_head $($rhs_tail)*)
+            ($msg)
         }
+    };
+
+    // !=
+    ([$lhs_head:tt $($lhs_tail:tt)*] [!= $rhs_head:tt $($rhs_tail:tt)*] $msg:expr) => {
+        $crate::__expect_elements_finish! {
+            ($lhs_head $($lhs_tail)*)
+            (!=)
+            ($rhs_head $($rhs_tail)*)
+            ($msg)
+        }
+    };
+
+    // <
+    ([$lhs_head:tt $($lhs_tail:tt)*] [< $rhs_head:tt $($rhs_tail:tt)*] $msg:expr) => {
+        $crate::__expect_elements_finish! {
+            ($lhs_head $($lhs_tail)*)
+            (<)
+            ($rhs_head $($rhs_tail)*)
+            ($msg)
+        }
+    };
+
+    // <=
+    ([$lhs_head:tt $($lhs_tail:tt)*] [<= $rhs_head:tt $($rhs_tail:tt)*] $msg:expr) => {
+        $crate::__expect_elements_finish! {
+            ($lhs_head $($lhs_tail)*)
+            (<=)
+            ($rhs_head $($rhs_tail)*)
+            ($msg)
+        }
+    };
+
+    // >
+    ([$lhs_head:tt $($lhs_tail:tt)*] [> $rhs_head:tt $($rhs_tail:tt)*] $msg:expr) => {
+        $crate::__expect_elements_finish! {
+            ($lhs_head $($lhs_tail)*)
+            (>)
+            ($rhs_head $($rhs_tail)*)
+            ($msg)
+        }
+    };
+
+    // >=
+    ([$lhs_head:tt $($lhs_tail:tt)*] [>= $rhs_head:tt $($rhs_tail:tt)*] $msg:expr) => {
+        $crate::__expect_elements_finish! {
+            ($lhs_head $($lhs_tail)*)
+            (>=)
+            ($rhs_head $($rhs_tail)*)
+            ($msg)
+        }
+    };
+
+    // Keep munching
+    ([$($lhs:tt)*] [$next:tt $($rest:tt)*] $msg:expr) => {
+        $crate::__expect_elements_parse! { [$($lhs)* $next] [$($rest)*] $msg }
+    };
+
+    // No operator -> error
+    ([$($lhs:tt)*] [] $msg:expr) => {
+        compile_error!("expected a comparison expression such as `lhs == rhs`");
+    };
+}
+
+//
+// Final step: evaluate lhs, rhs, and return Err(A::B)
+//
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __expect_elements_finish {
+    // ==
+    (($lhs:tt) (==) ($rhs:tt) ($msg:expr)) => {{
+        let lhs_val: usize = $lhs;
+        let rhs_val: usize = $rhs;
+        $crate::error::__expect_elements_impl($msg, lhs_val, rhs_val, lhs_val == rhs_val)?;
+    }};
+
+    // !=
+    (($lhs:tt) (!=) ($rhs:tt) ($msg:expr)) => {{
+        let lhs_val: usize = $lhs;
+        let rhs_val: usize = $rhs;
+        $crate::error::__expect_elements_impl($msg, lhs_val, rhs_val, lhs_val != rhs_val)?;
+    }};
+
+    // <
+    (($lhs:tt) (<) ($rhs:tt) ($msg:expr)) => {{
+        let lhs_val: usize = $lhs;
+        let rhs_val: usize = $rhs;
+        $crate::error::__expect_elements_impl($msg, lhs_val, rhs_val, lhs_val < rhs_val)?;
+    }};
+
+    // <=
+    (($lhs:tt) (<=) ($rhs:tt) ($msg:expr)) => {{
+        let lhs_val: usize = $lhs;
+        let rhs_val: usize = $rhs;
+        $crate::error::__expect_elements_impl($msg, lhs_val, rhs_val, lhs_val <= rhs_val)?;
+    }};
+
+    // >
+    (($lhs:tt) (>) ($rhs:tt) ($msg:expr)) => {{
+        let lhs_val: usize = $lhs;
+        let rhs_val: usize = $rhs;
+        $crate::error::__expect_elements_impl($msg, lhs_val, rhs_val, lhs_val > rhs_val)?;
+    }};
+
+    // >=
+    (($lhs:tt) (>=) ($rhs:tt) ($msg:expr)) => {{
+        let lhs_val: usize = $lhs;
+        let rhs_val: usize = $rhs;
+        $crate::error::__expect_elements_impl($msg, lhs_val, rhs_val, lhs_val >= rhs_val)?;
+    }};
+}
+
+#[doc(hidden)]
+#[inline]
+pub fn __expect_elements_impl(
+    header: String,
+    expected: usize,
+    actual: usize,
+    passed: bool,
+) -> Result<(), Error> {
+    if passed {
+        Ok(())
+    } else {
+        Err(Error::UnexpectedElements {
+            header,
+            expected,
+            actual,
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rstest::rstest;
+
+    #[derive(Debug)]
+    enum Cmp {
+        Eq,
+        Ne,
+        Lt,
+        Le,
+        Gt,
+        Ge,
+    }
+
+    #[rstest]
+    #[case(Cmp::Eq, 1, 1)]
+    #[case(Cmp::Ne, 1, 2)]
+    #[case(Cmp::Lt, 1, 2)]
+    #[case(Cmp::Le, 1, 1)]
+    #[case(Cmp::Gt, 2, 1)]
+    #[case(Cmp::Ge, 1, 1)]
+    #[should_panic(expected = "unexpected elements error")]
+    #[case(Cmp::Eq, 1, 2)]
+    #[should_panic(expected = "unexpected elements error")]
+    #[case(Cmp::Ne, 1, 1)]
+    #[should_panic(expected = "unexpected elements error")]
+    #[case(Cmp::Lt, 1, 0)]
+    #[should_panic(expected = "unexpected elements error")]
+    #[case(Cmp::Le, 1, 0)]
+    #[should_panic(expected = "unexpected elements error")]
+    #[case(Cmp::Gt, 2, 3)]
+    #[should_panic(expected = "unexpected elements error")]
+    #[case(Cmp::Ge, 1, 3)]
+    fn expect_elements_test(#[case] cmp: Cmp, #[case] expected: usize, #[case] actual: usize) {
+        fn do_test(cmp: Cmp, expected: usize, actual: usize) -> Result<(), Error> {
+            match cmp {
+                Cmp::Eq => expect_elements!((expected == actual), "unexpected elements error"),
+                Cmp::Ne => expect_elements!((expected != actual), "unexpected elements error"),
+                Cmp::Lt => expect_elements!((expected < actual), "unexpected elements error"),
+                Cmp::Le => expect_elements!((expected <= actual), "unexpected elements error"),
+                Cmp::Gt => expect_elements!((expected > actual), "unexpected elements error"),
+                Cmp::Ge => expect_elements!((expected >= actual), "unexpected elements error"),
+            }
+            Ok(())
+        }
+        eprintln!("cmp = {cmp:?}, expected = {expected}, actual = {actual}");
+        do_test(cmp, expected, actual).unwrap();
     }
 }

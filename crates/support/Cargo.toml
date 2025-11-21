@@ -22,6 +22,9 @@ ff.workspace = true
 # midnight-proofs = {workspace = true, optional = true}
 haloumi-ir.workspace =true
 
+[dev-dependencies]
+rstest = "0.26"
+
 [features]
 proofs = []
 derive = ["mdnt-support-macros"]
