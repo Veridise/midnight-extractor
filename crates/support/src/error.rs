@@ -117,61 +117,61 @@ macro_rules! expect_elements {
 #[doc(hidden)]
 macro_rules! __expect_elements_parse {
     // ==
-    ([$lhs_head:tt $($lhs_tail:tt)*] [== $rhs_head:tt $($rhs_tail:tt)*] $msg:expr) => {
+    ([$($lhs:tt)+] [== $($rhs:tt)+] $msg:expr) => {
         $crate::__expect_elements_finish! {
-            ($lhs_head $($lhs_tail)*)
+            ($($lhs)*)
             (==)
-            ($rhs_head $($rhs_tail)*)
+            ($($rhs)*)
             ($msg)
         }
     };
 
     // !=
-    ([$lhs_head:tt $($lhs_tail:tt)*] [!= $rhs_head:tt $($rhs_tail:tt)*] $msg:expr) => {
+    ([$($lhs:tt)+] [!= $($rhs:tt)+] $msg:expr) => {
         $crate::__expect_elements_finish! {
-            ($lhs_head $($lhs_tail)*)
+            ($($lhs)*)
             (!=)
-            ($rhs_head $($rhs_tail)*)
+            ($($rhs)*)
             ($msg)
         }
     };
 
     // <
-    ([$lhs_head:tt $($lhs_tail:tt)*] [< $rhs_head:tt $($rhs_tail:tt)*] $msg:expr) => {
+    ([$($lhs:tt)+] [< $($rhs:tt)+] $msg:expr) => {
         $crate::__expect_elements_finish! {
-            ($lhs_head $($lhs_tail)*)
+            ($($lhs)*)
             (<)
-            ($rhs_head $($rhs_tail)*)
+            ($($rhs)*)
             ($msg)
         }
     };
 
     // <=
-    ([$lhs_head:tt $($lhs_tail:tt)*] [<= $rhs_head:tt $($rhs_tail:tt)*] $msg:expr) => {
+    ([$($lhs:tt)+] [<= $($rhs:tt)+] $msg:expr) => {
         $crate::__expect_elements_finish! {
-            ($lhs_head $($lhs_tail)*)
+            ($($lhs)*)
             (<=)
-            ($rhs_head $($rhs_tail)*)
+            ($($rhs)*)
             ($msg)
         }
     };
 
     // >
-    ([$lhs_head:tt $($lhs_tail:tt)*] [> $rhs_head:tt $($rhs_tail:tt)*] $msg:expr) => {
+    ([$($lhs:tt)+] [> $($rhs:tt)+] $msg:expr) => {
         $crate::__expect_elements_finish! {
-            ($lhs_head $($lhs_tail)*)
+            ($($lhs)*)
             (>)
-            ($rhs_head $($rhs_tail)*)
+            ($($rhs)*)
             ($msg)
         }
     };
 
     // >=
-    ([$lhs_head:tt $($lhs_tail:tt)*] [>= $rhs_head:tt $($rhs_tail:tt)*] $msg:expr) => {
+    ([$($lhs:tt)+] [>= $($rhs:tt)+] $msg:expr) => {
         $crate::__expect_elements_finish! {
-            ($lhs_head $($lhs_tail)*)
+            ($($lhs)*)
             (>=)
-            ($rhs_head $($rhs_tail)*)
+            ($($rhs)*)
             ($msg)
         }
     };
@@ -194,44 +194,44 @@ macro_rules! __expect_elements_parse {
 #[macro_export]
 macro_rules! __expect_elements_finish {
     // ==
-    (($lhs:tt) (==) ($rhs:tt) ($msg:expr)) => {{
-        let lhs_val: usize = $lhs;
-        let rhs_val: usize = $rhs;
+    (($($lhs:tt)+) (==) ($($rhs:tt)+) ($msg:expr)) => {{
+        let lhs_val: usize = $($lhs)*;
+        let rhs_val: usize = $($rhs)*;
         $crate::error::__expect_elements_impl($msg, lhs_val, rhs_val, lhs_val == rhs_val)?;
     }};
 
     // !=
-    (($lhs:tt) (!=) ($rhs:tt) ($msg:expr)) => {{
-        let lhs_val: usize = $lhs;
-        let rhs_val: usize = $rhs;
+    (($($lhs:tt)+) (!=) ($($rhs:tt)+) ($msg:expr)) => {{
+        let lhs_val: usize = $($lhs)*;
+        let rhs_val: usize = $($rhs)*;
         $crate::error::__expect_elements_impl($msg, lhs_val, rhs_val, lhs_val != rhs_val)?;
     }};
 
     // <
-    (($lhs:tt) (<) ($rhs:tt) ($msg:expr)) => {{
-        let lhs_val: usize = $lhs;
-        let rhs_val: usize = $rhs;
+    (($($lhs:tt)+) (<) ($($rhs:tt)+) ($msg:expr)) => {{
+        let lhs_val: usize = $($lhs)*;
+        let rhs_val: usize = $($rhs)*;
         $crate::error::__expect_elements_impl($msg, lhs_val, rhs_val, lhs_val < rhs_val)?;
     }};
 
     // <=
-    (($lhs:tt) (<=) ($rhs:tt) ($msg:expr)) => {{
-        let lhs_val: usize = $lhs;
-        let rhs_val: usize = $rhs;
+    (($($lhs:tt)+) (<=) ($($rhs:tt)+) ($msg:expr)) => {{
+        let lhs_val: usize = $($lhs)*;
+        let rhs_val: usize = $($rhs)*;
         $crate::error::__expect_elements_impl($msg, lhs_val, rhs_val, lhs_val <= rhs_val)?;
     }};
 
     // >
-    (($lhs:tt) (>) ($rhs:tt) ($msg:expr)) => {{
-        let lhs_val: usize = $lhs;
-        let rhs_val: usize = $rhs;
+    (($($lhs:tt)+) (>) ($($rhs:tt)+) ($msg:expr)) => {{
+        let lhs_val: usize = $($lhs)*;
+        let rhs_val: usize = $($rhs)*;
         $crate::error::__expect_elements_impl($msg, lhs_val, rhs_val, lhs_val > rhs_val)?;
     }};
 
     // >=
-    (($lhs:tt) (>=) ($rhs:tt) ($msg:expr)) => {{
-        let lhs_val: usize = $lhs;
-        let rhs_val: usize = $rhs;
+    (($($lhs:tt)+) (>=) ($($rhs:tt)+) ($msg:expr)) => {{
+        let lhs_val: usize = $($lhs)*;
+        let rhs_val: usize = $($rhs)*;
         $crate::error::__expect_elements_impl($msg, lhs_val, rhs_val, lhs_val >= rhs_val)?;
     }};
 }
@@ -303,5 +303,63 @@ mod tests {
         }
         eprintln!("cmp = {cmp:?}, expected = {expected}, actual = {actual}");
         do_test(cmp, expected, actual).unwrap();
+    }
+
+    #[rstest]
+    #[should_panic(expected = "unexpected elements error")]
+    #[case(Cmp::Eq)]
+    #[should_panic(expected = "unexpected elements error")]
+    #[case(Cmp::Ne)]
+    #[should_panic(expected = "unexpected elements error")]
+    #[case(Cmp::Lt)]
+    #[should_panic(expected = "unexpected elements error")]
+    #[case(Cmp::Le)]
+    #[should_panic(expected = "unexpected elements error")]
+    #[case(Cmp::Gt)]
+    #[should_panic(expected = "unexpected elements error")]
+    #[case(Cmp::Ge)]
+    fn expect_elements_complex_expr_rhs(#[case] cmp: Cmp) {
+        fn do_test(cmp: Cmp) -> Result<(), Error> {
+            let v = vec![1, 2, 3];
+            match cmp {
+                Cmp::Eq => expect_elements!((2 == v.len()), "unexpected elements error"),
+                Cmp::Ne => expect_elements!((3 != v.len()), "unexpected elements error"),
+                Cmp::Lt => expect_elements!((4 < v.len()), "unexpected elements error"),
+                Cmp::Le => expect_elements!((4 <= v.len()), "unexpected elements error"),
+                Cmp::Gt => expect_elements!((2 > v.len()), "unexpected elements error"),
+                Cmp::Ge => expect_elements!((2 >= v.len()), "unexpected elements error"),
+            };
+            Ok(())
+        }
+        do_test(cmp).unwrap();
+    }
+
+    #[rstest]
+    #[should_panic(expected = "unexpected elements error")]
+    #[case(Cmp::Eq)]
+    #[should_panic(expected = "unexpected elements error")]
+    #[case(Cmp::Ne)]
+    #[should_panic(expected = "unexpected elements error")]
+    #[case(Cmp::Lt)]
+    #[should_panic(expected = "unexpected elements error")]
+    #[case(Cmp::Le)]
+    #[should_panic(expected = "unexpected elements error")]
+    #[case(Cmp::Gt)]
+    #[should_panic(expected = "unexpected elements error")]
+    #[case(Cmp::Ge)]
+    fn expect_elements_complex_expr_lhs(#[case] cmp: Cmp) {
+        fn do_test(cmp: Cmp) -> Result<(), Error> {
+            let v = vec![1, 2, 3];
+            match cmp {
+                Cmp::Eq => expect_elements!((v.len() == 2), "unexpected elements error"),
+                Cmp::Ne => expect_elements!((v.len() != 3), "unexpected elements error"),
+                Cmp::Lt => expect_elements!((v.len() < 2), "unexpected elements error"),
+                Cmp::Le => expect_elements!((v.len() <= 2), "unexpected elements error"),
+                Cmp::Gt => expect_elements!((v.len() > 4), "unexpected elements error"),
+                Cmp::Ge => expect_elements!((v.len() >= 4), "unexpected elements error"),
+            };
+            Ok(())
+        }
+        do_test(cmp).unwrap();
     }
 }
