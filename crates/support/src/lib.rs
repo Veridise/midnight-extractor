@@ -22,10 +22,7 @@ pub mod error;
 //pub mod fields;
 pub mod macros;
 
-pub mod ir {
-    //! Re-export of IR types from the frontend.
-    pub use haloumi_ir::ir::*;
-}
+pub use haloumi_ir as ir;
 
 /// This trait defines the halo2 types required by this crate.
 /// An implementation of halo2 compatible with this crate must have

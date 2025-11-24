@@ -73,9 +73,9 @@ unsafe impl Sync for Error {}
 /// Macro for creating [`Error::UnexpectedElements`] errors.
 ///
 /// The macro accepts a comparison expression between two values (expected and actual) and an
-/// optional message. The message itself can accept formatting argument.
+/// optional message. The message itself can accept formatting arguments.
 /// It will return an [`Err`] with an [`Error::UnexpectedElements`] error so the
-/// caller of the macro should have a return type of `Result<_, E>` s.t. `E` implements `From<Error>`.
+/// caller of the macro should have a return type of `Result<_, E>` s.t. `E` implements [`From`] for the [`Error`] type.
 ///
 /// Because of how the macro is implemented, when passign a custom message is necessary to surround the comparison with parenthesis.
 ///
