@@ -194,7 +194,8 @@ dependencies = [
 [[package]]
 name = "haloumi-ir"
 version = "0.1.0"
-source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#dccf2fbe9bdc8c1bdf3dbfca4ee3e3fc59812770"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "904d52b521938667266a6bb02e7b3aa4a5afc891f0fcace83009c9d208107ab6"
 dependencies = [
  "eqv",
  "ff",
@@ -208,7 +209,8 @@ dependencies = [
 [[package]]
 name = "haloumi-ir-base"
 version = "0.1.0"
-source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#dccf2fbe9bdc8c1bdf3dbfca4ee3e3fc59812770"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fac866691674a917182a30108705dbf26a403ab5dcf8ef8803d24f4c9be7f881"
 dependencies = [
  "eqv",
  "ff",
@@ -221,7 +223,8 @@ dependencies = [
 [[package]]
 name = "haloumi-lowering"
 version = "0.1.0"
-source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#dccf2fbe9bdc8c1bdf3dbfca4ee3e3fc59812770"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "17194dc624ba559026a161f5bcd78a99f43b33031dff66d58b32906f5865960e"
 dependencies = [
  "ff",
  "haloumi-core",
