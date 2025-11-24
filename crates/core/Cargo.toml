@@ -1,0 +1,19 @@
+[package]
+name = "mdnt-extractor-core"
+description = "Core types of the midnight-extractor"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+readme = "README.md"
+repository.workspace = true
+license-file.workspace = true
+
+[dependencies]
+ff.workspace = true 
+midnight-proofs.workspace = true
+midnight-circuits.workspace = true
+midnight-curves.workspace = true
+mdnt-support = { version = "0.2.0"}
+num-bigint = "0.4"
+haloumi-ir.workspace =true

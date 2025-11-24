@@ -18,10 +18,6 @@ impl<const N: usize, T: CellReprSize> CellReprSize for [T; N] {
     const SIZE: usize = N * T::SIZE;
 }
 
-//impl<F: PrimeField> CellReprSize for AssignedCell<F, F> {
-//    const SIZE: usize = 1;
-//}
-
 macro_rules! zero_size_repr {
     ($t:ty) => {
         impl crate::cells::CellReprSize for $t {

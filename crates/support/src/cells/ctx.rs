@@ -243,14 +243,14 @@ impl<'i, 's, F: Field, H: Halo2Types<F>> ICtx<'i, 's, F, H> {
     }
 
     /// Tries to parse a constant as a field element.
-    pub fn field_constant(&mut self) -> Result<F, Error>
+    pub fn field_constant<O>(&mut self) -> Result<O, Error>
     where
-        F: PrimeField,
+        O: PrimeField,
     {
         self.constants
             .next()
             .ok_or_else(|| Error::NotEnoughConstants)
-            .and_then(parse_field::<F>)
+            .and_then(parse_field::<O>)
     }
 
     /// Tries to parse a primitive constant.

@@ -1,5 +1,5 @@
 [workspace]
-members = [ "crates/groups-support", "crates/support","crates/support-macros"]
+members = [ "crates/core", "crates/groups-support", "crates/support","crates/support-macros"]
 resolver = "2"
 
 [workspace.package]
@@ -16,19 +16,30 @@ ff = "0.13"
 haloumi-ir = "0.1.0"
 
 [workspace.dependencies.midnight-proofs]
-git = "https://github.com/midnightntwrk/midnight-zk"
+# Commented out until https://github.com/midnightntwrk/midnight-zk/pull/137 merges.
+# git = "https://github.com/midnightntwrk/midnight-zk"
+git = "https://github.com/Veridise/midnight-zk"
 default-features = false
 features = [
     "bits",
-    "cost-estimator",
+    # "cost-estimator",
     "circuit-params",
     "committed-instances",
-    # Commented out until https://github.com/midnightntwrk/midnight-zk/pull/137 merges.
-    # "region-groups"
+    "region-groups",
+    "extraction"
+] 
+
+[workspace.dependencies.midnight-circuits]
+# Commented out until https://github.com/midnightntwrk/midnight-zk/pull/137 merges.
+# git = "https://github.com/midnightntwrk/midnight-zk"
+git = "https://github.com/Veridise/midnight-zk"
+default-features = false
+features = [
+    "extraction"
 ] 
 
 [workspace.dependencies.midnight-curves]
-git = "https://github.com/midnightntwrk/midnight-zk"
+git = "https://github.com/Veridise/midnight-zk"
 
 
 [workspace.dependencies.haloumi]
