@@ -13,6 +13,7 @@ license-file = "LICENSE"
 
 [workspace.dependencies]
 ff = "0.13"
+haloumi-ir = "0.1.0"
 
 [workspace.dependencies.midnight-proofs]
 git = "https://github.com/midnightntwrk/midnight-zk"
@@ -35,9 +36,5 @@ git = "https://github.com/Veridise/llzk-rs"
 default-features = false
 features = ["picus-backend"]
 package = "halo2-llzk-frontend"
-branch = "dani/convenience-methods"
-
-[workspace.dependencies.haloumi-ir]
-git = "https://github.com/Veridise/llzk-rs"
 branch = "dani/convenience-methods"
 
