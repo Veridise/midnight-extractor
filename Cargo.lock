@@ -596,11 +596,11 @@ dependencies = [
 
 [[package]]
 name = "mdnt-extractor-core"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "ff",
  "haloumi-ir",
- "mdnt-support 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mdnt-support 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "midnight-circuits",
  "midnight-curves",
  "midnight-proofs",
@@ -610,21 +610,21 @@ dependencies = [
 [[package]]
 name = "mdnt-groups-support"
 version = "0.2.0"
-
-[[package]]
-name = "mdnt-groups-support"
-version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "03e704bfa829dddf7c2cd9faf1c126be3af58661f266b37949a9001620c9ea4a"
 
 [[package]]
+name = "mdnt-groups-support"
+version = "0.2.1"
+
+[[package]]
 name = "mdnt-support"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "ff",
  "haloumi-ir",
  "log",
- "mdnt-groups-support 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mdnt-groups-support 0.2.0",
  "num-bigint",
  "num-traits",
  "rstest",
@@ -633,33 +633,17 @@ dependencies = [
 
 [[package]]
 name = "mdnt-support"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "417f54ee605abd6acafd4c8126c9d49987b543b780da9a57bf7b89a699deec22"
+checksum = "83196cbcc4fccef7793debc21eccb19709392aad91800abc2f23627e682f796c"
 dependencies = [
  "ff",
  "haloumi-ir",
  "log",
- "mdnt-groups-support 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mdnt-groups-support 0.2.0",
  "num-bigint",
  "num-traits",
  "thiserror",
-]
-
-[[package]]
-name = "mdnt-support-macros"
-version = "0.2.0"
-dependencies = [
- "log",
- "macro_expand",
- "macrotest",
- "prettyplease",
- "proc-macro2",
- "quote",
- "rstest",
- "similar-asserts",
- "simplelog",
- "syn 2.0.111",
 ]
 
 [[package]]
@@ -675,6 +659,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "mdnt-support-macros"
+version = "0.2.1"
+dependencies = [
+ "log",
+ "macro_expand",
+ "macrotest",
+ "prettyplease",
+ "proc-macro2",
+ "quote",
+ "rstest",
+ "similar-asserts",
+ "simplelog",
+ "syn 2.0.111",
+]
+
+[[package]]
 name = "memchr"
 version = "2.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -683,7 +683,7 @@ checksum = "f52b00d39961fc5b2736ea853c9cc86238e165017a493d1d5c8eac6bdc4cc273"
 [[package]]
 name = "midnight-circuits"
 version = "5.0.1"
-source = "git+https://github.com/Veridise/midnight-zk#b2495dc1a6f15d373ee0b300574bbf69111c68a7"
+source = "git+https://github.com/Veridise/midnight-zk#79cd760825f18ff6206dff18ca270e48ed41755e"
 dependencies = [
  "base64",
  "bincode",
@@ -692,9 +692,9 @@ dependencies = [
  "group",
  "halo2curves",
  "lazy_static",
- "mdnt-groups-support 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "mdnt-support 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "mdnt-support-macros 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mdnt-groups-support 0.2.0",
+ "mdnt-support 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mdnt-support-macros 0.2.0",
  "midnight-curves",
  "midnight-proofs",
  "num-bigint",
@@ -709,7 +709,7 @@ dependencies = [
 [[package]]
 name = "midnight-curves"
 version = "0.1.1"
-source = "git+https://github.com/Veridise/midnight-zk#b2495dc1a6f15d373ee0b300574bbf69111c68a7"
+source = "git+https://github.com/Veridise/midnight-zk#79cd760825f18ff6206dff18ca270e48ed41755e"
 dependencies = [
  "bitvec",
  "blst",
@@ -728,15 +728,15 @@ dependencies = [
 [[package]]
 name = "midnight-proofs"
 version = "0.5.1"
-source = "git+https://github.com/Veridise/midnight-zk#b2495dc1a6f15d373ee0b300574bbf69111c68a7"
+source = "git+https://github.com/Veridise/midnight-zk#79cd760825f18ff6206dff18ca270e48ed41755e"
 dependencies = [
  "blake2b_simd",
  "ff",
  "getrandom",
  "group",
  "halo2curves",
- "mdnt-groups-support 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "mdnt-support 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mdnt-groups-support 0.2.0",
+ "mdnt-support 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "midnight-curves",
  "num-bigint",
  "rand_chacha",

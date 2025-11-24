@@ -9,16 +9,15 @@ use mdnt_support::{
         CellReprSize,
     },
     circuit::injected::InjectedIR,
-    error::Error,
 };
 use midnight_circuits::{
-    ecc::{curves::CircuitCurve, native::ScalarVar},
+    ecc::{curves::CircuitCurve, native::AssignedScalarOfNativeCurve as ScalarVar},
     field::AssignedBounded,
     halo2curves::CurveExt as _,
     instructions::{ComparisonInstructions, ConversionInstructions, EccInstructions},
     midnight_proofs::{
         circuit::{AssignedCell, Layouter},
-        plonk::Expression,
+        plonk::{Error, Expression},
     },
     types::{AssignedNative, AssignedNativePoint},
 };
@@ -29,12 +28,30 @@ use num_bigint::BigUint;
 pub use crate::fields::{
     Blstrs, Jubjub, JubjubFr, JubjubSubgroup, MidnightFp, Secp256k1, Secp256k1Fp, Secp256k1Fq, G1,
 };
+use crate::fields::{LoadedBlstrs, LoadedMidnightFp, LoadedSecp256k1Fp, Zero};
 pub use mdnt_support::cells::load::LoadFromCells;
 
 pub struct LoadedJubjub(Jubjub);
 
 impl CellReprSize for LoadedJubjub {
-    const SIZE: usize = <Jubjub as CellReprSize>::SIZE;
+    const SIZE: usize = <Zero<Jubjub> as CellReprSize>::SIZE;
+}
+
+#[derive(Debug)]
+pub struct PointNotInCurve(Blstrs, Blstrs);
+
+impl std::fmt::Display for PointNotInCurve {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Point ({}, {}) is not in the curve", self.0, self.1)
+    }
+}
+
+impl std::error::Error for PointNotInCurve {}
+
+impl From<PointNotInCurve> for Error {
+    fn from(value: PointNotInCurve) -> Self {
+        Self::Transcript(std::io::Error::other(value))
+    }
 }
 
 impl<Chip, L> LoadFromCells<Blstrs, Chip, ExtractionSupport, L> for LoadedJubjub {
@@ -44,10 +61,10 @@ impl<Chip, L> LoadFromCells<Blstrs, Chip, ExtractionSupport, L> for LoadedJubjub
         layouter: &mut impl LayoutAdaptor<Blstrs, ExtractionSupport, Adaptee = L>,
         injected_ir: &mut InjectedIR<RegionIndex, Expression<Blstrs>>,
     ) -> Result<Self, Error> {
-        let x = Blstrs::load(ctx, chip, layouter, injected_ir)?;
-        let y = Blstrs::load(ctx, chip, layouter, injected_ir)?;
+        let x = LoadedBlstrs::load(ctx, chip, layouter, injected_ir)?.0;
+        let y = LoadedBlstrs::load(ctx, chip, layouter, injected_ir)?.0;
 
-        Jubjub::from_xy(x, y).ok_or(Error::PointNotInCurve(x, y)).map(LoadedJubjub)
+        Ok(Jubjub::from_xy(x, y).ok_or(PointNotInCurve(x, y)).map(LoadedJubjub)?)
     }
 }
 
@@ -60,7 +77,7 @@ impl From<LoadedJubjubSubgroup> for JubjubSubgroup {
 }
 
 impl CellReprSize for LoadedJubjubSubgroup {
-    const SIZE: usize = <JubjubSubgroup as CellReprSize>::SIZE;
+    const SIZE: usize = <Zero<JubjubSubgroup> as CellReprSize>::SIZE;
 }
 
 impl<Chip, L> LoadFromCells<Blstrs, Chip, ExtractionSupport, L> for LoadedJubjubSubgroup {
@@ -86,7 +103,28 @@ impl From<LoadedG1> for G1 {
 }
 
 impl CellReprSize for LoadedG1 {
-    const SIZE: usize = <G1 as CellReprSize>::SIZE;
+    const SIZE: usize = <Zero<G1> as CellReprSize>::SIZE;
+}
+
+#[derive(Debug)]
+pub struct Point3NotInCurve(MidnightFp, MidnightFp, MidnightFp);
+
+impl std::fmt::Display for Point3NotInCurve {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Point ({}, {}, {}) is not in the curve",
+            self.0, self.1, self.2
+        )
+    }
+}
+
+impl std::error::Error for Point3NotInCurve {}
+
+impl From<Point3NotInCurve> for Error {
+    fn from(value: Point3NotInCurve) -> Self {
+        Self::Transcript(std::io::Error::other(value))
+    }
 }
 
 impl<Chip, L> LoadFromCells<Blstrs, Chip, ExtractionSupport, L> for LoadedG1 {
@@ -96,14 +134,14 @@ impl<Chip, L> LoadFromCells<Blstrs, Chip, ExtractionSupport, L> for LoadedG1 {
         layouter: &mut impl LayoutAdaptor<Blstrs, ExtractionSupport, Adaptee = L>,
         injected_ir: &mut InjectedIR<RegionIndex, Expression<Blstrs>>,
     ) -> Result<Self, Error> {
-        let x = MidnightFp::load(ctx, chip, layouter, injected_ir)?;
-        let y = MidnightFp::load(ctx, chip, layouter, injected_ir)?;
-        let z = MidnightFp::load(ctx, chip, layouter, injected_ir)?;
+        let x = LoadedMidnightFp::load(ctx, chip, layouter, injected_ir)?.0;
+        let y = LoadedMidnightFp::load(ctx, chip, layouter, injected_ir)?.0;
+        let z = LoadedMidnightFp::load(ctx, chip, layouter, injected_ir)?.0;
 
-        G1::new_jacobian(x, y, z)
+        Ok(G1::new_jacobian(x, y, z)
             .into_option()
-            .ok_or(Error::Point3NotInCurve(x, y, z))
-            .map(LoadedG1)
+            .ok_or(Point3NotInCurve(x, y, z))
+            .map(LoadedG1)?)
     }
 }
 
@@ -116,7 +154,28 @@ impl From<LoadedSecp256k1> for Secp256k1 {
 }
 
 impl CellReprSize for LoadedSecp256k1 {
-    const SIZE: usize = <Secp256k1 as CellReprSize>::SIZE;
+    const SIZE: usize = <Zero<Secp256k1> as CellReprSize>::SIZE;
+}
+
+#[derive(Debug)]
+pub struct Point3NotInCurveSecp256k1(Secp256k1Fp, Secp256k1Fp, Secp256k1Fp);
+
+impl std::fmt::Display for Point3NotInCurveSecp256k1 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Point ({:?}, {:?}, {:?}) is not in the curve",
+            self.0, self.1, self.2
+        )
+    }
+}
+
+impl std::error::Error for Point3NotInCurveSecp256k1 {}
+
+impl From<Point3NotInCurveSecp256k1> for Error {
+    fn from(value: Point3NotInCurveSecp256k1) -> Self {
+        Self::Transcript(std::io::Error::other(value))
+    }
 }
 
 impl<Chip, L> LoadFromCells<Blstrs, Chip, ExtractionSupport, L> for LoadedSecp256k1 {
@@ -126,14 +185,14 @@ impl<Chip, L> LoadFromCells<Blstrs, Chip, ExtractionSupport, L> for LoadedSecp25
         layouter: &mut impl LayoutAdaptor<Blstrs, ExtractionSupport, Adaptee = L>,
         injected_ir: &mut InjectedIR<RegionIndex, Expression<Blstrs>>,
     ) -> Result<Self, Error> {
-        let x = Secp256k1Fp::load(ctx, chip, layouter, injected_ir)?;
-        let y = Secp256k1Fp::load(ctx, chip, layouter, injected_ir)?;
-        let z = Secp256k1Fp::load(ctx, chip, layouter, injected_ir)?;
+        let x = LoadedSecp256k1Fp::load(ctx, chip, layouter, injected_ir)?.0;
+        let y = LoadedSecp256k1Fp::load(ctx, chip, layouter, injected_ir)?.0;
+        let z = LoadedSecp256k1Fp::load(ctx, chip, layouter, injected_ir)?.0;
 
-        Secp256k1::new_jacobian(x, y, z)
+        Ok(Secp256k1::new_jacobian(x, y, z)
             .into_option()
-            .ok_or(Error::Point3NotInCurveSecp256k1(x, y, z))
-            .map(LoadedSecp256k1)
+            .ok_or(Point3NotInCurveSecp256k1(x, y, z))
+            .map(LoadedSecp256k1)?)
     }
 }
 
@@ -185,7 +244,7 @@ impl<S: CellReprSize> CellReprSize for Gt1<S> {
 }
 
 macro_rules! gt1_impl {
-    ($C:ident,$t:ty) => {
+    ($C:ident,$t:ty,$f:ty) => {
         impl<$C, L> LoadFromCells<Blstrs, $C, ExtractionSupport, L> for Gt1<$t> {
             fn load(
                 ctx: &mut ICtx<Blstrs, ExtractionSupport>,
@@ -195,7 +254,7 @@ macro_rules! gt1_impl {
             ) -> Result<Self, Error> {
                 loop {
                     let s = <$t>::load(ctx, chip, layouter, injected_ir)?;
-                    if s != <$t>::ZERO && s != <$t>::ONE {
+                    if s.0 != <$f>::ZERO && s.0 != <$f>::ONE {
                         return Ok(Gt1(s));
                     }
                 }
@@ -204,9 +263,9 @@ macro_rules! gt1_impl {
     };
 }
 
-gt1_impl!(C, crate::fields::LoadedJubjubFr<C>);
-gt1_impl!(C, crate::fields::LoadedBlstrs<C>);
-gt1_impl!(C, crate::fields::LoadedSecp256k1Fq<C>);
+gt1_impl!(C, crate::fields::LoadedJubjubFr<C>, JubjubFr);
+gt1_impl!(C, crate::fields::LoadedBlstrs<C>, Blstrs);
+gt1_impl!(C, crate::fields::LoadedSecp256k1Fq<C>, Secp256k1Fq);
 
 impl sealed::ZeroTraitSealed for u8 {}
 impl ZeroTrait for u8 {
@@ -238,6 +297,7 @@ impl<F, C, const BOUND: usize, L> LoadFromCells<F, C, ExtractionSupport, L>
 where
     F: PrimeField,
     C: ComparisonInstructions<F, AssignedNative<F>>,
+    L: Layouter<F>,
 {
     fn load(
         ctx: &mut ICtx<F, ExtractionSupport>,
@@ -246,7 +306,9 @@ where
         injected_ir: &mut InjectedIR<RegionIndex, Expression<F>>,
     ) -> Result<Self, Error> {
         let native = AssignedNative::load(ctx, chip, layouter, injected_ir)?;
-        Ok(chip.bounded_of_element(layouter, BOUND, &native).map(AssignedBoundedLoad)?)
+        Ok(chip
+            .bounded_of_element(layouter.adaptee_ref_mut(), BOUND, &native)
+            .map(AssignedBoundedLoad)?)
     }
 }
 
@@ -285,6 +347,7 @@ where
     CV: CircuitCurve<Base = F, Scalar = S>,
     C: EccInstructions<F, CV, Point = AssignedNativePoint<CV>, Coordinate = AssignedCell<F, F>>
         + ConversionInstructions<F, AssignedCell<F, F>, ScalarVar<CV>>,
+    L: Layouter<F>,
 {
     fn load(
         ctx: &mut ICtx<F, ExtractionSupport>,
@@ -300,7 +363,7 @@ where
             (cell.cell().row_offset, lhs),
             (cell.cell().row_offset, rhs),
         ));
-        Ok(chip.convert(layouter, &cell).map(BoundedScalarVar)?)
+        Ok(chip.convert(layouter.adaptee_ref_mut(), &cell).map(BoundedScalarVar)?)
     }
 }
 
