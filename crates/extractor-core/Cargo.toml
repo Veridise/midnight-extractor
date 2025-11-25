@@ -8,6 +8,7 @@ rust-version.workspace = true
 readme = "README.md"
 repository.workspace = true
 license-file.workspace = true
+publish = false
 
 [dependencies]
 ff.workspace = true 
@@ -17,3 +18,7 @@ midnight-curves.workspace = true
 mdnt-support = { version = "0.2.0"}
 num-bigint = "0.4"
 haloumi-ir.workspace =true
+haloumi.workspace =true
+mdnt-extractor-macros = { path = "../extractor-macros"}
+log = "0.4"
+anyhow = "1"

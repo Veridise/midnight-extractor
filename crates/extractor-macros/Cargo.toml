@@ -1,0 +1,25 @@
+# This crate is a proc-macro crate for simplifying the installation of support stuff for llzk.
+# I'm putting it here for now but like the support crate its final home is the open source repo.
+# This repo should be accesed via the normal frontend enabling a feature flag that re-exports the 
+# macros (because that's how's usualy done tho I'm not 100% sure that works for proc macros. Works for 
+# derive macros tho and those are proc-macros.)
+
+[package]
+name = "mdnt-extractor-macros"
+description = "Proc macros for developing the extractor"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+readme = "README.md"
+repository.workspace = true
+license-file.workspace = true
+publish = false
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1.0"
+quote = "1.0"
+syn = { version = "2.0", features = ["full", "extra-traits"] }
