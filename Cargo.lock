@@ -415,7 +415,7 @@ dependencies = [
 [[package]]
 name = "halo2-llzk-frontend"
 version = "0.1.0"
-source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#f7148c784a743b7c17db29a579b582d1e744cdf5"
+source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#5de327ebafb25a42aba4835ee93e74353a15b6c2"
 dependencies = [
  "anyhow",
  "bit-set",
@@ -423,7 +423,7 @@ dependencies = [
  "eqv",
  "ff",
  "haloumi-core",
- "haloumi-ir 0.1.0",
+ "haloumi-ir",
  "haloumi-ir-base",
  "haloumi-lowering",
  "log",
@@ -481,21 +481,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a539e4ddc3b6754c7e0854369b7af4562d3097cba8b6dff01eb711cc7af7cccb"
 dependencies = [
  "ff",
- "thiserror",
-]
-
-[[package]]
-name = "haloumi-ir"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "904d52b521938667266a6bb02e7b3aa4a5afc891f0fcace83009c9d208107ab6"
-dependencies = [
- "eqv",
- "ff",
- "haloumi-core",
- "haloumi-ir-base",
- "haloumi-lowering",
- "log",
  "thiserror",
 ]
 
@@ -659,17 +644,17 @@ dependencies = [
 
 [[package]]
 name = "mdnt-extractor-core"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "anyhow",
  "ff",
  "halo2-llzk-frontend",
  "haloumi-core",
- "haloumi-ir 0.2.0",
+ "haloumi-ir",
  "haloumi-ir-base",
  "log",
  "mdnt-extractor-macros",
- "mdnt-support 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mdnt-support 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "midnight-circuits",
  "midnight-curves",
  "midnight-proofs",
@@ -681,7 +666,7 @@ dependencies = [
 
 [[package]]
 name = "mdnt-extractor-macros"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -696,14 +681,14 @@ checksum = "03e704bfa829dddf7c2cd9faf1c126be3af58661f266b37949a9001620c9ea4a"
 
 [[package]]
 name = "mdnt-groups-support"
-version = "0.2.2"
+version = "0.2.3"
 
 [[package]]
 name = "mdnt-support"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "ff",
- "haloumi-ir 0.2.0",
+ "haloumi-ir",
  "log",
  "mdnt-groups-support 0.2.0",
  "num-bigint",
@@ -714,12 +699,12 @@ dependencies = [
 
 [[package]]
 name = "mdnt-support"
-version = "0.2.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9122541aa9b2d70e2a08b936e239750e55eac0790b8cef7619fd4289ffd501f4"
+checksum = "ea726e171f8e3ad96ff2495fdb7ff3156cfe16434344c561e87a4e791b01ea8c"
 dependencies = [
  "ff",
- "haloumi-ir 0.1.0",
+ "haloumi-ir",
  "log",
  "mdnt-groups-support 0.2.0",
  "num-bigint",
@@ -741,7 +726,7 @@ dependencies = [
 
 [[package]]
 name = "mdnt-support-macros"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "log",
  "macro_expand",
@@ -774,7 +759,7 @@ dependencies = [
  "halo2curves",
  "lazy_static",
  "mdnt-groups-support 0.2.0",
- "mdnt-support 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mdnt-support 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "mdnt-support-macros 0.2.0",
  "midnight-curves",
  "midnight-proofs",
@@ -818,7 +803,7 @@ dependencies = [
  "halo2curves",
  "haloumi-core",
  "mdnt-groups-support 0.2.0",
- "mdnt-support 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mdnt-support 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "midnight-curves",
  "num-bigint",
  "rand_chacha",
@@ -922,7 +907,7 @@ checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 [[package]]
 name = "picus"
 version = "0.1.0"
-source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#f7148c784a743b7c17db29a579b582d1e744cdf5"
+source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#5de327ebafb25a42aba4835ee93e74353a15b6c2"
 dependencies = [
  "anyhow",
  "disjoint",
