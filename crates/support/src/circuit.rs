@@ -8,16 +8,6 @@ use crate::{cells::CellReprSize, circuit::configuration::AutoConfigure};
 pub mod configuration;
 pub mod injected;
 
-/// Super trait for extracting IO from an abstract circuit.
-pub trait AbstractCircuitIO<L> {
-    /// Type that implements the main logic.
-    type Chip: CircuitInitialization<L>;
-    /// Input type of the chip.
-    type Input: CellReprSize;
-    /// Output type of the chip.
-    type Output: CellReprSize;
-}
-
 /// Trait for configuring the arguments of a chip.
 ///
 /// If the chip has no arguments the type should be `()`. In that case the type

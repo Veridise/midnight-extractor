@@ -415,11 +415,12 @@ dependencies = [
 [[package]]
 name = "halo2-llzk-frontend"
 version = "0.1.0"
-source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#929aeb587d94b8e4de3b0151fefbdd28404b15a2"
+source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#de5d749b631b01faa92a91c1643313653786d39c"
 dependencies = [
  "anyhow",
  "bit-set",
  "disjoint",
+ "eqv",
  "ff",
  "haloumi-core",
  "haloumi-ir 0.1.0 (git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods)",
@@ -429,6 +430,7 @@ dependencies = [
  "num-bigint",
  "paste",
  "picus",
+ "thiserror",
 ]
 
 [[package]]
@@ -500,7 +502,7 @@ dependencies = [
 [[package]]
 name = "haloumi-ir"
 version = "0.1.0"
-source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#929aeb587d94b8e4de3b0151fefbdd28404b15a2"
+source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#de5d749b631b01faa92a91c1643313653786d39c"
 dependencies = [
  "eqv",
  "ff",
@@ -528,7 +530,7 @@ dependencies = [
 [[package]]
 name = "haloumi-ir-base"
 version = "0.1.0"
-source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#929aeb587d94b8e4de3b0151fefbdd28404b15a2"
+source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#de5d749b631b01faa92a91c1643313653786d39c"
 dependencies = [
  "eqv",
  "ff",
@@ -553,7 +555,7 @@ dependencies = [
 [[package]]
 name = "haloumi-lowering"
 version = "0.1.0"
-source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#929aeb587d94b8e4de3b0151fefbdd28404b15a2"
+source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#de5d749b631b01faa92a91c1643313653786d39c"
 dependencies = [
  "ff",
  "haloumi-core",
@@ -780,7 +782,7 @@ checksum = "f52b00d39961fc5b2736ea853c9cc86238e165017a493d1d5c8eac6bdc4cc273"
 [[package]]
 name = "midnight-circuits"
 version = "5.0.1"
-source = "git+https://github.com/Veridise/midnight-zk#79cd760825f18ff6206dff18ca270e48ed41755e"
+source = "git+https://github.com/Veridise/midnight-zk#ad20dee94a41bfef904620988a46d42815be67e9"
 dependencies = [
  "base64",
  "bincode",
@@ -806,7 +808,7 @@ dependencies = [
 [[package]]
 name = "midnight-curves"
 version = "0.1.1"
-source = "git+https://github.com/Veridise/midnight-zk#79cd760825f18ff6206dff18ca270e48ed41755e"
+source = "git+https://github.com/Veridise/midnight-zk#ad20dee94a41bfef904620988a46d42815be67e9"
 dependencies = [
  "bitvec",
  "blst",
@@ -825,7 +827,7 @@ dependencies = [
 [[package]]
 name = "midnight-proofs"
 version = "0.5.1"
-source = "git+https://github.com/Veridise/midnight-zk#79cd760825f18ff6206dff18ca270e48ed41755e"
+source = "git+https://github.com/Veridise/midnight-zk#ad20dee94a41bfef904620988a46d42815be67e9"
 dependencies = [
  "blake2b_simd",
  "ff",
@@ -937,7 +939,7 @@ checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 [[package]]
 name = "picus"
 version = "0.1.0"
-source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#929aeb587d94b8e4de3b0151fefbdd28404b15a2"
+source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#de5d749b631b01faa92a91c1643313653786d39c"
 dependencies = [
  "anyhow",
  "disjoint",
@@ -1449,9 +1451,9 @@ checksum = "df8b2b54733674ad286d16267dcfc7a71ed5c776e4ac7aa3c3e2561f7c637bf2"
 
 [[package]]
 name = "tracing"
-version = "0.1.41"
+version = "0.1.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "784e0ac535deb450455cbfa28a6f0df145ea1bb7ae51b821cf5e7927fdcfbdd0"
+checksum = "8eb41cbdb933e23b7929f47bb577710643157d7602ef3a2ebd3902b13ac5eda6"
 dependencies = [
  "pin-project-lite",
  "tracing-attributes",
@@ -1460,9 +1462,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-attributes"
-version = "0.1.30"
+version = "0.1.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81383ab64e72a7a8b8e13130c49e3dab29def6d0c7d76a03087b3cf71c5c6903"
+checksum = "7490cfa5ec963746568740651ac6781f701c9c5ea257c58e057f3ba8cf69e8da"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1471,9 +1473,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-core"
-version = "0.1.34"
+version = "0.1.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9d12581f227e93f094d3af2ae690a574abb8a2b9b7a96e7cfe9647b2b617678"
+checksum = "7a04e24fab5c89c6a36eb8558c9656f30d81de51dfa4d3b45f26b21d61fa0a6c"
 dependencies = [
  "once_cell",
 ]
@@ -1692,18 +1694,18 @@ dependencies = [
 
 [[package]]
 name = "zerocopy"
-version = "0.8.28"
+version = "0.8.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43fa6694ed34d6e57407afbccdeecfa268c470a7d2a5b0cf49ce9fcc345afb90"
+checksum = "4ea879c944afe8a2b25fef16bb4ba234f47c694565e97383b36f3a878219065c"
 dependencies = [
  "zerocopy-derive",
 ]
 
 [[package]]
 name = "zerocopy-derive"
-version = "0.8.28"
+version = "0.8.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c640b22cd9817fae95be82f0d2f90b11f7605f6c319d16705c459b27ac2cbc26"
+checksum = "cf955aa904d6040f70dc8e9384444cb1030aed272ba3cb09bbc4ab9e7c1f34f5"
 dependencies = [
  "proc-macro2",
  "quote",

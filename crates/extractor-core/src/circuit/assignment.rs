@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 
 use ff::Field;
-use haloumi::{to_plonk_error, Synthesizer};
+use haloumi::Synthesizer;
 use midnight_proofs::{
     circuit::{
         groups::{GroupKey, RegionsGroup},
@@ -95,10 +95,10 @@ impl<F: Field> Assignment<F> for SynthesizerAssignment<'_, F> {
             fixed,
             row,
             steal(&value).ok_or_else(|| {
-                to_plonk_error(anyhow::anyhow!(
+                Error::Transcript(std::io::Error::other(anyhow::anyhow!(
                     "Unknown value in fixed cell ({}, {row})",
                     fixed.index()
-                ))
+                )))
             })?,
         );
         Ok(())
@@ -125,10 +125,10 @@ impl<F: Field> Assignment<F> for SynthesizerAssignment<'_, F> {
             column,
             row,
             steal(&value.map(|f| f.evaluate())).ok_or_else(|| {
-                to_plonk_error(anyhow::anyhow!(
+                Error::Transcript(std::io::Error::other(anyhow::anyhow!(
                     "Unknown value in fixed cell ({}, {row})",
                     column.index()
-                ))
+                )))
             })?,
         );
         Ok(())

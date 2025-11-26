@@ -1,21 +1,36 @@
 //! Traits for defining harness circuits.
 
 use anyhow::Result;
-use extractor_support::cells::ctx::{InputDescr, OutputDescr};
-use group::ff::PrimeField;
-use midnight::midnight_proofs::{
+use ff::PrimeField;
+use mdnt_support::cells::ctx::{InputDescr, OutputDescr};
+use midnight_proofs::circuit::RegionIndex;
+use midnight_proofs::plonk::Expression;
+use midnight_proofs::ExtractionSupport;
+use midnight_proofs::{
     circuit::Layouter,
     plonk::{Column, Error, Instance},
 };
 
-use crate::{
+use mdnt_support::{
     cells::{load::LoadFromCells, store::StoreIntoCells},
     circuit::injected::InjectedIR,
 };
 
-pub use extractor_support::circuit::{
-    AbstractCircuitIO, ChipArgs, CircuitInitialization, NoChipArgs,
-};
+use mdnt_support::circuit::{AbstractCircuitIO, ChipArgs, CircuitInitialization, NoChipArgs};
+
+/// Super trait for extracting IO from an abstract circuit.
+pub trait AbstractCircuitIO {
+    /// Type that implements the main logic.
+    type Chip;
+    /// Input type of the chip.
+    type Input: CellReprSize;
+    /// Output type of the chip.
+    type Output: CellReprSize;
+    /// Configuration of the circuit.
+    type Config: Clone + std::fmt::Debug;
+    /// Configuration columns of the circuit.
+    type ConfigCols: Clone + std::fmt::Debug;
+}
 
 /// Main trait for defining harness that return a value.
 ///
@@ -23,18 +38,19 @@ pub use extractor_support::circuit::{
 /// implementation struct acting as scaffolding and glue.
 ///
 /// For harnesses that return `()` see [`AbstractUnitCircuit`].
-pub trait AbstractCircuit<F: PrimeField>: AbstractCircuitIO<F>
-where
-    <Self as AbstractCircuitIO<F>>::Input: LoadFromCells<F, Self::Chip>,
-    <Self as AbstractCircuitIO<F>>::Output: StoreIntoCells<F, Self::Chip>,
-{
-    fn synthesize(
+pub trait AbstractCircuit<F: PrimeField>: AbstractCircuitIO {
+    fn synthesize<L>(
         &self,
         chip: &Self::Chip,
-        layouter: &mut impl Layouter<F>,
+        layouter: &mut L,
         input: Self::Input,
-        injected_ir: &mut InjectedIR<F>,
-    ) -> Result<Self::Output, Error>;
+        injected_ir: &mut InjectedIR<RegionIndex, Expression<F>>,
+    ) -> Result<Self::Output, Error>
+//where
+    //    L: Layouter<F>,
+    //    <Self as AbstractCircuitIO>::Input: LoadFromCells<F, Self::Chip, ExtractionSupport, L>,
+    //    <Self as AbstractCircuitIO>::Output: StoreIntoCells<F, Self::Chip, ExtractionSupport, L>
+    ;
 }
 
 /// Main trait for defining harness that return a value.
@@ -46,18 +62,19 @@ where
 /// implementation struct acting as scaffolding and glue.
 ///
 /// For harnesses that return `()` see [`AbstractUnitCircuit`].
-pub trait AbstractCircuitMut<F: PrimeField>: AbstractCircuitIO<F>
-where
-    <Self as AbstractCircuitIO<F>>::Input: LoadFromCells<F, Self::Chip>,
-    <Self as AbstractCircuitIO<F>>::Output: StoreIntoCells<F, Self::Chip>,
-{
-    fn synthesize_mut(
+pub trait AbstractCircuitMut<F: PrimeField>: AbstractCircuitIO {
+    fn synthesize_mut<L>(
         &self,
         chip: &mut Self::Chip,
-        layouter: &mut impl Layouter<F>,
+        layouter: &mut L,
         input: Self::Input,
-        injected_ir: &mut InjectedIR<F>,
-    ) -> Result<Self::Output, Error>;
+        injected_ir: &mut InjectedIR<RegionIndex, Expression<F>>,
+    ) -> Result<Self::Output, Error>
+//where
+    //    L: Layouter<F>,
+    //    <Self as AbstractCircuitIO>::Input: LoadFromCells<F, Self::Chip, ExtractionSupport, L>,
+    //    <Self as AbstractCircuitIO>::Output: StoreIntoCells<F, Self::Chip, ExtractionSupport, L>
+    ;
 }
 
 /// Main trait for defining harness that do not return a value.
@@ -71,33 +88,32 @@ where
 /// implementation struct acting as scaffolding and glue.
 ///
 /// For harnesses that return a value see [`AbstractCircuit`].
-pub trait AbstractUnitCircuit<F: PrimeField>: AbstractCircuitIO<F>
-where
-    <Self as AbstractCircuitIO<F>>::Input: LoadFromCells<F, Self::Chip>,
-    <Self as AbstractCircuitIO<F>>::Output: LoadFromCells<F, Self::Chip>,
-{
-    fn synthesize(
+pub trait AbstractUnitCircuit<F: PrimeField>: AbstractCircuitIO {
+    fn synthesize<L>(
         &self,
         chip: &Self::Chip,
-        layouter: &mut impl Layouter<F>,
+        layouter: &mut L,
         input: Self::Input,
         output: Self::Output,
-        injected_ir: &mut InjectedIR<F>,
-    ) -> Result<(), Error>;
+        injected_ir: &mut InjectedIR<RegionIndex, Expression<F>>,
+    ) -> Result<(), Error>
+//where
+    //    L: Layouter<F>,
+    //    <Self as AbstractCircuitIO>::Input: LoadFromCells<F, Self::Chip, ExtractionSupport, L>,
+    //    <Self as AbstractCircuitIO>::Output: LoadFromCells<F, Self::Chip, ExtractionSupport, L>
+    ;
 }
 
 /// Trait for obtaining information about the configuration of a circuit.
-///
-/// Used by [`halo2_llzk_frontend::CircuitCallbacks`].
 pub trait AbstractCircuitConfig {
     /// Returns the list of [`InputDescr`] that make up the inputs.
-    fn inputs(&self) -> Vec<InputDescr>;
+    fn inputs<F: PrimeField>(&self) -> Vec<InputDescr<F, ExtractionSupport>>;
 
     /// Returns the column that represents the inputs.
     fn input_instance(&self) -> Column<Instance>;
 
     /// Returns the list of [`OutputDescr`] that make up the outputs.
-    fn outputs(&self) -> Vec<OutputDescr>;
+    fn outputs<F: PrimeField>(&self) -> Vec<OutputDescr<F, ExtractionSupport>>;
 
     /// Returns the column that represents the outputs.
     fn output_instance(&self) -> Column<Instance>;

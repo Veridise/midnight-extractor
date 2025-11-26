@@ -2,45 +2,42 @@ use crate::circuit::AbstractCircuitIO;
 use ff::{Field, PrimeField};
 use mdnt_support::cells::ctx::{Cell, InputDescr, OutputDescr};
 use mdnt_support::cells::CellReprSize;
+use mdnt_support::circuit::CircuitInitialization;
 use midnight_circuits::midnight_proofs::plonk::{
     Advice, Column, ColumnType, ConstraintSystem, Fixed, Instance,
 };
+use midnight_proofs::ExtractionSupport;
 
-use super::{AbstractCircuitConfig, CircuitInitialization};
+use super::AbstractCircuitConfig;
 
 use mdnt_support::circuit::configuration::AutoConfigure;
 
 /// Configuration for a chip type that implements [`CircuitInitialization`].
-#[derive(Debug)]
-pub struct ChipConfig<F, C>
-where
-    F: PrimeField,
-    C: CircuitInitialization<F>,
-{
-    pub cfg: C::ConfigCols,
-    pub inner: C::Config,
+#[derive(Debug, Clone)]
+pub struct ChipConfig<C, I> {
+    pub cfg: C,
+    pub inner: I,
 }
 
-impl<F, C> Clone for ChipConfig<F, C>
-where
-    F: PrimeField,
-    C: CircuitInitialization<F>,
-{
-    fn clone(&self) -> Self {
-        Self {
-            cfg: self.cfg.clone(),
-            inner: self.inner.clone(),
-        }
-    }
-}
+//impl<L, C> Clone for ChipConfig<L, C>
+//where
+//    C: CircuitInitialization<L>,
+//{
+//    fn clone(&self) -> Self {
+//        Self {
+//            cfg: self.cfg.clone(),
+//            inner: self.inner.clone(),
+//        }
+//    }
+//}
 
-impl<F, C> ChipConfig<F, C>
-where
-    F: PrimeField,
-    C: CircuitInitialization<F>,
-{
-    fn configure(meta: &mut ConstraintSystem<F>) -> Self {
-        let cfg = C::ConfigCols::configure(meta);
+impl<C, I> ChipConfig<C, I> {
+    fn configure<CI, L, F>(meta: &mut ConstraintSystem<F>) -> Self
+    where
+        CI: CircuitInitialization<L, Config = I, ConfigCols = C>,
+        F: PrimeField,
+    {
+        let cfg = C::Cols::configure(meta);
         let inner = C::configure_circuit(meta, &cfg);
         Self { cfg, inner }
     }
@@ -57,7 +54,7 @@ pub struct IOColumn {
 }
 
 impl IOColumn {
-    fn configure<F: Field>(meta: &mut ConstraintSystem<F>) -> Self {
+    fn configure<L: Field>(meta: &mut ConstraintSystem<L>) -> Self {
         let instance = meta.instance_column();
         let helper = meta.advice_column();
 
@@ -66,7 +63,7 @@ impl IOColumn {
         Self { instance, helper }
     }
 
-    fn to_cell<C: ColumnType>(self, row: usize) -> Cell<C>
+    fn to_cell<C: ColumnType>(self, row: usize) -> Cell<Column<C>>
     where
         Column<C>: From<Column<Instance>>,
     {
@@ -75,7 +72,7 @@ impl IOColumn {
 
     fn descrs<C: ColumnType, D>(
         &self,
-        mut ctor: impl FnMut(Cell<C>, Column<Advice>) -> D,
+        ctor: impl Fn(Cell<Column<C>>, Column<Advice>) -> D,
     ) -> impl Iterator<Item = D>
     where
         Column<C>: From<Column<Instance>>,
@@ -92,18 +89,18 @@ pub struct IOConfig {
 }
 
 impl IOConfig {
-    fn configure<F: Field>(meta: &mut ConstraintSystem<F>) -> Self {
+    fn configure<L: Field>(meta: &mut ConstraintSystem<L>) -> Self {
         Self {
             input: IOColumn::configure(meta),
             output: IOColumn::configure(meta),
         }
     }
 
-    fn inputs(&self) -> impl Iterator<Item = InputDescr> {
+    fn inputs<F: PrimeField>(&self) -> impl Iterator<Item = InputDescr<F, ExtractionSupport>> {
         self.input.descrs(InputDescr::new)
     }
 
-    fn outputs(&self) -> impl Iterator<Item = OutputDescr> {
+    fn outputs<F: PrimeField>(&self) -> impl Iterator<Item = OutputDescr<F, ExtractionSupport>> {
         self.output.descrs(OutputDescr::new)
     }
 }
@@ -116,7 +113,7 @@ pub struct Constants {
 }
 
 impl Constants {
-    fn configure<F: Field>(meta: &mut ConstraintSystem<F>) -> Self {
+    fn configure<L: Field>(meta: &mut ConstraintSystem<L>) -> Self {
         let helper = if meta.constants().is_empty() {
             let fixed_helper = meta.fixed_column();
             meta.enable_constant(fixed_helper);
@@ -129,22 +126,19 @@ impl Constants {
 }
 
 /// Configuration for a circuit.
-pub struct Config<F, C>
-where
-    F: PrimeField,
-    C: AbstractCircuitIO<F>,
-{
+#[derive(Clone)]
+pub struct Config<C, I> {
     pub io: IOConfig,
-    pub chip: ChipConfig<F, C::Chip>,
+    pub chip: ChipConfig<C, I>,
     pub constants: Constants,
 }
 
-impl<F, C> Config<F, C>
-where
-    F: PrimeField,
-    C: AbstractCircuitIO<F>,
-{
-    pub fn configure(meta: &mut ConstraintSystem<F>) -> Self {
+impl<L, C> Config<L, C> {
+    pub fn configure<CI, L, F>(meta: &mut ConstraintSystem<F>) -> Self
+    where
+        F: PrimeField,
+        CI: CircuitInitialization<L, Config = I, ConfigCols = C>,
+    {
         log::info!(
             "Circuit has {} inputs and {} outputs",
             C::Input::SIZE,
@@ -152,36 +146,32 @@ where
         );
         Self {
             io: IOConfig::configure(meta),
-            chip: ChipConfig::configure(meta),
+            chip: ChipConfig::configure::<CI, L, F>(meta),
             constants: Constants::configure(meta),
         }
     }
 }
 
-impl<F, C> Clone for Config<F, C>
-where
-    C: AbstractCircuitIO<F>,
-    F: PrimeField,
-{
-    fn clone(&self) -> Self {
-        Self {
-            chip: self.chip.clone(),
-            io: self.io,
-            constants: self.constants,
-        }
-    }
-}
+//impl< C,I> Clone for Config< C,I>
+//{
+//    fn clone(&self) -> Self {
+//        Self {
+//            chip: self.chip.clone(),
+//            io: self.io,
+//            constants: self.constants,
+//        }
+//    }
+//}
 
-impl<F, C> AbstractCircuitConfig for Config<F, C>
+impl<L, C> AbstractCircuitConfig for Config<L, C>
 where
-    F: PrimeField,
-    C: AbstractCircuitIO<F>,
+    C: AbstractCircuitIO<L>,
 {
-    fn inputs(&self) -> Vec<InputDescr> {
+    fn inputs<F: PrimeField>(&self) -> Vec<InputDescr<F, ExtractionSupport>> {
         self.io.inputs().take(C::Input::SIZE).collect()
     }
 
-    fn outputs(&self) -> Vec<OutputDescr> {
+    fn outputs<F: PrimeField>(&self) -> Vec<OutputDescr<F, ExtractionSupport>> {
         self.io.outputs().take(C::Output::SIZE).collect()
     }
 
