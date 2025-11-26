@@ -1,53 +1,175 @@
+use std::{cell::RefCell, cmp, collections::HashMap};
+
 use ff::Field;
 use haloumi::Synthesizer;
+use haloumi_core::synthesis::SynthesizerLike;
 use mdnt_support::cells::ctx::LayoutAdaptor;
 use midnight_proofs::{
-    circuit::{groups, AssignedCell, Cell, Layouter, Region, Table, Value},
-    plonk::{Challenge, Column, Error, Instance},
+    circuit::{
+        groups::{self, GroupKeyInstance},
+        layouter::{RegionColumn, RegionLayouter, RegionShape},
+        AssignedCell, Cell, Layouter, Region, RegionIndex, RegionStart, Table, TableLayouter,
+        Value,
+    },
+    plonk::{
+        Advice, Any, Challenge, Column, Error, Fixed, Instance, Selector, TableColumn, TableError,
+    },
+    utils::rational::Rational,
     ExtractionSupport,
 };
 
-pub struct ExtractionLayouter<'a, F: Field> {
-    synthesizer: &'a mut Synthesizer<F>,
+#[derive(Debug)]
+pub struct ExtractionLayouter<'s, 'c, F: Field> {
+    synthesizer: &'s mut Synthesizer<F>,
+    constants: &'c [Column<Fixed>],
+    /// Stores the starting row for each region.
+    regions: Vec<RegionStart>,
+
+    /// Stores the first empty row for each column.
+    columns: HashMap<RegionColumn, usize>,
+    /// Stores the table fixed columns.
+    table_columns: Vec<TableColumn>,
 }
 
-impl<'a, F: Field> ExtractionLayouter<'a, F> {
-    pub fn new(synthesizer: &'a mut Synthesizer<F>) -> Self {
-        Self { synthesizer }
+impl<'s, 'c, F: Field> ExtractionLayouter<'s, 'c, F> {
+    pub fn new(synthesizer: &'s mut Synthesizer<F>, constants: &'c [Column<Fixed>]) -> Self {
+        Self {
+            synthesizer,
+            constants,
+            regions: Default::default(),
+            columns: Default::default(),
+            table_columns: Default::default(),
+        }
     }
 }
 
-impl<F: Field> Layouter<F> for ExtractionLayouter<'_, F> {
+impl<F: Field> Layouter<F> for ExtractionLayouter<'_, '_, F> {
     type Root = Self;
 
-    fn assign_region<A, AR, N, NR>(&mut self, name: N, assignment: A) -> Result<AR, Error>
+    fn assign_region<A, AR, N, NR>(&mut self, name: N, mut assignment: A) -> Result<AR, Error>
     where
         A: FnMut(Region<'_, F>) -> Result<AR, Error>,
         N: Fn() -> NR,
         NR: Into<String>,
     {
-        todo!()
+        let region_index = self.regions.len();
+
+        // Get shape of the region.
+        let mut shape = RegionShape::new(region_index.into());
+        {
+            let region: &mut dyn RegionLayouter<F> = &mut shape;
+            assignment(region.into())?;
+        }
+
+        // Lay out this region. We implement the simplest approach here: position the
+        // region starting at the earliest row for which none of the columns are in use.
+        let mut region_start = 0;
+        for column in shape.columns() {
+            region_start = cmp::max(region_start, self.columns.get(column).cloned().unwrap_or(0));
+        }
+        self.regions.push(region_start.into());
+
+        // Update column usage information.
+        for column in shape.columns() {
+            self.columns.insert(*column, region_start + shape.row_count());
+        }
+
+        // Assign region cells.
+        self.synthesizer.enter_region(name().into());
+        let mut region = ExtractionLayouterRegion::new(self, region_index.into());
+        let result = {
+            let region: &mut dyn RegionLayouter<F> = &mut region;
+            assignment(region.into())
+        }?;
+        let constants_to_assign = region.constants;
+        self.synthesizer.exit_region();
+
+        // Assign constants. For the simple floor planner, we assign constants in order
+        // in the first `constants` column.
+        if self.constants.is_empty() {
+            if !constants_to_assign.is_empty() {
+                return Err(Error::NotEnoughColumnsForConstants);
+            }
+        } else {
+            let constants_column = self.constants[0];
+            let next_constant_row =
+                self.columns.entry(Column::<Any>::from(constants_column).into()).or_default();
+            for (constant, advice) in constants_to_assign {
+                self.synthesizer.on_fixed_assigned(
+                    constants_column,
+                    *next_constant_row,
+                    constant.evaluate(),
+                );
+                self.synthesizer.copy(
+                    constants_column,
+                    *next_constant_row,
+                    advice.column,
+                    *self.regions[*advice.region_index] + advice.row_offset,
+                );
+                *next_constant_row += 1;
+            }
+        }
+
+        Ok(result)
     }
 
-    fn assign_table<A, N, NR>(&mut self, name: N, assignment: A) -> Result<(), Error>
+    fn assign_table<A, N, NR>(&mut self, name: N, mut assignment: A) -> Result<(), Error>
     where
         A: FnMut(Table<'_, F>) -> Result<(), Error>,
         N: Fn() -> NR,
         NR: Into<String>,
     {
-        todo!()
+        self.synthesizer.enter_region(name().into());
+        let mut table = ExtractionTableLayouter::new(self.synthesizer, &self.table_columns);
+        {
+            let table: &mut dyn TableLayouter<F> = &mut table;
+            assignment(table.into())
+        }?;
+        let default_and_assigned = table.default_and_assigned;
+        self.synthesizer.exit_region();
+
+        // Check that all table columns have the same length `first_unused`,
+        // and all cells up to that length are assigned.
+        let first_unused = compute_table_lengths(&default_and_assigned)?;
+
+        // Record these columns so that we can prevent them from being used again.
+        for column in default_and_assigned.keys() {
+            self.table_columns.push(*column);
+        }
+
+        for (col, (default_val, _)) in default_and_assigned {
+            // default_val must be Some because we must have assigned
+            // at least one cell in each column, and in that case we checked
+            // that all cells up to first_unused were assigned.
+            self.synthesizer.fill_from_row(
+                col.inner(),
+                first_unused,
+                steal(default_val.unwrap())
+                    .ok_or_else(|| Error::Synthesis("Unknown default value".to_string()))?
+                    .evaluate(),
+            );
+        }
+
+        self.synthesizer.mark_region_as_table();
+        Ok(())
     }
 
     fn constrain_instance(
         &mut self,
         cell: Cell,
-        column: Column<Instance>,
+        instance: Column<Instance>,
         row: usize,
     ) -> Result<(), Error> {
-        todo!()
+        self.synthesizer.copy(
+            cell.column,
+            *self.regions[*cell.region_index] + cell.row_offset,
+            instance,
+            row,
+        );
+        Ok(())
     }
 
-    fn get_challenge(&self, challenge: Challenge) -> Value<F> {
+    fn get_challenge(&self, _challenge: Challenge) -> Value<F> {
         Value::unknown()
     }
 
@@ -60,11 +182,11 @@ impl<F: Field> Layouter<F> for ExtractionLayouter<'_, F> {
         NR: Into<String>,
         N: FnOnce() -> NR,
     {
-        self.synthetizer.push_namespace(name_fn().into());
+        self.synthesizer.push_namespace(name_fn().into());
     }
 
     fn pop_namespace(&mut self, gadget_name: Option<String>) {
-        self.synthetizer.pop_namespace(gadget_name);
+        self.synthesizer.pop_namespace(gadget_name);
     }
 
     fn push_group<N, NR, K>(&mut self, name: N, key: K)
@@ -73,11 +195,219 @@ impl<F: Field> Layouter<F> for ExtractionLayouter<'_, F> {
         N: FnOnce() -> NR,
         K: groups::GroupKey,
     {
-        self.synthetizer.enter_group(name().into(), key);
+        self.synthesizer.enter_group(name().into(), *GroupKeyInstance::from(key));
     }
 
     fn pop_group(&mut self, meta: groups::RegionsGroup) {
-        self.synthetizer.exit_group(meta)
+        self.synthesizer.exit_group(meta)
+    }
+}
+
+#[derive(Debug)]
+struct ExtractionLayouterRegion<'r, 'a, 'b, F: Field> {
+    layouter: &'r mut ExtractionLayouter<'a, 'b, F>,
+    region_index: RegionIndex,
+    /// Stores the constants to be assigned, and the cells to which they are
+    /// copied.
+    constants: Vec<(Rational<F>, Cell)>,
+}
+
+impl<'r, 'a, 'b, F: Field> ExtractionLayouterRegion<'r, 'a, 'b, F> {
+    fn new(layouter: &'r mut ExtractionLayouter<'a, 'b, F>, region_index: RegionIndex) -> Self {
+        Self {
+            layouter,
+            region_index,
+            constants: vec![],
+        }
+    }
+}
+
+impl<'a, 'b, F: Field> RegionLayouter<F> for ExtractionLayouterRegion<'_, 'a, 'b, F> {
+    fn enable_selector<'v>(
+        &'v mut self,
+        _annotation: &'v (dyn Fn() -> String + 'v),
+        selector: &Selector,
+        offset: usize,
+    ) -> Result<(), Error> {
+        self.layouter.synthesizer.enable_selector(
+            selector,
+            *self.layouter.regions[*self.region_index] + offset,
+        );
+        Ok(())
+    }
+
+    fn name_column<'v>(
+        &'v mut self,
+        _annotation: &'v (dyn Fn() -> String + 'v),
+        _column: Column<Any>,
+    ) {
+    }
+
+    fn assign_advice<'v>(
+        &'v mut self,
+        _annotation: &'v (dyn Fn() -> String + 'v),
+        column: Column<Advice>,
+        offset: usize,
+        _to: &'v mut (dyn FnMut() -> Value<Rational<F>> + 'v),
+    ) -> Result<Cell, Error> {
+        self.layouter
+            .synthesizer
+            .on_advice_assigned(column, *self.layouter.regions[*self.region_index] + offset);
+
+        Ok(Cell {
+            region_index: self.region_index,
+            row_offset: offset,
+            column: column.into(),
+        })
+    }
+
+    fn assign_advice_from_constant<'v>(
+        &'v mut self,
+        annotation: &'v (dyn Fn() -> String + 'v),
+        column: Column<Advice>,
+        offset: usize,
+        constant: Rational<F>,
+    ) -> Result<Cell, Error> {
+        let advice =
+            self.assign_advice(annotation, column, offset, &mut || Value::known(constant))?;
+        self.constrain_constant(advice, constant)?;
+
+        Ok(advice)
+    }
+
+    fn assign_advice_from_instance<'v>(
+        &mut self,
+        annotation: &'v (dyn Fn() -> String + 'v),
+        instance: Column<Instance>,
+        row: usize,
+        advice: Column<Advice>,
+        offset: usize,
+    ) -> Result<(Cell, Value<F>), Error> {
+        let cell = self.assign_advice(annotation, advice, offset, &mut || Value::unknown())?;
+
+        self.layouter.synthesizer.copy(
+            cell.column,
+            *self.layouter.regions[*cell.region_index] + cell.row_offset,
+            instance,
+            row,
+        );
+
+        Ok((cell, Value::unknown()))
+    }
+
+    fn instance_value(
+        &mut self,
+        _instance: Column<Instance>,
+        _row: usize,
+    ) -> Result<Value<F>, Error> {
+        Ok(Value::unknown())
+    }
+
+    fn assign_fixed<'v>(
+        &'v mut self,
+        _annotation: &'v (dyn Fn() -> String + 'v),
+        column: Column<Fixed>,
+        offset: usize,
+        to: &'v mut (dyn FnMut() -> Value<Rational<F>> + 'v),
+    ) -> Result<Cell, Error> {
+        self.layouter.synthesizer.on_fixed_assigned(
+            column,
+            *self.layouter.regions[*self.region_index] + offset,
+            steal(to())
+                .ok_or_else(|| {
+                    Error::Synthesis(format!(
+                        "Unknown fixed value assigned to cell ({}, {offset})",
+                        column.index()
+                    ))
+                })?
+                .evaluate(),
+        );
+
+        Ok(Cell {
+            region_index: self.region_index,
+            row_offset: offset,
+            column: column.into(),
+        })
+    }
+
+    fn constrain_constant(&mut self, cell: Cell, constant: Rational<F>) -> Result<(), Error> {
+        self.constants.push((constant, cell));
+        Ok(())
+    }
+
+    fn constrain_equal(&mut self, left: Cell, right: Cell) -> Result<(), Error> {
+        self.layouter.synthesizer.copy(
+            left.column,
+            *self.layouter.regions[*left.region_index] + left.row_offset,
+            right.column,
+            *self.layouter.regions[*right.region_index] + right.row_offset,
+        );
+
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+struct ExtractionTableLayouter<'r, 'a, F: Field> {
+    synthesizer: &'a mut Synthesizer<F>,
+    used_columns: &'r [TableColumn],
+    /// maps from a fixed column to a pair (default value, vector saying which
+    /// rows are assigned)
+    pub default_and_assigned: HashMap<TableColumn, (Option<Value<Rational<F>>>, Vec<bool>)>,
+}
+
+impl<'r, 'a, F: Field> ExtractionTableLayouter<'r, 'a, F> {
+    /// Returns a new SimpleTableLayouter
+    pub fn new(synthesizer: &'a mut Synthesizer<F>, used_columns: &'r [TableColumn]) -> Self {
+        ExtractionTableLayouter {
+            synthesizer,
+            used_columns,
+            default_and_assigned: HashMap::default(),
+        }
+    }
+}
+impl<'r, 'a, F: Field> TableLayouter<F> for ExtractionTableLayouter<'r, 'a, F> {
+    fn assign_cell<'v>(
+        &'v mut self,
+        _annotation: &'v (dyn Fn() -> String + 'v),
+        column: TableColumn,
+        offset: usize,
+        to: &'v mut (dyn FnMut() -> Value<Rational<F>> + 'v),
+    ) -> Result<(), Error> {
+        if self.used_columns.contains(&column) {
+            return Err(Error::TableError(TableError::UsedColumn(column)));
+        }
+
+        let entry = self.default_and_assigned.entry(column).or_default();
+
+        let value = to();
+        self.synthesizer.on_fixed_assigned(
+            column.inner(),
+            offset, // tables are always assigned starting at row 0
+            steal(value.evaluate())
+                .ok_or_else(|| Error::Synthesis("Unknown table value".to_string()))?,
+        );
+
+        match (entry.0.is_none(), offset) {
+            // Use the value at offset 0 as the default value for this table column.
+            (true, 0) => entry.0 = Some(value),
+            // Since there is already an existing default value for this table column,
+            // the caller should not be attempting to assign another value at offset 0.
+            (false, 0) => {
+                return Err(Error::TableError(TableError::OverwriteDefault(
+                    column,
+                    format!("{:?}", entry.0.unwrap()),
+                    format!("{value:?}"),
+                )));
+            }
+            _ => (),
+        }
+        if entry.1.len() <= offset {
+            entry.1.resize(offset + 1, false);
+        }
+        entry.1[offset] = true;
+
+        Ok(())
     }
 }
 
@@ -95,7 +425,7 @@ impl<'l, L> AdaptsLayouter<'l, L> {
     }
 }
 
-impl<F: Field, L: Layouter<F>> LayoutAdaptor<F, ExtractionSupport> for AdaptsLayouter<L> {
+impl<F: Field, L: Layouter<F>> LayoutAdaptor<F, ExtractionSupport> for AdaptsLayouter<'_, L> {
     type Adaptee = L;
 
     fn adaptee_ref(&self) -> &L {
@@ -182,4 +512,44 @@ impl<F: Field, L: Layouter<F>> LayoutAdaptor<F, ExtractionSupport> for AdaptsLay
     {
         self.layouter.assign_region(name, assignment)
     }
+}
+
+fn compute_table_lengths<F: std::fmt::Debug>(
+    default_and_assigned: &HashMap<TableColumn, (Option<Value<Rational<F>>>, Vec<bool>)>,
+) -> Result<usize, Error> {
+    let column_lengths: Result<Vec<_>, Error> = default_and_assigned
+        .iter()
+        .map(|(col, (default_value, assigned))| {
+            if default_value.is_none() || assigned.is_empty() {
+                return Err(Error::TableError(TableError::ColumnNotAssigned(*col)));
+            }
+            if assigned.iter().all(|b| *b) {
+                // All values in the column have been assigned
+                Ok((col, assigned.len()))
+            } else {
+                Err(Error::TableError(TableError::ColumnNotAssigned(*col)))
+            }
+        })
+        .collect();
+    let column_lengths = column_lengths?;
+    column_lengths
+        .into_iter()
+        .try_fold((None, 0), |acc, (col, col_len)| {
+            if acc.1 == 0 || acc.1 == col_len {
+                Ok((Some(*col), col_len))
+            } else {
+                let mut cols = [(*col, col_len), (acc.0.unwrap(), acc.1)];
+                cols.sort();
+                Err(Error::TableError(TableError::UnevenColumnLengths(
+                    cols[0], cols[1],
+                )))
+            }
+        })
+        .map(|col_len| col_len.1)
+}
+
+fn steal<T>(value: Value<T>) -> Option<T> {
+    let data = RefCell::new(None);
+    value.map(|t| data.replace(Some(t)));
+    data.replace(None)
 }

@@ -9,7 +9,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.2.2"
+version = "0.2.3"
 authors = ["Daniel Dominguez (Veridise) <daniel@veridise.com>"]
 edition = "2024"
 rust-version = "1.85"
@@ -19,7 +19,9 @@ license-file = "LICENSE"
 
 [workspace.dependencies]
 ff = "0.13"
-haloumi-ir = "0.1.0"
+haloumi-ir = "0.2"
+haloumi-ir-base = "0.1"
+haloumi-core = "0.1"
 
 [workspace.dependencies.midnight-proofs]
 # Commented out until https://github.com/midnightntwrk/midnight-zk/pull/137 merges.

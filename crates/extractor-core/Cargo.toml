@@ -15,10 +15,17 @@ ff.workspace = true
 midnight-proofs.workspace = true
 midnight-circuits.workspace = true
 midnight-curves.workspace = true
-mdnt-support = { version = "0.2.0"}
+mdnt-support = { version = "0.2.2"}
 num-bigint = "0.4"
 haloumi-ir.workspace =true
+haloumi-ir-base.workspace =true
+haloumi-core.workspace =true
 haloumi.workspace =true
 mdnt-extractor-macros = { path = "../extractor-macros"}
 log = "0.4"
 anyhow = "1"
+
+[dev-dependencies]
+rstest = "0.26"
+similar-asserts = "1.7"
+simplelog = {version = "0.12", features = ["test"] }

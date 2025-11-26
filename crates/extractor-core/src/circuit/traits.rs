@@ -3,6 +3,7 @@
 use anyhow::Result;
 use ff::PrimeField;
 use mdnt_support::cells::ctx::{InputDescr, OutputDescr};
+use mdnt_support::cells::CellReprSize;
 use midnight_proofs::circuit::RegionIndex;
 use midnight_proofs::plonk::Expression;
 use midnight_proofs::ExtractionSupport;
@@ -16,7 +17,7 @@ use mdnt_support::{
     circuit::injected::InjectedIR,
 };
 
-use mdnt_support::circuit::{AbstractCircuitIO, ChipArgs, CircuitInitialization, NoChipArgs};
+use mdnt_support::circuit::{ChipArgs, CircuitInitialization, NoChipArgs};
 
 /// Super trait for extracting IO from an abstract circuit.
 pub trait AbstractCircuitIO {
@@ -46,10 +47,9 @@ pub trait AbstractCircuit<F: PrimeField>: AbstractCircuitIO {
         input: Self::Input,
         injected_ir: &mut InjectedIR<RegionIndex, Expression<F>>,
     ) -> Result<Self::Output, Error>
-//where
-    //    L: Layouter<F>,
-    //    <Self as AbstractCircuitIO>::Input: LoadFromCells<F, Self::Chip, ExtractionSupport, L>,
-    //    <Self as AbstractCircuitIO>::Output: StoreIntoCells<F, Self::Chip, ExtractionSupport, L>
+    where
+        L: Layouter<F> //    <Self as AbstractCircuitIO>::Input: LoadFromCells<F, Self::Chip, ExtractionSupport, L>,
+                       //    <Self as AbstractCircuitIO>::Output: StoreIntoCells<F, Self::Chip, ExtractionSupport, L>
     ;
 }
 
@@ -70,10 +70,9 @@ pub trait AbstractCircuitMut<F: PrimeField>: AbstractCircuitIO {
         input: Self::Input,
         injected_ir: &mut InjectedIR<RegionIndex, Expression<F>>,
     ) -> Result<Self::Output, Error>
-//where
-    //    L: Layouter<F>,
-    //    <Self as AbstractCircuitIO>::Input: LoadFromCells<F, Self::Chip, ExtractionSupport, L>,
-    //    <Self as AbstractCircuitIO>::Output: StoreIntoCells<F, Self::Chip, ExtractionSupport, L>
+    where
+        L: Layouter<F> //    <Self as AbstractCircuitIO>::Input: LoadFromCells<F, Self::Chip, ExtractionSupport, L>,
+                       //    <Self as AbstractCircuitIO>::Output: StoreIntoCells<F, Self::Chip, ExtractionSupport, L>
     ;
 }
 
@@ -97,10 +96,9 @@ pub trait AbstractUnitCircuit<F: PrimeField>: AbstractCircuitIO {
         output: Self::Output,
         injected_ir: &mut InjectedIR<RegionIndex, Expression<F>>,
     ) -> Result<(), Error>
-//where
-    //    L: Layouter<F>,
-    //    <Self as AbstractCircuitIO>::Input: LoadFromCells<F, Self::Chip, ExtractionSupport, L>,
-    //    <Self as AbstractCircuitIO>::Output: LoadFromCells<F, Self::Chip, ExtractionSupport, L>
+    where
+        L: Layouter<F> //    <Self as AbstractCircuitIO>::Input: LoadFromCells<F, Self::Chip, ExtractionSupport, L>,
+                       //    <Self as AbstractCircuitIO>::Output: LoadFromCells<F, Self::Chip, ExtractionSupport, L>
     ;
 }
 

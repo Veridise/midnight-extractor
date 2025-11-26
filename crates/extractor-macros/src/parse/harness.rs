@@ -1,13 +1,15 @@
+use std::ops::Deref;
+
 use quote::ToTokens;
 use syn::{
-    parse::Parse, AngleBracketedGenericArguments, Attribute, Block, FnArg, GenericArgument,
-    Generics, Ident, ItemFn, Pat, PatType, Path, PathArguments, ReturnType, Type, TypeParamBound,
-    TypePath, Visibility,
+    parse::Parse, spanned::Spanned as _, AngleBracketedGenericArguments, Attribute, Block, FnArg,
+    GenericArgument, GenericParam, Generics, Ident, ItemFn, Lifetime, LifetimeParam, Pat, PatType,
+    Path, PathArguments, ReturnType, Type, TypeParamBound, TypePath, Visibility,
 };
 
 use crate::error::{Error, ErrorType};
 
-struct HarnessFnCommon {
+pub struct HarnessFnCommon {
     chip: ArgParts,
     layouter: Pat,
     injected_ir: Option<Pat>,
@@ -17,6 +19,87 @@ struct HarnessFnCommon {
     ident: Ident,
     field_ty: Type,
     generics: Generics,
+    extra_lifetimes: Option<(Lifetime, Lifetime)>,
+}
+
+impl HarnessFnCommon {
+    fn new(
+        chip: ArgParts,
+        layouter: Pat,
+        injected_ir: Option<Pat>,
+        attrs: Vec<Attribute>,
+        block: Block,
+        vis: Visibility,
+        ident: Ident,
+        field_ty: Type,
+        generics: Generics,
+    ) -> Self {
+        Self {
+            chip,
+            layouter,
+            injected_ir,
+            attrs,
+            block,
+            vis,
+            ident,
+            field_ty,
+            generics,
+            extra_lifetimes: None,
+        }
+    }
+
+    pub fn vis(&self) -> &Visibility {
+        &self.vis
+    }
+
+    pub fn ident(&self) -> &Ident {
+        &self.ident
+    }
+
+    pub fn block(&self) -> &Block {
+        &self.block
+    }
+
+    pub fn attrs(&self) -> &[Attribute] {
+        &self.attrs
+    }
+
+    pub fn field_ty(&self) -> &Type {
+        &self.field_ty
+    }
+
+    pub fn chip_ty(&self) -> &Type {
+        &self.chip.ty
+    }
+
+    pub fn chip_pat(&self) -> &Pat {
+        &self.chip.pat
+    }
+
+    pub fn layouter_pat(&self) -> &Pat {
+        &self.layouter
+    }
+
+    pub fn generics(&self) -> &Generics {
+        &self.generics
+    }
+
+    pub fn injected_ir(&self) -> Option<&Pat> {
+        self.injected_ir.as_ref()
+    }
+
+    pub fn extra_lifetimes(&self) -> (&Lifetime, &Lifetime) {
+        self.extra_lifetimes.as_ref().map(|(a, b)| (a, b)).unwrap()
+    }
+
+    fn inject_extra_lifetimes(&mut self) {
+        assert!(self.extra_lifetimes.is_none());
+        let lifetime1 = Lifetime::new("'__1", self.generics.span());
+        let lifetime2 = Lifetime::new("'__2", self.generics.span());
+        self.extra_lifetimes = Some((lifetime1.clone(), lifetime2.clone()));
+        self.generics.params.push(GenericParam::Lifetime(LifetimeParam::new(lifetime1)));
+        self.generics.params.push(GenericParam::Lifetime(LifetimeParam::new(lifetime2)));
+    }
 }
 
 struct ArgParts {
@@ -37,39 +120,15 @@ pub struct HarnessFn {
     output: Output,
 }
 
+impl Deref for HarnessFn {
+    type Target = HarnessFnCommon;
+
+    fn deref(&self) -> &Self::Target {
+        &self.common
+    }
+}
+
 impl HarnessFn {
-    pub fn vis(&self) -> &Visibility {
-        &self.common.vis
-    }
-
-    pub fn ident(&self) -> &Ident {
-        &self.common.ident
-    }
-
-    pub fn block(&self) -> &Block {
-        &self.common.block
-    }
-
-    pub fn attrs(&self) -> &[Attribute] {
-        &self.common.attrs
-    }
-
-    pub fn field_ty(&self) -> &Type {
-        &self.common.field_ty
-    }
-
-    pub fn chip_ty(&self) -> &Type {
-        &self.common.chip.ty
-    }
-
-    pub fn chip_pat(&self) -> &Pat {
-        &self.common.chip.pat
-    }
-
-    pub fn layouter_pat(&self) -> &Pat {
-        &self.common.layouter
-    }
-
     pub fn input_ty(&self) -> &Type {
         &self.input.ty
     }
@@ -82,12 +141,9 @@ impl HarnessFn {
         &self.output
     }
 
-    pub fn generics(&self) -> &Generics {
-        &self.common.generics
-    }
-
-    pub fn injected_ir(&self) -> Option<&Pat> {
-        self.common.injected_ir.as_ref()
+    fn with_extra_lifetimes(mut self) -> Self {
+        self.common.inject_extra_lifetimes();
+        self
     }
 }
 
@@ -135,20 +191,21 @@ impl TryFrom<ItemFn> for HarnessFn {
             .map(|i| i.pat);
         let output = get_output(f.sig.output)?;
         Ok(Self {
-            common: HarnessFnCommon {
+            common: HarnessFnCommon::new(
                 chip,
                 layouter,
                 injected_ir,
-                attrs: f.attrs,
-                block: *f.block,
-                vis: f.vis,
-                ident: f.sig.ident,
-                generics: f.sig.generics,
+                f.attrs,
+                *f.block,
+                f.vis,
+                f.sig.ident,
                 field_ty,
-            },
+                f.sig.generics,
+            ),
             input,
             output,
-        })
+        }
+        .with_extra_lifetimes())
     }
 }
 
@@ -158,43 +215,15 @@ pub struct UnitHarnessFn {
     output: ArgParts,
 }
 
+impl Deref for UnitHarnessFn {
+    type Target = HarnessFnCommon;
+
+    fn deref(&self) -> &Self::Target {
+        &self.common
+    }
+}
+
 impl UnitHarnessFn {
-    pub fn vis(&self) -> &Visibility {
-        &self.common.vis
-    }
-
-    pub fn ident(&self) -> &Ident {
-        &self.common.ident
-    }
-
-    pub fn block(&self) -> &Block {
-        &self.common.block
-    }
-
-    pub fn attrs(&self) -> &[Attribute] {
-        &self.common.attrs
-    }
-
-    pub fn field_ty(&self) -> &Type {
-        &self.common.field_ty
-    }
-
-    pub fn chip_ty(&self) -> &Type {
-        &self.common.chip.ty
-    }
-
-    pub fn chip_pat(&self) -> &Pat {
-        &self.common.chip.pat
-    }
-
-    pub fn layouter_pat(&self) -> &Pat {
-        &self.common.layouter
-    }
-
-    pub fn generics(&self) -> &Generics {
-        &self.common.generics
-    }
-
     pub fn input_ty(&self) -> &Type {
         &self.input.ty
     }
@@ -211,8 +240,9 @@ impl UnitHarnessFn {
         &self.output.pat
     }
 
-    pub fn injected_ir(&self) -> Option<&Pat> {
-        self.common.injected_ir.as_ref()
+    fn with_extra_lifetimes(mut self) -> Self {
+        self.common.inject_extra_lifetimes();
+        self
     }
 }
 
@@ -260,20 +290,21 @@ impl TryFrom<ItemFn> for UnitHarnessFn {
             .transpose()?
             .map(|i| i.pat);
         Ok(Self {
-            common: HarnessFnCommon {
+            common: HarnessFnCommon::new(
                 chip,
                 layouter,
                 injected_ir,
-                attrs: f.attrs,
-                block: *f.block,
-                vis: f.vis,
-                ident: f.sig.ident,
-                generics: f.sig.generics,
+                f.attrs,
+                *f.block,
+                f.vis,
+                f.sig.ident,
                 field_ty,
-            },
+                f.sig.generics,
+            ),
             input,
             output,
-        })
+        }
+        .with_extra_lifetimes())
     }
 }
 

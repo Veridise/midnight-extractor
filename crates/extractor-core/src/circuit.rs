@@ -1,27 +1,35 @@
-use std::{cell::RefCell, marker::PhantomData};
-
+use crate::{
+    circuit::layouter::{AdaptsLayouter, ExtractionLayouter},
+    harness::Ctx,
+};
 use anyhow::{Context, Result};
 use configuration::Config;
 use ff::PrimeField;
-use haloumi::{expressions::ExpressionInRow, CircuitIO, CircuitSynthesis};
+use haloumi::{
+    expressions::ExpressionInRow, AdviceIO, CircuitIO, CircuitSynthesis, InstanceIO, Synthesizer,
+};
 use haloumi_ir::stmt::IRStmt;
-use mdnt_support::cells::ctx::{ICtx, InputDescr, OCtx};
-use midnight_circuits::midnight_proofs::{
-    circuit::{Layouter, RegionIndex},
-    plonk::{Advice, Circuit, ConstraintSystem, Error, Instance},
-};
-use midnight_proofs::{plonk::Expression, ExtractionSupport};
-
-use crate::circuit::layouter::{AdaptsLayouter, ExtractionLayouter};
-use crate::harness::Ctx;
 use mdnt_support::{
-    cells::{load::LoadFromCells, store::StoreIntoCells, CellReprSize},
-    circuit::{injected::InjectedIR, AbstractCircuitIO, ChipArgs, CircuitInitialization},
+    cells::{
+        ctx::{ICtx, InputDescr, OCtx},
+        load::LoadFromCells,
+        store::StoreIntoCells,
+        CellReprSize,
+    },
+    circuit::{
+        configuration::AutoConfigure, injected::InjectedIR, ChipArgs, CircuitInitialization,
+    },
 };
+use midnight_proofs::{
+    circuit::{Layouter, RegionIndex},
+    plonk::{ConstraintSystem, Error, Expression},
+    ExtractionSupport,
+};
+use std::{cell::RefCell, marker::PhantomData};
 
-pub mod assignment;
+//pub mod assignment;
 pub mod configuration;
-mod layouter;
+pub mod layouter;
 pub mod traits;
 
 pub use traits::*;
@@ -80,39 +88,38 @@ macro_rules! contextualize {
     };
 }
 
-impl<F, C, M, Chip, Input, Output, Args, E> CircuitImpl<'_, F, C, M>
+impl<F, C, M> CircuitImpl<'_, F, C, M>
 where
     F: PrimeField,
-    C: for<'a> AbstractCircuitIO<
-            ExtractionLayouter<'a, F>,
-            Chip = Chip,
-            Input = Input,
-            Output = Output,
-        > + ChipArgs<Args = Args>,
-    Chip: for<'a> CircuitInitialization<ExtractionLayouter<'a, F>, Args = Args, Error = E>,
-    E: std::error::Error,
 {
-    fn create_chip<L>(&self, config: &Config<L, C>) -> Chip
+    fn create_chip<L>(&self, config: &Config<C>) -> C::Chip
     where
-        C: AbstractCircuitIO<L, Chip = Chip, Input = Input, Output = Output>
-            + ChipArgs<Args = Args>,
-        Chip: CircuitInitialization<L, Args = Args>,
+        C: AbstractCircuitIO + ChipArgs,
+        C::Chip: CircuitInitialization<
+            L,
+            Args = C::Args,
+            Config = C::Config,
+            ConfigCols = C::ConfigCols,
+        >,
     {
-        Chip::new_chip(&config.chip.inner, self.abstract_circuit.chip_args())
+        C::Chip::new_chip(&config.chip.inner, self.abstract_circuit.chip_args())
     }
 
     fn load_chip<L>(
         &self,
         layouter: &mut L,
-        chip: &Chip,
-        config: &Config<ExtractionLayouter<'_, F>, C>,
+        chip: &C::Chip,
+        config: &Config<C>,
     ) -> Result<(), Error>
     where
-        F: PrimeField,
-        C: AbstractCircuitIO<L, Chip = Chip, Input = Input, Output = Output>
-            + ChipArgs<Args = Args>,
-        Chip: CircuitInitialization<L, Args = Args, Error = E>,
-        E: std::error::Error,
+        C: AbstractCircuitIO + ChipArgs,
+        C::Chip: CircuitInitialization<
+            L,
+            Args = C::Args,
+            Config = C::Config,
+            ConfigCols = C::ConfigCols,
+            Error = Error,
+        >,
     {
         contextualize!(
             chip.load_chip(layouter, &config.chip.inner),
@@ -126,11 +133,13 @@ where
         cells: impl IntoIterator<Item = InputDescr<F, ExtractionSupport>>,
         n_cells: usize,
         cell_type: &'static str,
-        chip: &Chip,
+        chip: &C::Chip,
         layouter: &mut L,
     ) -> Result<Load, Error>
     where
-        Load: LoadFromCells<F, Chip, ExtractionSupport, L>,
+        Load: LoadFromCells<F, C::Chip, ExtractionSupport, L>,
+        C: AbstractCircuitIO + ChipArgs,
+        C::Chip: CircuitInitialization<L, Args = C::Args, Error = Error>,
         L: Layouter<F>,
     {
         let mut layouter = AdaptsLayouter::new(layouter);
@@ -154,12 +163,14 @@ where
 
     fn load_inputs<L>(
         &self,
-        config: &Config<L, C>,
-        chip: &Chip,
+        config: &Config<C>,
+        chip: &C::Chip,
         layouter: &mut L,
-    ) -> Result<Input, Error>
+    ) -> Result<C::Input, Error>
     where
-        Input: LoadFromCells<F, Chip, ExtractionSupport, L>,
+        C::Input: LoadFromCells<F, C::Chip, ExtractionSupport, L>,
+        C: AbstractCircuitIO + ChipArgs,
+        C::Chip: CircuitInitialization<L, Args = C::Args, Error = Error>,
         L: Layouter<F>,
     {
         let inputs = config.inputs();
@@ -170,12 +181,14 @@ where
 
     fn load_outputs<L>(
         &self,
-        config: &Config<L, C>,
-        chip: &Chip,
+        config: &Config<C>,
+        chip: &C::Chip,
         layouter: &mut L,
-    ) -> Result<Output, Error>
+    ) -> Result<C::Output, Error>
     where
-        Output: LoadFromCells<F, Chip, ExtractionSupport, L>,
+        C::Output: LoadFromCells<F, C::Chip, ExtractionSupport, L>,
+        C: AbstractCircuitIO + ChipArgs,
+        C::Chip: CircuitInitialization<L, Args = C::Args, Error = Error>,
         L: Layouter<F>,
     {
         let outputs = config.outputs();
@@ -192,13 +205,15 @@ where
 
     fn store_outputs<L>(
         &self,
-        output: Output,
-        config: &Config<L, C>,
-        chip: &Chip,
+        output: C::Output,
+        config: &Config<C>,
+        chip: &C::Chip,
         layouter: &mut L,
     ) -> Result<(), Error>
     where
-        Output: StoreIntoCells<F, Chip, ExtractionSupport, L>,
+        C::Output: StoreIntoCells<F, C::Chip, ExtractionSupport, L>,
+        C: AbstractCircuitIO + ChipArgs,
+        C::Chip: CircuitInitialization<L, Args = C::Args, Error = Error>,
         L: Layouter<F>,
     {
         let mut layouter = AdaptsLayouter::new(layouter);
@@ -230,17 +245,26 @@ where
     }
 }
 
-impl<F, C, Chip, Input, Output, E> CircuitImpl<'_, F, C, Function> {
-    fn synthesize<L>(&self, config: Config<L, C>, mut layouter: L) -> std::result::Result<(), Error>
+impl<F, C> CircuitImpl<'_, F, C, Function> {
+    fn synthesize_inner<L>(
+        &self,
+        config: Config<C>,
+        mut layouter: L,
+    ) -> std::result::Result<(), Error>
     where
         L: Layouter<F>,
         F: PrimeField,
-        C: AbstractCircuit<F, L>
-            + ChipArgs
-            + AbstractCircuitIO<L, Chip = Chip, Input = Input, Output = Output>,
-        Chip: CircuitInitialization<L, Args = C::Args, CS = ConstraintSystem<F>, Error = Error>,
-        Input: LoadFromCells<F, Chip, ExtractionSupport, L>,
-        Output: LoadFromCells<F, Chip, ExtractionSupport, L>,
+        C: AbstractCircuit<F> + ChipArgs + AbstractCircuitIO,
+        C::Chip: CircuitInitialization<
+            L,
+            Args = C::Args,
+            Config = C::Config,
+            ConfigCols = C::ConfigCols,
+            CS = ConstraintSystem<F>,
+            Error = Error,
+        >,
+        C::Input: LoadFromCells<F, C::Chip, ExtractionSupport, L>,
+        C::Output: StoreIntoCells<F, C::Chip, ExtractionSupport, L>,
     {
         // Create and load chip.
         let chip = self.create_chip(&config);
@@ -261,17 +285,26 @@ impl<F, C, Chip, Input, Output, E> CircuitImpl<'_, F, C, Function> {
     }
 }
 
-impl<F, C, Chip, Input, Output> CircuitImpl<'_, F, C, FunctionMut> {
-    fn synthesize<L>(&self, config: Config<L, C>, mut layouter: L) -> std::result::Result<(), Error>
+impl<F, C> CircuitImpl<'_, F, C, FunctionMut> {
+    fn synthesize_inner<L>(
+        &self,
+        config: Config<C>,
+        mut layouter: L,
+    ) -> std::result::Result<(), Error>
     where
         L: Layouter<F>,
         F: PrimeField,
-        C: AbstractCircuitMut<F, L>
-            + ChipArgs
-            + AbstractCircuitIO<L, Chip = Chip, Input = Input, Output = Output>,
-        Chip: CircuitInitialization<L, Args = C::Args, CS = ConstraintSystem<F>, Error = Error>,
-        Input: LoadFromCells<F, Chip, ExtractionSupport, L>,
-        Output: LoadFromCells<F, Chip, ExtractionSupport, L>,
+        C: AbstractCircuitMut<F> + ChipArgs + AbstractCircuitIO,
+        C::Chip: CircuitInitialization<
+            L,
+            Args = C::Args,
+            Config = C::Config,
+            ConfigCols = C::ConfigCols,
+            CS = ConstraintSystem<F>,
+            Error = Error,
+        >,
+        C::Input: LoadFromCells<F, C::Chip, ExtractionSupport, L>,
+        C::Output: StoreIntoCells<F, C::Chip, ExtractionSupport, L>,
     {
         // Create and load chip.
         let mut chip = self.create_chip(&config);
@@ -297,17 +330,26 @@ impl<F, C, Chip, Input, Output> CircuitImpl<'_, F, C, FunctionMut> {
     }
 }
 
-impl<F, C, Chip, Input, Output> CircuitImpl<'_, F, C, Procedure> {
-    fn synthesize<L>(&self, config: Config<L, C>, mut layouter: L) -> std::result::Result<(), Error>
+impl<F, C> CircuitImpl<'_, F, C, Procedure> {
+    fn synthesize_inner<L>(
+        &self,
+        config: Config<C>,
+        mut layouter: L,
+    ) -> std::result::Result<(), Error>
     where
         L: Layouter<F>,
         F: PrimeField,
-        C: AbstractUnitCircuit<F, L>
-            + ChipArgs
-            + AbstractCircuitIO<L, Chip = Chip, Input = Input, Output = Output>,
-        Chip: CircuitInitialization<L, Args = C::Args, CS = ConstraintSystem<F>, Error = Error>,
-        Input: LoadFromCells<F, Chip, ExtractionSupport, L>,
-        Output: LoadFromCells<F, Chip, ExtractionSupport, L>,
+        C: AbstractUnitCircuit<F> + ChipArgs + AbstractCircuitIO,
+        C::Chip: CircuitInitialization<
+            L,
+            Args = C::Args,
+            Config = C::Config,
+            ConfigCols = C::ConfigCols,
+            CS = ConstraintSystem<F>,
+            Error = Error,
+        >,
+        C::Input: LoadFromCells<F, C::Chip, ExtractionSupport, L>,
+        C::Output: LoadFromCells<F, C::Chip, ExtractionSupport, L>,
     {
         // Create and load chip.
         let chip = self.create_chip(&config);
@@ -327,15 +369,26 @@ impl<F, C, Chip, Input, Output> CircuitImpl<'_, F, C, Procedure> {
     }
 }
 
-impl<F, C, M> CircuitSynthesis<F> for CircuitImpl<'_, F, C, M>
+impl<F, C> CircuitSynthesis<F> for CircuitImpl<'_, F, C, Function>
 where
     F: PrimeField,
-    C: AbstractCircuitIO + ChipArgs,
-    Self: Circuit<F>,
-    //<Self as Circuit<F>>::Config: AbstractCircuitConfig,
+    C: AbstractCircuit<F> + ChipArgs,
+    C::Chip: for<'a, 'b> CircuitInitialization<
+        ExtractionLayouter<'a, 'b, F>,
+        Args = C::Args,
+        Config = C::Config,
+        ConfigCols = C::ConfigCols,
+        CS = ConstraintSystem<F>,
+        Error = Error,
+    >,
+    C::ConfigCols: AutoConfigure<ConstraintSystem<F>>,
+    C::Input:
+        for<'a, 'b> LoadFromCells<F, C::Chip, ExtractionSupport, ExtractionLayouter<'a, 'b, F>>,
+    C::Output:
+        for<'a, 'b> StoreIntoCells<F, C::Chip, ExtractionSupport, ExtractionLayouter<'a, 'b, F>>,
 {
     type Circuit = Self;
-    type Config<'a> = Config<ExtractionLayouter<'a, F>, C>;
+    type Config = Config<C>;
     type CS = ConstraintSystem<F>;
     type Error = Error;
 
@@ -347,11 +400,11 @@ where
         Self::Config::configure(cs)
     }
 
-    fn advice_io(_: &Self::Config) -> anyhow::Result<CircuitIO<Advice>> {
+    fn advice_io(_: &Self::Config) -> anyhow::Result<AdviceIO> {
         Ok(CircuitIO::empty())
     }
 
-    fn instance_io(config: &Self::Config) -> anyhow::Result<CircuitIO<Instance>> {
+    fn instance_io(config: &Self::Config) -> anyhow::Result<InstanceIO> {
         let inputs: Vec<_> = (0..C::Input::SIZE).collect();
         let outputs: Vec<_> = (0..C::Output::SIZE).collect();
 
@@ -361,14 +414,131 @@ where
         )
     }
 
-    fn synthesize<'a>(
+    fn synthesize(
         circuit: &Self::Circuit,
-        config: Self::Config<'a>,
-        synthesizer: &'a mut haloumi::Synthesizer<F>,
-        _cs: &Self::CS,
+        config: Self::Config,
+        synthesizer: &mut Synthesizer<F>,
+        cs: &Self::CS,
     ) -> Result<(), Self::Error> {
-        let layouter = ExtractionLayouter::new(synthesizer);
-        circuit.synthesize(config, layouter)
-        //assignment::SynthesizerAssignment::synthesize(circuit, config, synthesizer, cs)
+        let layouter = ExtractionLayouter::new(synthesizer, cs.constants());
+        circuit.synthesize_inner(config, layouter)
     }
+}
+
+impl<F, C> CircuitSynthesis<F> for CircuitImpl<'_, F, C, FunctionMut>
+where
+    F: PrimeField,
+    C: AbstractCircuitMut<F> + ChipArgs,
+    C::Chip: for<'a, 'b> CircuitInitialization<
+        ExtractionLayouter<'a, 'b, F>,
+        Args = C::Args,
+        Config = C::Config,
+        ConfigCols = C::ConfigCols,
+        CS = ConstraintSystem<F>,
+        Error = Error,
+    >,
+    C::ConfigCols: AutoConfigure<ConstraintSystem<F>>,
+    C::Input:
+        for<'a, 'b> LoadFromCells<F, C::Chip, ExtractionSupport, ExtractionLayouter<'a, 'b, F>>,
+    C::Output:
+        for<'a, 'b> StoreIntoCells<F, C::Chip, ExtractionSupport, ExtractionLayouter<'a, 'b, F>>,
+{
+    type Circuit = Self;
+    type Config = Config<C>;
+    type CS = ConstraintSystem<F>;
+    type Error = Error;
+
+    fn circuit(&self) -> &Self::Circuit {
+        self
+    }
+
+    fn configure(cs: &mut Self::CS) -> Self::Config {
+        Self::Config::configure(cs)
+    }
+
+    fn advice_io(_: &Self::Config) -> anyhow::Result<AdviceIO> {
+        Ok(CircuitIO::empty())
+    }
+
+    fn instance_io(config: &Self::Config) -> anyhow::Result<InstanceIO> {
+        let inputs: Vec<_> = (0..C::Input::SIZE).collect();
+        let outputs: Vec<_> = (0..C::Output::SIZE).collect();
+
+        CircuitIO::new(
+            &[(config.input_instance(), &inputs)],
+            &[(config.output_instance(), &outputs)],
+        )
+    }
+
+    fn synthesize(
+        circuit: &Self::Circuit,
+        config: Self::Config,
+        synthesizer: &mut Synthesizer<F>,
+        cs: &Self::CS,
+    ) -> Result<(), Self::Error> {
+        let layouter = ExtractionLayouter::new(synthesizer, cs.constants());
+        circuit.synthesize_inner(config, layouter)
+    }
+}
+impl<F, C> CircuitSynthesis<F> for CircuitImpl<'_, F, C, Procedure>
+where
+    F: PrimeField,
+    C: AbstractUnitCircuit<F> + ChipArgs,
+    C::Chip: for<'a, 'b> CircuitInitialization<
+        ExtractionLayouter<'a, 'b, F>,
+        Args = C::Args,
+        Config = C::Config,
+        ConfigCols = C::ConfigCols,
+        CS = ConstraintSystem<F>,
+        Error = Error,
+    >,
+    C::ConfigCols: AutoConfigure<ConstraintSystem<F>>,
+    C::Input:
+        for<'a, 'b> LoadFromCells<F, C::Chip, ExtractionSupport, ExtractionLayouter<'a, 'b, F>>,
+    C::Output:
+        for<'a, 'b> LoadFromCells<F, C::Chip, ExtractionSupport, ExtractionLayouter<'a, 'b, F>>,
+{
+    type Circuit = Self;
+    type Config = Config<C>;
+    type CS = ConstraintSystem<F>;
+    type Error = Error;
+
+    fn circuit(&self) -> &Self::Circuit {
+        self
+    }
+
+    fn configure(cs: &mut Self::CS) -> Self::Config {
+        Self::Config::configure(cs)
+    }
+
+    fn advice_io(_: &Self::Config) -> anyhow::Result<AdviceIO> {
+        Ok(CircuitIO::empty())
+    }
+
+    fn instance_io(config: &Self::Config) -> anyhow::Result<InstanceIO> {
+        let inputs: Vec<_> = (0..C::Input::SIZE).collect();
+        let outputs: Vec<_> = (0..C::Output::SIZE).collect();
+
+        CircuitIO::new(
+            &[(config.input_instance(), &inputs)],
+            &[(config.output_instance(), &outputs)],
+        )
+    }
+
+    fn synthesize(
+        circuit: &Self::Circuit,
+        config: Self::Config,
+        synthesizer: &mut Synthesizer<F>,
+        cs: &Self::CS,
+    ) -> Result<(), Self::Error> {
+        let layouter = ExtractionLayouter::new(synthesizer, cs.constants());
+        circuit.synthesize_inner(config, layouter)
+    }
+}
+
+fn to_plonk_error<E>(error: E) -> Error
+where
+    E: Into<Box<dyn std::error::Error + Send + Sync>>,
+{
+    Error::Transcript(std::io::Error::other(error))
 }

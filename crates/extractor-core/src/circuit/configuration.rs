@@ -1,4 +1,4 @@
-use crate::circuit::AbstractCircuitIO;
+use crate::circuit::traits::AbstractCircuitIO;
 use ff::{Field, PrimeField};
 use mdnt_support::cells::ctx::{Cell, InputDescr, OutputDescr};
 use mdnt_support::cells::CellReprSize;
@@ -12,11 +12,11 @@ use super::AbstractCircuitConfig;
 
 use mdnt_support::circuit::configuration::AutoConfigure;
 
-/// Configuration for a chip type that implements [`CircuitInitialization`].
+/// Configuration for a chip type that implements [`AbstractCircuitIO`].
 #[derive(Debug, Clone)]
-pub struct ChipConfig<C, I> {
-    pub cfg: C,
-    pub inner: I,
+pub struct ChipConfig<C: AbstractCircuitIO> {
+    pub cfg: C::ConfigCols,
+    pub inner: C::Config,
 }
 
 //impl<L, C> Clone for ChipConfig<L, C>
@@ -31,14 +31,20 @@ pub struct ChipConfig<C, I> {
 //    }
 //}
 
-impl<C, I> ChipConfig<C, I> {
-    fn configure<CI, L, F>(meta: &mut ConstraintSystem<F>) -> Self
+impl<C: AbstractCircuitIO> ChipConfig<C> {
+    fn configure<L, F>(meta: &mut ConstraintSystem<F>) -> Self
     where
-        CI: CircuitInitialization<L, Config = I, ConfigCols = C>,
+        C::Chip: CircuitInitialization<
+            L,
+            Config = C::Config,
+            ConfigCols = C::ConfigCols,
+            CS = ConstraintSystem<F>,
+        >,
         F: PrimeField,
+        C::ConfigCols: AutoConfigure<ConstraintSystem<F>>,
     {
-        let cfg = C::Cols::configure(meta);
-        let inner = C::configure_circuit(meta, &cfg);
+        let cfg = C::ConfigCols::configure(meta);
+        let inner = C::Chip::configure_circuit(meta, &cfg);
         Self { cfg, inner }
     }
 }
@@ -127,17 +133,23 @@ impl Constants {
 
 /// Configuration for a circuit.
 #[derive(Clone)]
-pub struct Config<C, I> {
+pub struct Config<C: AbstractCircuitIO> {
     pub io: IOConfig,
-    pub chip: ChipConfig<C, I>,
+    pub chip: ChipConfig<C>,
     pub constants: Constants,
 }
 
-impl<L, C> Config<L, C> {
-    pub fn configure<CI, L, F>(meta: &mut ConstraintSystem<F>) -> Self
+impl<C: AbstractCircuitIO> Config<C> {
+    pub fn configure<L, F>(meta: &mut ConstraintSystem<F>) -> Self
     where
         F: PrimeField,
-        CI: CircuitInitialization<L, Config = I, ConfigCols = C>,
+        C::Chip: CircuitInitialization<
+            L,
+            Config = C::Config,
+            ConfigCols = C::ConfigCols,
+            CS = ConstraintSystem<F>,
+        >,
+        C::ConfigCols: AutoConfigure<ConstraintSystem<F>>,
     {
         log::info!(
             "Circuit has {} inputs and {} outputs",
@@ -146,7 +158,7 @@ impl<L, C> Config<L, C> {
         );
         Self {
             io: IOConfig::configure(meta),
-            chip: ChipConfig::configure::<CI, L, F>(meta),
+            chip: ChipConfig::configure::<L, F>(meta),
             constants: Constants::configure(meta),
         }
     }
@@ -163,9 +175,9 @@ impl<L, C> Config<L, C> {
 //    }
 //}
 
-impl<L, C> AbstractCircuitConfig for Config<L, C>
+impl<C> AbstractCircuitConfig for Config<C>
 where
-    C: AbstractCircuitIO<L>,
+    C: AbstractCircuitIO,
 {
     fn inputs<F: PrimeField>(&self) -> Vec<InputDescr<F, ExtractionSupport>> {
         self.io.inputs().take(C::Input::SIZE).collect()

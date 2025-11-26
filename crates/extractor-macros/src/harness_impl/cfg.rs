@@ -10,6 +10,7 @@ pub trait HarnessCfg: Parse {
         fn_ident: &Ident,
         field_param: &Type,
         generics: &Generics,
+        circuit_ty: &Ident,
     ) -> TokenStream;
 }
 
@@ -44,12 +45,13 @@ impl HarnessCfg for WithArgsCfg {
         fn_ident: &Ident,
         field_param: &Type,
         generics: &Generics,
+        circuit_ty: &Ident,
     ) -> TokenStream {
         let args_type = &self.args_type;
         let args_fn = Ident::new(&format!("{}_args", fn_ident), fn_ident.span());
         let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
         quote! {
-            impl #impl_generics crate::circuit::ChipArgs<#field_param> for Circuit #ty_generics #where_clause {
+            impl #impl_generics mdnt_support::circuit::ChipArgs<#field_param> for #circuit_ty #ty_generics #where_clause {
                 type Args = #args_type;
 
                 fn chip_args(&self) -> Self::Args {
@@ -83,9 +85,15 @@ impl HarnessCfg for NoArgsCfg {
         }
     }
 
-    fn emit_chip_args_impl(&self, _: &Ident, _: &Type, generics: &Generics) -> TokenStream {
+    fn emit_chip_args_impl(
+        &self,
+        _: &Ident,
+        _: &Type,
+        generics: &Generics,
+        circuit_ty: &Ident,
+    ) -> TokenStream {
         let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
-        quote! { impl #impl_generics crate::circuit::NoChipArgs for Circuit #ty_generics #where_clause {} }
+        quote! { impl #impl_generics mdnt_support::circuit::NoChipArgs for #circuit_ty #ty_generics #where_clause {} }
     }
 }
 

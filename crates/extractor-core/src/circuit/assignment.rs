@@ -17,6 +17,8 @@ use midnight_proofs::{
 
 pub struct SynthesizerAssignment<'a, F: Field> {
     synthetizer: &'a mut Synthesizer<F>,
+    /// Stores the starting row for each region.
+    regions: Vec<RegionStart>,
 }
 
 impl<'a, F: Field> SynthesizerAssignment<'a, F> {
