@@ -5,6 +5,7 @@ use haloumi::{
     ir::{generate::IRGenParamsBuilder, ResolvedIRCircuit},
     CircuitSynthesis, LookupCallbacks,
 };
+use haloumi_core::info_traits::ConstraintSystemInfo;
 use mdnt_support::circuit::ChipArgs;
 use midnight_proofs::plonk::Expression;
 
@@ -34,7 +35,7 @@ impl<'s> Ctx<'s> {
     }
 
     /// Lowers the circuit to Picus using the driver.
-    pub fn lower_circuit<'c, F, C, M>(
+    pub fn lower_circuit<'c, F, C, M, CS>(
         &self,
         circuit: CircuitImpl<'c, F, C, M>,
         lookups: Option<&dyn LookupCallbacks<F, Expression<F>>>,
@@ -42,7 +43,8 @@ impl<'s> Ctx<'s> {
     where
         F: PrimeField,
         C: AbstractCircuitIO + ChipArgs,
-        CircuitImpl<'c, F, C, M>: CircuitSynthesis<F>, //<CircuitImpl<'c, F, C, M> as Circuit<F>>::Config: AbstractCircuitConfig,
+        CircuitImpl<'c, F, C, M>: CircuitSynthesis<F, CS = CS>, //<CircuitImpl<'c, F, C, M> as Circuit<F>>::Config: AbstractCircuitConfig,
+        CS: ConstraintSystemInfo<F, Polynomial = Expression<F>>,
     {
         let mut driver = Driver::default();
         let syn = driver.synthesize(&circuit).context("Synthesis failed")?;

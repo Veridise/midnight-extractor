@@ -280,7 +280,7 @@ fn process_rec_equality<F: PrimeField>(
             }
         }
         match (e1, e2) {
-            (Expression::Advice(_), _) => Ordering::Less,
+            (Expression::Advice(_), _) => Ordering::Greater,
             (_, Expression::Advice(_)) => Ordering::Greater,
             (Expression::Product(lhs1, rhs1), Expression::Product(lhs2, rhs2)) => {
                 match_products(lhs1, rhs1, lhs2, rhs2)
@@ -382,13 +382,23 @@ mod test {
         log::info!(
             " Begin logic ===========================================================================",
         );
-        let out = process_rec_equality(
-            test.expr_per_row(start_row..=(start_row + n)).into_iter().collect(),
-            n,
-            start_row,
-        );
+        let exprs = test.expr_per_row(start_row..=(start_row + n));
+        for (row, (lhs, rhs)) in &exprs {
+            log::debug!(" ===========> ROW {row} ");
+            for (idx, e) in rhs.iter().enumerate() {
+                log::debug!("      ============> EXPR {idx} ");
+                log::debug!(
+                    "{:?}",
+                    D(((*row, Expression::Advice(*lhs)), (*row, e.clone())))
+                );
+                log::debug!("      <===========");
+            }
+            log::debug!("<===========");
+        }
+        let out = process_rec_equality(exprs.into_iter().collect(), n, start_row).map(D);
+
         log::debug!("Output: {out:?}");
-        let expected = test.step(n, start_row);
+        let expected = D(test.step(n, start_row));
         log::debug!("Expected: {expected:?}");
         log::info!(
             " End logic =============================================================================",
@@ -523,5 +533,153 @@ mod test {
             from_fn(|_| meta.advice_column()),
             from_fn(|_| meta.instance_column()),
         )
+    }
+
+    /// This struct implements a custom Debug that prints the expression as s-expressions for
+    /// easier visual debugging.
+    #[derive(PartialEq, Eq)]
+    struct D(((usize, Expression<F>), (usize, Expression<F>)));
+
+    impl std::fmt::Debug for D {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            let ((lhs_row, lhs), (rhs_row, rhs)) = &self.0;
+            writeln!(f, "lhs[{lhs_row}]:")?;
+            {
+                let mut p = Printer::new(f);
+                p.print_expr(lhs)?;
+            }
+            writeln!(f)?;
+            writeln!(f, "rhs[{rhs_row}]:")?;
+            {
+                let mut p = Printer::new(f);
+                p.print_expr(rhs)
+            }
+        }
+    }
+
+    struct Printer<'a, 'f> {
+        f: &'a mut std::fmt::Formatter<'f>,
+        indent: Indent,
+    }
+
+    impl<'a, 'f> Printer<'a, 'f> {
+        fn new(f: &'a mut std::fmt::Formatter<'f>) -> Self {
+            // Starts at one indetation level
+            Self {
+                f,
+                indent: Indent::new(),
+            }
+        }
+
+        fn print_expr(&mut self, expr: &Expression<F>) -> std::fmt::Result {
+            match expr {
+                Expression::Constant(f) => self.print_f(f),
+                Expression::Selector(selector) => {
+                    writeln!(self.f, "{}(selector {})", self.indent, selector.index())
+                }
+                Expression::Fixed(query) => writeln!(
+                    self.f,
+                    "{}(fixed {} {})",
+                    self.indent,
+                    query.column_index(),
+                    query.rotation().0
+                ),
+                Expression::Advice(query) => writeln!(
+                    self.f,
+                    "{}(advice {} {})",
+                    self.indent,
+                    query.column_index(),
+                    query.rotation().0
+                ),
+                Expression::Instance(query) => writeln!(
+                    self.f,
+                    "{}(instance {} {})",
+                    self.indent,
+                    query.column_index(),
+                    query.rotation().0
+                ),
+                Expression::Challenge(challenge) => {
+                    write!(self.f, "{}(challenge {})", self.indent, challenge.index())
+                }
+                Expression::Negated(expression) => {
+                    writeln!(self.f, "{}(-", self.indent)?;
+                    self.indent.push();
+                    self.print_expr(&expression)?;
+                    self.indent.pop();
+                    writeln!(self.f, "{})", self.indent)
+                }
+                Expression::Sum(lhs, rhs) => {
+                    writeln!(self.f, "{}(+", self.indent)?;
+                    self.indent.push();
+                    self.print_expr(&lhs)?;
+                    self.print_expr(&rhs)?;
+                    self.indent.pop();
+                    writeln!(self.f, "{})", self.indent)
+                }
+                Expression::Product(lhs, rhs) => {
+                    writeln!(self.f, "{}(*", self.indent)?;
+                    self.indent.push();
+                    self.print_expr(&lhs)?;
+                    self.print_expr(&rhs)?;
+                    self.indent.pop();
+                    writeln!(self.f, "{})", self.indent)
+                }
+                Expression::Scaled(lhs, rhs) => {
+                    writeln!(self.f, "{}(scaled/*", self.indent)?;
+                    self.indent.push();
+                    self.print_expr(&lhs)?;
+                    self.print_f(&rhs)?;
+                    self.indent.pop();
+                    writeln!(self.f, "{})", self.indent)
+                }
+            }
+        }
+
+        fn print_f(&mut self, f: &F) -> std::fmt::Result {
+            if *f == F::ZERO {
+                writeln!(self.f, "{}0", self.indent)
+            } else if *f == F::ONE {
+                writeln!(self.f, "{}1", self.indent)
+            } else if *f == -F::ONE {
+                writeln!(self.f, "{}-1", self.indent)
+            } else {
+                let s = format!("{f:?}");
+                if let Some(s) = clean_debug_repr(&s) {
+                    writeln!(self.f, "{}0x{s}", self.indent,)
+                } else {
+                    writeln!(self.f, "{}{s}", self.indent)
+                }
+            }
+        }
+    }
+
+    fn clean_debug_repr(s: &str) -> Option<&str> {
+        s.strip_prefix("Fq(0x")?.trim_start_matches('0').strip_suffix(')')
+    }
+    const INDENT: usize = 2;
+    struct Indent(String);
+
+    impl Indent {
+        fn new() -> Self {
+            Self(String::from_iter(std::iter::repeat_n(' ', INDENT)))
+        }
+
+        fn push(&mut self) {
+            for _ in 0..INDENT {
+                self.0.push(' ');
+            }
+        }
+
+        fn pop(&mut self) {
+            for _ in 0..INDENT {
+                self.0.pop();
+            }
+        }
+    }
+
+    impl std::fmt::Display for Indent {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "{}", self.0)
+        }
     }
 }

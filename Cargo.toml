@@ -19,8 +19,8 @@ license-file = "LICENSE"
 
 [workspace.dependencies]
 ff = "0.13"
-haloumi-ir = "0.2"
-haloumi-ir-base = "0.1"
+haloumi-ir = "^0.2"
+haloumi-ir-base = "^0.2"
 haloumi-core = "0.1"
 
 [workspace.dependencies.midnight-proofs]
