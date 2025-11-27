@@ -1,8 +1,16 @@
 pub mod arithmetic;
 pub mod assertion;
-pub mod utils {
+pub mod assignment;
 
+pub mod utils {
     //! Convenience functions for writing harness.
+
+    pub fn vec_len_err<const N: usize, T>(e: Vec<T>) -> midnight_proofs::plonk::Error {
+        midnight_proofs::plonk::Error::Synthesis(format!(
+            "Failed to convert vec of {} elements to array of {N} elements",
+            e.len()
+        ))
+    }
 
     use ff::PrimeField;
 

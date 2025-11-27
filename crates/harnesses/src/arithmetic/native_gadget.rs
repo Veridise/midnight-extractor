@@ -1,5 +1,5 @@
-use crate::arithmetic::vec_len_err;
 use crate::utils::range_lookup;
+use crate::utils::vec_len_err;
 use mdnt_extractor_core::entry;
 use mdnt_extractor_macros::harness;
 use midnight_circuits::{

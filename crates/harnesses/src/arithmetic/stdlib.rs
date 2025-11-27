@@ -1,4 +1,4 @@
-use crate::{arithmetic::vec_len_err, utils::range_lookup};
+use crate::{utils::range_lookup, utils::vec_len_err};
 use mdnt_extractor_core::entry;
 use mdnt_extractor_macros::harness_with_args;
 use midnight_circuits::{

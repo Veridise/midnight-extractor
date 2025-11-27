@@ -7,7 +7,7 @@ use midnight_circuits::{
 use mdnt_extractor_core::entry;
 use mdnt_extractor_core::fields::{Blstrs as F, Loaded as L};
 
-use crate::arithmetic::vec_len_err;
+use crate::utils::vec_len_err;
 
 entry!("arithmetic/add/native/native", add_native);
 #[harness]
