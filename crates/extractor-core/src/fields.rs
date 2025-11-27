@@ -2,7 +2,7 @@
 
 use std::marker::PhantomData;
 
-use ff::PrimeField as _;
+use ff::PrimeField;
 pub use midnight_curves::{
     Fp as MidnightFp, Fq as Blstrs, Fr as JubjubFr, G1Projective as G1, JubjubExtended as Jubjub,
     JubjubSubgroup,
@@ -24,7 +24,7 @@ use mdnt_support::{
         CellReprSize,
     },
     circuit::injected::InjectedIR,
-    fe_to_big,
+    fe_to_big, Halo2Types,
 };
 
 pub struct Zero<T>(PhantomData<T>);
@@ -51,6 +51,24 @@ impl<T> CellReprSize for Zero<T> {
 //zero_size_repr!(Secp256k1Fp);
 //zero_size_repr!(Secp256k1Fq);
 
+#[repr(transparent)]
+pub struct Loaded<F>(pub F);
+
+impl<F: PrimeField> CellReprSize for Loaded<F> {
+    const SIZE: usize = 0;
+}
+
+impl<C, L, F: PrimeField> LoadFromCells<Blstrs, C, ExtractionSupport, L> for Loaded<F> {
+    fn load(
+        ctx: &mut ICtx<Blstrs, ExtractionSupport>,
+        _chip: &C,
+        _layouter: &mut impl LayoutAdaptor<Blstrs, ExtractionSupport, Adaptee = L>,
+        _injected_ir: &mut InjectedIR<RegionIndex, Expression<Blstrs>>,
+    ) -> Result<Self, Error> {
+        Ok(Self(ctx.field_constant()?))
+    }
+}
+
 macro_rules! load_impl {
     ($t:ident) => {
         impl<C> CellReprSize for $t<C> {
@@ -69,36 +87,33 @@ macro_rules! load_impl {
     };
 }
 
-pub struct LoadedBlstrs<C>(pub(crate) Blstrs, PhantomData<C>);
-load_impl!(LoadedBlstrs);
+//pub struct LoadedBlstrs<C>(pub Blstrs, PhantomData<C>);
+//load_impl!(LoadedBlstrs);
 //pub struct LoadedJubjubExt<C>(Jubjub, PhantomData<C>);
 //load_impl!(LoadedJubjubExt);
-pub struct LoadedMidnightFp<C>(pub(crate) MidnightFp, PhantomData<C>);
-load_impl!(LoadedMidnightFp);
-pub struct LoadedSecp256k1Fp<C>(pub(crate) Secp256k1Fp, PhantomData<C>);
-load_impl!(LoadedSecp256k1Fp);
-pub struct LoadedSecp256k1Fq<C>(pub(crate) Secp256k1Fq, PhantomData<C>);
-load_impl!(LoadedSecp256k1Fq);
+//pub struct LoadedMidnightFp<C>(pub(crate) MidnightFp, PhantomData<C>);
+//load_impl!(LoadedMidnightFp);
+//pub struct LoadedSecp256k1Fp<C>(pub(crate) Secp256k1Fp, PhantomData<C>);
+//load_impl!(LoadedSecp256k1Fp);
+//pub struct LoadedSecp256k1Fq<C>(pub(crate) Secp256k1Fq, PhantomData<C>);
+//load_impl!(LoadedSecp256k1Fq);
 
-pub struct LoadedJubjubFr<C>(pub(crate) JubjubFr, PhantomData<C>);
-impl<C> CellReprSize for LoadedJubjubFr<C> {
-    const SIZE: usize = 0;
-}
-impl<C, L> LoadFromCells<Blstrs, C, ExtractionSupport, L> for LoadedJubjubFr<C> {
-    fn load(
-        ctx: &mut ICtx<Blstrs, ExtractionSupport>,
-        chip: &C,
-        layouter: &mut impl LayoutAdaptor<Blstrs, ExtractionSupport, Adaptee = L>,
-        injected_ir: &mut InjectedIR<RegionIndex, Expression<Blstrs>>,
-    ) -> Result<Self, Error> {
-        assert!(
-            Blstrs::NUM_BITS >= JubjubFr::NUM_BITS,
-            "Loading foreign fields larger than native currently not supported"
-        );
-        let f = LoadedBlstrs::load(ctx, chip, layouter, injected_ir)?;
-        Ok(Self(
-            big_to_fe::<JubjubFr>(fe_to_big(f.0)),
-            Default::default(),
-        ))
-    }
-}
+//pub struct LoadedJubjubFr<C>(pub(crate) JubjubFr, PhantomData<C>);
+//impl CellReprSize for Loaded<JubjubFr> {
+//    const SIZE: usize = 0;
+//}
+//impl<C, L> LoadFromCells<Blstrs, C, ExtractionSupport, L> for Loaded<JubjubFr> {
+//    fn load(
+//        ctx: &mut ICtx<Blstrs, ExtractionSupport>,
+//        chip: &C,
+//        layouter: &mut impl LayoutAdaptor<Blstrs, ExtractionSupport, Adaptee = L>,
+//        injected_ir: &mut InjectedIR<RegionIndex, Expression<Blstrs>>,
+//    ) -> Result<Self, Error> {
+//        assert!(
+//            Blstrs::NUM_BITS >= JubjubFr::NUM_BITS,
+//            "Loading foreign fields larger than native currently not supported"
+//        );
+//        let f = Loaded::<Blstrs>::load(ctx, chip, layouter, injected_ir)?;
+//        Ok(Self(big_to_fe::<JubjubFr>(fe_to_big(f.0))))
+//    }
+//}

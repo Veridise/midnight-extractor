@@ -415,7 +415,7 @@ dependencies = [
 [[package]]
 name = "halo2-llzk-frontend"
 version = "0.1.0"
-source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#1586b65aa01e958e9fc8d4baf5cf69a720ce731f"
+source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#dfe65ee894503110815a371af4aea0d5470d3462"
 dependencies = [
  "anyhow",
  "bit-set",
@@ -568,6 +568,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "inventory"
+version = "0.3.21"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc61209c082fbeb19919bee74b176221b27223e27b65d781eb91af24eb1fb46e"
+dependencies = [
+ "rustversion",
+]
+
+[[package]]
 name = "itertools"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -652,6 +661,7 @@ dependencies = [
  "haloumi-core",
  "haloumi-ir",
  "haloumi-ir-base",
+ "inventory",
  "log",
  "mdnt-extractor-macros",
  "mdnt-support 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -682,6 +692,25 @@ checksum = "03e704bfa829dddf7c2cd9faf1c126be3af58661f266b37949a9001620c9ea4a"
 [[package]]
 name = "mdnt-groups-support"
 version = "0.2.3"
+
+[[package]]
+name = "mdnt-harnesses"
+version = "0.2.3"
+dependencies = [
+ "anyhow",
+ "ff",
+ "halo2-llzk-frontend",
+ "haloumi-core",
+ "haloumi-ir",
+ "haloumi-ir-base",
+ "inventory",
+ "mdnt-extractor-core",
+ "mdnt-extractor-macros",
+ "mdnt-support 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "midnight-circuits",
+ "midnight-proofs",
+ "num-bigint",
+]
 
 [[package]]
 name = "mdnt-support"
@@ -907,7 +936,7 @@ checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 [[package]]
 name = "picus"
 version = "0.1.0"
-source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#1586b65aa01e958e9fc8d4baf5cf69a720ce731f"
+source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#dfe65ee894503110815a371af4aea0d5470d3462"
 dependencies = [
  "anyhow",
  "disjoint",

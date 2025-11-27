@@ -1,0 +1,26 @@
+[package]
+name = "mdnt-harnesses"
+description = "Harness definitions for all extraible instructions"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+readme = "README.md"
+repository.workspace = true
+license-file.workspace = true
+publish = false
+
+[dependencies]
+mdnt-extractor-core = { path = "../extractor-core"}
+mdnt-extractor-macros = { path = "../extractor-macros"}
+haloumi-ir.workspace =true
+haloumi-ir-base.workspace =true
+haloumi-core.workspace =true
+haloumi.workspace =true
+ff.workspace = true 
+midnight-proofs.workspace = true
+midnight-circuits.workspace = true
+mdnt-support = "0.2.3"
+anyhow = "1"
+inventory = "0.3"
+num-bigint = "0.4"

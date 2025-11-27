@@ -113,6 +113,7 @@ pub fn harness_impl(
                                     midnight_proofs::circuit::RegionIndex,
                                     midnight_proofs::plonk::Expression< #field_ty>>
                 ) -> std::result::Result<Self::Output, #err_ty>
+                where __L: midnight_proofs::circuit::Layouter<#field_ty>
                 {
                     #user_block
                 }

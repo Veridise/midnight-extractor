@@ -28,7 +28,7 @@ use num_bigint::BigUint;
 pub use crate::fields::{
     Blstrs, Jubjub, JubjubFr, JubjubSubgroup, MidnightFp, Secp256k1, Secp256k1Fp, Secp256k1Fq, G1,
 };
-use crate::fields::{LoadedBlstrs, LoadedMidnightFp, LoadedSecp256k1Fp, Zero};
+use crate::fields::{Loaded, Zero};
 pub use mdnt_support::cells::load::LoadFromCells;
 
 pub struct LoadedJubjub(Jubjub);
@@ -61,8 +61,8 @@ impl<Chip, L> LoadFromCells<Blstrs, Chip, ExtractionSupport, L> for LoadedJubjub
         layouter: &mut impl LayoutAdaptor<Blstrs, ExtractionSupport, Adaptee = L>,
         injected_ir: &mut InjectedIR<RegionIndex, Expression<Blstrs>>,
     ) -> Result<Self, Error> {
-        let x = LoadedBlstrs::load(ctx, chip, layouter, injected_ir)?.0;
-        let y = LoadedBlstrs::load(ctx, chip, layouter, injected_ir)?.0;
+        let x = Loaded::<Blstrs>::load(ctx, chip, layouter, injected_ir)?.0;
+        let y = Loaded::<Blstrs>::load(ctx, chip, layouter, injected_ir)?.0;
 
         Ok(Jubjub::from_xy(x, y).ok_or(PointNotInCurve(x, y)).map(LoadedJubjub)?)
     }
@@ -134,9 +134,9 @@ impl<Chip, L> LoadFromCells<Blstrs, Chip, ExtractionSupport, L> for LoadedG1 {
         layouter: &mut impl LayoutAdaptor<Blstrs, ExtractionSupport, Adaptee = L>,
         injected_ir: &mut InjectedIR<RegionIndex, Expression<Blstrs>>,
     ) -> Result<Self, Error> {
-        let x = LoadedMidnightFp::load(ctx, chip, layouter, injected_ir)?.0;
-        let y = LoadedMidnightFp::load(ctx, chip, layouter, injected_ir)?.0;
-        let z = LoadedMidnightFp::load(ctx, chip, layouter, injected_ir)?.0;
+        let x = Loaded::<MidnightFp>::load(ctx, chip, layouter, injected_ir)?.0;
+        let y = Loaded::<MidnightFp>::load(ctx, chip, layouter, injected_ir)?.0;
+        let z = Loaded::<MidnightFp>::load(ctx, chip, layouter, injected_ir)?.0;
 
         Ok(G1::new_jacobian(x, y, z)
             .into_option()
@@ -185,9 +185,9 @@ impl<Chip, L> LoadFromCells<Blstrs, Chip, ExtractionSupport, L> for LoadedSecp25
         layouter: &mut impl LayoutAdaptor<Blstrs, ExtractionSupport, Adaptee = L>,
         injected_ir: &mut InjectedIR<RegionIndex, Expression<Blstrs>>,
     ) -> Result<Self, Error> {
-        let x = LoadedSecp256k1Fp::load(ctx, chip, layouter, injected_ir)?.0;
-        let y = LoadedSecp256k1Fp::load(ctx, chip, layouter, injected_ir)?.0;
-        let z = LoadedSecp256k1Fp::load(ctx, chip, layouter, injected_ir)?.0;
+        let x = Loaded::<Secp256k1Fp>::load(ctx, chip, layouter, injected_ir)?.0;
+        let y = Loaded::<Secp256k1Fp>::load(ctx, chip, layouter, injected_ir)?.0;
+        let z = Loaded::<Secp256k1Fp>::load(ctx, chip, layouter, injected_ir)?.0;
 
         Ok(Secp256k1::new_jacobian(x, y, z)
             .into_option()
@@ -244,16 +244,16 @@ impl<S: CellReprSize> CellReprSize for Gt1<S> {
 }
 
 macro_rules! gt1_impl {
-    ($C:ident,$t:ty,$f:ty) => {
-        impl<$C, L> LoadFromCells<Blstrs, $C, ExtractionSupport, L> for Gt1<$t> {
+    ($f:ty) => {
+        impl<C, L> LoadFromCells<Blstrs, C, ExtractionSupport, L> for Gt1<Loaded<$f>> {
             fn load(
                 ctx: &mut ICtx<Blstrs, ExtractionSupport>,
-                chip: &$C,
+                chip: &C,
                 layouter: &mut impl LayoutAdaptor<Blstrs, ExtractionSupport, Adaptee = L>,
                 injected_ir: &mut InjectedIR<RegionIndex, Expression<Blstrs>>,
             ) -> Result<Self, Error> {
                 loop {
-                    let s = <$t>::load(ctx, chip, layouter, injected_ir)?;
+                    let s = Loaded::<$f>::load(ctx, chip, layouter, injected_ir)?;
                     if s.0 != <$f>::ZERO && s.0 != <$f>::ONE {
                         return Ok(Gt1(s));
                     }
@@ -263,9 +263,9 @@ macro_rules! gt1_impl {
     };
 }
 
-gt1_impl!(C, crate::fields::LoadedJubjubFr<C>, JubjubFr);
-gt1_impl!(C, crate::fields::LoadedBlstrs<C>, Blstrs);
-gt1_impl!(C, crate::fields::LoadedSecp256k1Fq<C>, Secp256k1Fq);
+gt1_impl!(JubjubFr);
+gt1_impl!(Blstrs);
+gt1_impl!(Secp256k1Fq);
 
 impl sealed::ZeroTraitSealed for u8 {}
 impl ZeroTrait for u8 {

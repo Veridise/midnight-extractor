@@ -43,7 +43,7 @@ impl HarnessCfg for WithArgsCfg {
     fn emit_chip_args_impl(
         &self,
         fn_ident: &Ident,
-        field_param: &Type,
+        _field_param: &Type,
         generics: &Generics,
         circuit_ty: &Ident,
     ) -> TokenStream {
@@ -51,7 +51,7 @@ impl HarnessCfg for WithArgsCfg {
         let args_fn = Ident::new(&format!("{}_args", fn_ident), fn_ident.span());
         let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
         quote! {
-            impl #impl_generics mdnt_support::circuit::ChipArgs<#field_param> for #circuit_ty #ty_generics #where_clause {
+            impl #impl_generics mdnt_support::circuit::ChipArgs for #circuit_ty #ty_generics #where_clause {
                 type Args = #args_type;
 
                 fn chip_args(&self) -> Self::Args {

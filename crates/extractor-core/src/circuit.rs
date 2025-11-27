@@ -536,7 +536,7 @@ where
     }
 }
 
-fn to_plonk_error<E>(error: E) -> Error
+pub fn to_plonk_error<E>(error: E) -> Error
 where
     E: Into<Box<dyn std::error::Error + Send + Sync>>,
 {

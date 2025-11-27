@@ -2,7 +2,7 @@
 members = [ 
   "crates/extractor-core", 
   "crates/extractor-macros", 
-  "crates/groups-support", 
+  "crates/groups-support", "crates/harnesses", 
   "crates/support",
   "crates/support-macros"
 ]

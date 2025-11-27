@@ -70,7 +70,7 @@ pub fn entry(attr: TokenStream, item: TokenStream) -> TokenStream {
     let name = parse_macro_input!(attr as syn::LitStr);
     let fname = &f.sig.ident;
     quote::quote! {
-        crate::harness::entry!(#name, #fname);
+        mdnt_extractor_core::entry!(#name, #fname);
         #f
     }
     .into()

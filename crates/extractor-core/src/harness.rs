@@ -97,3 +97,37 @@ impl<'s> Ctx<'s> {
 
 /// Output produced by a harness function.
 pub type Output = ResolvedIRCircuit;
+
+/// Type representing the harness logic.
+pub type Harness = fn(&Ctx) -> anyhow::Result<Output>;
+
+/// Entry in the harness table.
+#[derive(Copy, Clone, Debug)]
+pub struct Entry(&'static str, Harness);
+
+impl Entry {
+    /// Creates a new entry
+    pub const fn new(name: &'static str, harness: Harness) -> Self {
+        Self(name, harness)
+    }
+
+    /// Returns the name of the entry.
+    pub fn name(&self) -> &'static str {
+        self.0
+    }
+
+    /// Returns the harness function.
+    pub fn harness(&self) -> Harness {
+        self.1
+    }
+}
+
+inventory::collect!(Entry);
+
+/// Registers a harness in the registry.
+#[macro_export]
+macro_rules! entry {
+    ($name:literal, $harness:path) => {
+        inventory::submit!($crate::harness::Entry::new($name, $harness));
+    };
+}
