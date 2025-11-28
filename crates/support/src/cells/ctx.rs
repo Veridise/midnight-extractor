@@ -8,17 +8,11 @@ use std::{
 
 use ff::{Field, PrimeField};
 use mdnt_groups_support::DecomposeIn;
-//use midnight_proofs::{
-//    circuit::{AssignedCell, Layouter},
-//    plonk::{Advice, Any, Column, ColumnType, Instance},
-//};
 
 use crate::{
     cells::load::LoadFromCells, circuit::injected::InjectedIR, error::Error, parse_field,
     Halo2Types,
 };
-
-//#[cfg(feature = "proofs")]
 
 /// Adaptor trait that defines the required behavior from a Layouter.
 pub trait LayoutAdaptor<F: Field, Halo2: Halo2Types<F>> {

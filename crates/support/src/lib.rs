@@ -5,12 +5,7 @@
 #![deny(missing_docs)]
 
 use ff::{Field, PrimeField};
-//use ir::{stmt::IRStmt, CmpOp};
-//use midnight_proofs::{
-//    circuit::{AssignedCell, Cell, RegionIndex},
-//    plonk::Expression,
-//    poly::Rotation,
-//};
+
 use num_bigint::{BigInt, BigUint};
 use num_traits::{Num as _, Signed as _};
 
@@ -19,7 +14,6 @@ use crate::error::Error;
 pub mod cells;
 pub mod circuit;
 pub mod error;
-//pub mod fields;
 pub mod macros;
 
 pub use haloumi_ir as ir;
@@ -102,21 +96,3 @@ macro_rules! cell_to_expr {
             .map_err($crate::error::Error::from)
     }};
 }
-
-//fn cell_to_expr_inner<F: PrimeField>(c: Cell) -> Result<Expression<F>, Error> {
-//    Ok(c.column.query_cell::<F>(Rotation(c.row_offset.try_into()?)))
-//}
-
-///// Convenience method for creating a less-than constraint between a cell and a
-///// constant.
-//pub fn injectable_less_than<F: PrimeField>(
-//    cell: Cell,
-//    constant: F,
-//) -> Result<(RegionIndex, IRStmt<(usize, Expression<F>)>), Error> {
-//    let lhs = cell_to_expr_inner(cell)?;
-//    let rhs = Expression::Constant(constant);
-//    Ok((
-//        cell.region_index,
-//        IRStmt::constraint(CmpOp::Lt, (cell.row_offset, lhs), (cell.row_offset, rhs)),
-//    ))
-//}

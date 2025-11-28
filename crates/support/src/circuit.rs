@@ -1,9 +1,6 @@
 //! Traits for working at the circuit level.
 
-use ff::PrimeField;
-//use midnight_proofs::circuit::Layouter;
-
-use crate::{cells::CellReprSize, circuit::configuration::AutoConfigure};
+use crate::circuit::configuration::AutoConfigure;
 
 pub mod configuration;
 pub mod injected;

@@ -5,8 +5,6 @@ use std::{num::ParseIntError, str::ParseBoolError, sync::Arc};
 use num_bigint::{BigInt, ParseBigIntError, TryFromBigIntError};
 use thiserror::Error;
 
-//use crate::fields::{Blstrs, MidnightFp, Secp256k1Fp};
-
 /// Error type.
 #[derive(Error, Debug)]
 pub enum Error {
@@ -34,15 +32,6 @@ pub enum Error {
     /// An error represented with an static string.
     #[error("Error")]
     StrError(&'static str),
-    ///// Error when a constant point is not in the elliptic curve
-    //#[error("Point ({0}, {1}) is not in the curve")]
-    //PointNotInCurve(Blstrs, Blstrs),
-    ///// Error when a constant point is not in the elliptic curve (3D version)
-    //#[error("Point ({0}, {1}, {2}) is not in the curve")]
-    //Point3NotInCurve(MidnightFp, MidnightFp, MidnightFp),
-    ///// Error when a constant point is not in the elliptic curve (3D version)
-    //#[error("Point ({0:?}, {1:?}, {2:?}) is not in the curve")]
-    //Point3NotInCurveSecp256k1(Secp256k1Fp, Secp256k1Fp, Secp256k1Fp),
     /// Int cast error.
     #[error(transparent)]
     IntCast(#[from] std::num::TryFromIntError),

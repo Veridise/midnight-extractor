@@ -75,37 +75,46 @@ load_const!(u8);
 load_const!(usize);
 load_const!(BigUint);
 
-impl<F: Field, C, H: Halo2Types<F>, L> LoadFromCells<F, C, H, L> for () {
-    fn load(
-        _: &mut ICtx<F, H>,
-        _: &C,
-        _: &mut impl LayoutAdaptor<F, H, Adaptee = L>,
-        _: &mut InjectedIR<H::RegionIndex, H::Expression>,
-    ) -> Result<Self, H::Error> {
-        Ok(())
-    }
-}
-
 macro_rules! load_tuple {
-    ($($t:ident),+) => {
-        impl<F:Field, C, H:Halo2Types<F>,L, $( $t: LoadFromCells<F,C,H,L>, )+> LoadFromCells<F,C,H,L> for (
-                $( $t, )+
+    () => {
+        impl<F: Field, C, H: Halo2Types<F>, L> LoadFromCells<F, C, H, L> for () {
+            fn load(
+                _: &mut ICtx<F, H>,
+                _: &C,
+                _: &mut impl LayoutAdaptor<F, H, Adaptee = L>,
+                _: &mut InjectedIR<H::RegionIndex, H::Expression>,
+            ) -> Result<Self, H::Error> {
+                Ok(())
+            }
+        }
+    };
+
+    ($h:ident $(,$t:ident)* $(,)?) => {
+        load_tuple!($( $t, )*);
+
+        impl<F, C, H, L, $h, $( $t, )*> LoadFromCells<F, C, H, L> for (
+                $h, $( $t, )*
             )
+        where
+            F: Field,
+            H: Halo2Types<F>,
+            $h: LoadFromCells<F, C, H, L>,
+            $( $t: LoadFromCells<F, C, H, L>, )*
         {
             fn load(
-                ctx: &mut ICtx<F,H>,
+                ctx: &mut ICtx<F, H>,
                 chip: &C,
-                layouter: &mut impl LayoutAdaptor<F,H,Adaptee=L>,
+                layouter: &mut impl LayoutAdaptor<F, H, Adaptee=L>,
                 injected_ir: &mut InjectedIR<H::RegionIndex,H::Expression>,
             ) -> Result<Self, H::Error>
             {
-                Ok(($( $t::load(ctx, chip, layouter, injected_ir)?, )+))
+                Ok((
+                    $h::load(ctx, chip, layouter, injected_ir)?,
+                    $( $t::load(ctx, chip, layouter, injected_ir)?, )*
+                ))
             }
         }
     };
 }
 
-load_tuple!(A1, A2);
-load_tuple!(A1, A2, A3);
-load_tuple!(A1, A2, A3, A4);
-load_tuple!(A1, A2, A3, A4, A5);
+load_tuple!(A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12);

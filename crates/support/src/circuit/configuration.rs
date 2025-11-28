@@ -1,7 +1,5 @@
 //! Traits related to circuit configuration.
 
-//use midnight_proofs::plonk::{Advice, Column, ConstraintSystem, Fixed, Instance, TableColumn};
-
 /// Helper trait that enables composing types that can handle circuit
 /// configuration.
 pub trait AutoConfigure<CS, Output = Self> {
