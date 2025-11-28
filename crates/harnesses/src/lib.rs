@@ -1,6 +1,38 @@
 pub mod arithmetic;
 pub mod assertion;
 pub mod assignment;
+pub mod automaton;
+pub mod base64;
+pub mod base64var;
+pub mod biguint;
+pub mod binary;
+pub mod bitwise;
+pub mod canonicity;
+pub mod committed_instance;
+pub mod comparison;
+pub mod control_flow;
+pub mod conversion;
+pub mod core_decomposition;
+pub mod decomposition;
+pub mod division;
+pub mod ecc;
+pub mod equality;
+pub mod field;
+pub mod foreign_ecc;
+pub mod hash;
+pub mod hash_to_curve;
+pub mod map;
+pub mod map_to_curve;
+pub mod parser;
+pub mod pow2range;
+pub mod public_input;
+pub mod range_check;
+pub mod sponge;
+pub mod stdlib;
+pub mod unsafe_conversion;
+pub mod varhash;
+pub mod vector;
+pub mod zero;
 
 pub mod utils {
     //! Convenience functions for writing harness.
@@ -10,6 +42,12 @@ pub mod utils {
             "Failed to convert vec of {} elements to array of {N} elements",
             e.len()
         ))
+    }
+
+    pub fn vec2array<T, const N: usize>(
+        v: Vec<T>,
+    ) -> Result<[T; N], midnight_proofs::plonk::Error> {
+        v.try_into().map_err(vec_len_err::<N, T>)
     }
 
     use ff::PrimeField;

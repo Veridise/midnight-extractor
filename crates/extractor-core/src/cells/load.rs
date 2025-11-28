@@ -239,6 +239,12 @@ impl<S: Eq> PartialEq<S> for Gt1<S> {
     }
 }
 
+impl<S: Eq> PartialEq<S> for Gt1<Loaded<S>> {
+    fn eq(&self, other: &S) -> bool {
+        self.0 .0 == *other
+    }
+}
+
 impl<S: CellReprSize> CellReprSize for Gt1<S> {
     const SIZE: usize = S::SIZE;
 }

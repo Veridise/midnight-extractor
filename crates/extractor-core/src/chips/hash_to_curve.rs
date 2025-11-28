@@ -14,17 +14,45 @@ use midnight_circuits::{
     },
     types::{AssignedNativePoint, InnerValue},
 };
+use midnight_proofs::plonk::ConstraintSystem;
 
-use crate::{
-    chips::adaptor::{EmptyAdaptor, HarnessAdaptor},
-    chips::Htc,
-};
+use crate::{chips::adaptor::HarnessAdaptor, chips::Htc};
 
 pub type HtcAdaptor<C> = HarnessAdaptor<
     Htc<C>,
     //EmptyAdaptor<<Htc<C> as CircuitInitialization<<C as CircuitCurve>::Base>>::ConfigCols>,
     (),
 >;
+
+impl<C, L> CircuitInitialization<L> for HtcAdaptor<C>
+where
+    L: Layouter<C::Base>,
+    C: EdwardsCurve + MapToEdwardsParams<C::Base> + MapToCurveCPU<C>,
+    C::Base: PoseidonField,
+{
+    type Config = <Htc<C> as CircuitInitialization<L>>::Config;
+
+    type Args = <Htc<C> as CircuitInitialization<L>>::Args;
+
+    type ConfigCols = <Htc<C> as CircuitInitialization<L>>::ConfigCols;
+    type CS = ConstraintSystem<C::Base>;
+    type Error = Error;
+
+    fn new_chip(config: &Self::Config, args: Self::Args) -> Self {
+        <Htc<C> as CircuitInitialization<L>>::new_chip(config, args).into()
+    }
+
+    fn configure_circuit(
+        meta: &mut ConstraintSystem<C::Base>,
+        columns: &Self::ConfigCols,
+    ) -> Self::Config {
+        <Htc<C> as CircuitInitialization<L>>::configure_circuit(meta, columns)
+    }
+
+    fn load_chip(&self, layouter: &mut L, config: &Self::Config) -> Result<(), Self::Error> {
+        self.adaptee.load_chip(layouter, config)
+    }
+}
 
 impl<F, C> HtcAdaptor<C>
 where

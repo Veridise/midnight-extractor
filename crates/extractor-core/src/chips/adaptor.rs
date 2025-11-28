@@ -1,12 +1,6 @@
-use std::{
-    fmt::Debug,
-    marker::PhantomData,
-    ops::{Add, Neg},
-};
-
-use ff::PrimeField;
+use ff::{Field, PrimeField};
 use mdnt_extractor_macros::delegated;
-use mdnt_support::circuit::{configuration::AutoConfigure, CircuitInitialization};
+use mdnt_support::circuit::CircuitInitialization;
 use midnight_circuits::{
     instructions::{
         ArithInstructions, AssertionInstructions, AssignmentInstructions, CanonicityInstructions,
@@ -17,9 +11,12 @@ use midnight_circuits::{
 };
 use midnight_proofs::{
     circuit::{Layouter, Value},
-    plonk::{ConstraintSystem, Error},
+    plonk::Error,
 };
 use num_bigint::BigUint;
+use std::fmt::Debug;
+use std::ops::Add;
+use std::ops::Neg;
 
 /// Adaptor wrapper for using chips in harnesses that require certain instruction implementations
 /// that are not implemented by the adapted chip.
@@ -37,46 +34,31 @@ pub struct HarnessAdaptor<A, S> {
     support: S,
 }
 
-impl<F: PrimeField, A, S, L> CircuitInitialization<L> for HarnessAdaptor<A, S>
-where
-    A: CircuitInitialization<L, CS = ConstraintSystem<F>, Error = Error>,
-    S: CircuitInitialization<
-        L,
-        Args = (),
-        ConfigCols = A::ConfigCols,
-        CS = ConstraintSystem<F>,
-        Error = Error,
-    >,
-    L: Layouter<F>,
-{
-    type Config = (A::Config, S::Config);
+impl<A, S> HarnessAdaptor<A, S> {
+    pub fn new(adaptee: A, support: S) -> Self {
+        Self { adaptee, support }
+    }
 
-    type Args = A::Args;
+    pub fn load_support_chip<F, L>(
+        &self,
+        layouter: &mut L,
+        config: &S::Config,
+    ) -> Result<(), S::Error>
+    where
+        S: CircuitInitialization<L>,
+        L: Layouter<F>,
+        F: Field,
+    {
+        self.support.load_chip(layouter, config)
+    }
+}
 
-    type ConfigCols = A::ConfigCols;
-    type CS = ConstraintSystem<F>;
-    type Error = Error;
-
-    fn new_chip((a, s): &Self::Config, args: Self::Args) -> Self {
+impl<A, S: Default> From<A> for HarnessAdaptor<A, S> {
+    fn from(adaptee: A) -> Self {
         Self {
-            adaptee: A::new_chip(a, args),
-            support: S::new_chip(s, ()),
+            adaptee,
+            support: Default::default(),
         }
-    }
-
-    fn configure_circuit(
-        meta: &mut ConstraintSystem<F>,
-        columns: &Self::ConfigCols,
-    ) -> Self::Config {
-        (
-            A::configure_circuit(meta, columns),
-            S::configure_circuit(meta, columns),
-        )
-    }
-
-    fn load_chip(&self, layouter: &mut L, (a, s): &Self::Config) -> Result<(), Error> {
-        self.adaptee.load_chip(layouter, a)?;
-        self.support.load_chip(layouter, s)
     }
 }
 
@@ -683,34 +665,3 @@ equality!(AssignedNative<F>);
 field!(AssignedNative<F>);
 public_input!(AssignedNative<F>);
 zero!(AssignedNative<F>);
-
-/// Empty chip that does nothing.
-///
-/// Accepts a cols type parameter for satisfying the [`HarnessAdaptor`] requirement that both
-/// adaptee and support need to have the same `ConfigCols` type.
-pub struct EmptyAdaptor<F, Cols>(PhantomData<(F, Cols)>);
-
-impl<F, Cols, L> CircuitInitialization<L> for EmptyAdaptor<F, Cols>
-where
-    F: PrimeField,
-    Cols: Clone + std::fmt::Debug + AutoConfigure<ConstraintSystem<F>>,
-    L: Layouter<F>,
-{
-    type Config = ();
-
-    type Args = ();
-
-    type ConfigCols = Cols;
-    type CS = ConstraintSystem<F>;
-    type Error = Error;
-
-    fn new_chip(_: &Self::Config, _: Self::Args) -> Self {
-        Self(Default::default())
-    }
-
-    fn configure_circuit(_: &mut ConstraintSystem<F>, _: &Self::ConfigCols) -> Self::Config {}
-
-    fn load_chip(&self, _: &mut L, _: &Self::Config) -> Result<(), Error> {
-        Ok(())
-    }
-}

@@ -1,3 +1,4 @@
+use mdnt_support::circuit::CircuitInitialization;
 use midnight_circuits::{
     ecc::{
         curves::{CircuitCurve, EdwardsCurve},
@@ -14,10 +15,54 @@ use midnight_circuits::{
     },
     types::{AssignedBit, AssignedNative, AssignedNativePoint, InnerValue},
 };
+use midnight_proofs::plonk::ConstraintSystem;
 
 use crate::chips::{adaptor::HarnessAdaptor, NG};
 
 pub type EccChipAdaptor<C> = HarnessAdaptor<EccChip<C>, NG<<C as CircuitCurve>::Base>>;
+
+macro_rules! ecc {
+    ($C:ty,$L:ty,$($body:tt)*) => {
+        <EccChip<$C> as CircuitInitialization<$L>>::$($body)*
+    };
+}
+
+macro_rules! ng {
+    ($C:ty,$L:ty,$($body:tt)*) => {
+        <NG<<$C as CircuitCurve>::Base> as CircuitInitialization<$L>>::$($body)*
+    };
+}
+
+impl<C: EdwardsCurve, L> CircuitInitialization<L> for EccChipAdaptor<C>
+where
+    L: Layouter<C::Base>,
+{
+    type Config = (ecc!(C, L, Config), ng!(C, L, Config));
+
+    type Args = ecc!(C, L, Args);
+
+    type ConfigCols = (ecc!(C, L, ConfigCols), ng!(C, L, ConfigCols));
+
+    type CS = ConstraintSystem<C::Base>;
+
+    type Error = Error;
+
+    fn new_chip((ecc, ng): &Self::Config, args: Self::Args) -> Self {
+        Self::new(ecc!(C, L, new_chip(ecc, args)), ng!(C, L, new_chip(ng, ())))
+    }
+
+    fn configure_circuit(meta: &mut Self::CS, (ecc, ng): &Self::ConfigCols) -> Self::Config {
+        (
+            ecc!(C, L, configure_circuit(meta, ecc)),
+            ng!(C, L, configure_circuit(meta, ng)),
+        )
+    }
+
+    fn load_chip(&self, layouter: &mut L, (ecc, ng): &Self::Config) -> Result<(), Self::Error> {
+        self.adaptee.load_chip(layouter, ecc)?;
+        self.load_support_chip(layouter, ng)
+    }
+}
 
 impl<C: EdwardsCurve> EccChipAdaptor<C> {
     pub fn ecc(&self) -> &EccChip<C> {
