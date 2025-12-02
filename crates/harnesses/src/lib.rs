@@ -1,3 +1,5 @@
+use mdnt_extractor_core::harness::Entry;
+
 pub mod arithmetic;
 pub mod assertion;
 pub mod assignment;
@@ -33,6 +35,10 @@ pub mod unsafe_conversion;
 pub mod varhash;
 pub mod vector;
 pub mod zero;
+
+pub fn harnesses() -> impl Iterator<Item = &'static Entry> {
+    inventory::iter::<Entry>()
+}
 
 pub mod utils {
     //! Convenience functions for writing harness.

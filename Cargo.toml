@@ -1,5 +1,5 @@
 [workspace]
-members = [ 
+members = [ "crates/extractor", 
   "crates/extractor-core", 
   "crates/extractor-macros", 
   "crates/groups-support", "crates/harnesses", 
@@ -22,6 +22,9 @@ ff = "0.13"
 haloumi-ir = "^0.2"
 haloumi-ir-base = "^0.2"
 haloumi-core = "0.1"
+inventory = "0.3"
+anyhow = "1"
+mdnt-support = "0.2.4"
 
 [workspace.dependencies.midnight-proofs]
 # Commented out until https://github.com/midnightntwrk/midnight-zk/pull/137 merges.
