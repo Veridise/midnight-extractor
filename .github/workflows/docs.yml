@@ -17,7 +17,7 @@ jobs:
       - name: Install mdbook
         run: cargo +1.88 install mdbook 
       - name: Build site
-        run: mdbook build -d ../public docs
+        run: mdbook build -d ./public docs
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v4
         with:
