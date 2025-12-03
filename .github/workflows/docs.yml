@@ -1,0 +1,26 @@
+name: Github Pages Docs
+
+on:
+  push:
+    branches: 
+      - main
+
+jobs:
+  gh-pages:
+    name: Upload user manual to GH Pages
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: 'Install rust-toolchain.toml'
+        run: rustup toolchain install
+      - name: Install mdbook
+        run: cargo install mdbook 
+      - name: Build site
+        run: mdbook build -d ../public docs
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
+
