@@ -12,8 +12,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: 'Install rust-toolchain.toml'
-        run: rustup toolchain install
       - name: Install mdbook
         run: cargo install mdbook 
       - name: Build site
