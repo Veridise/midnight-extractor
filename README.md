@@ -14,6 +14,6 @@ The `crates` directory contains the different crates that make up the tool:
 - `crates/extractor-core`: Core types shared across modules in the extractor.
 - `crates/harnesses`: All the harnesses created as entry points for extraction.
 
-The `docs` directory contains the user manual of the tool, describing how to run the tool, and how to add new harnesses and maintain existing ones.
+The `docs` directory contains the user manual of the tool, describing how to run the tool, and how to add new harnesses and maintain existing ones. A live version of the docs can be found [here](https://veridise.github.io/midnight-extractor). 
 
 If any directory mentioned here is missing then that component has not been released yet.
