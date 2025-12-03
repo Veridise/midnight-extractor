@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
-use crate::utils::range_lookup;
+use crate::utils::{range_lookup, vec_len_err};
 use haloumi_ir::{cmp::CmpOp, expr::IRBexpr, stmt::IRStmt};
 use mdnt_extractor_core::circuit::to_plonk_error;
+use mdnt_extractor_core::fields::Loaded as L;
 use mdnt_extractor_core::{
     cells::store::FreshVar,
     chips::{AF, FC},
@@ -225,4 +226,27 @@ pub fn sub_foreign(
     (x, y): (AF<F, K>, AF<F, K>),
 ) -> Result<AF<F, K>, Error> {
     chip.sub(layouter, &x, &y)
+}
+
+entry!(
+    "arithmetic/add_constants_1/field/field",
+    add_constants_foreign::<1>
+);
+entry!(
+    "arithmetic/add_constants_2/field/field",
+    add_constants_foreign::<2>
+);
+entry!(
+    "arithmetic/add_constants_5/field/field",
+    add_constants_foreign::<5>
+);
+#[harness]
+pub fn add_constants_foreign<const N: usize>(
+    chip: &FC<F, K>,
+    layouter: &mut impl Layouter<F>,
+    (xs, cs): ([AF<F, K>; N], [L<K>; N]),
+) -> Result<[AF<F, K>; N], Error> {
+    chip.add_constants(layouter, &xs, &cs.map(|f| f.0))?
+        .try_into()
+        .map_err(vec_len_err::<N, _>)
 }

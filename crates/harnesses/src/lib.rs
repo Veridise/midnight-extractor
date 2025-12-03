@@ -62,7 +62,6 @@ pub mod utils {
         automaton::AutomatonLookup, ignore::IgnoreLookup, mux::LookupMux,
         plain_spread::PlainSpreadLookup, range::TagRangeLookup,
     };
-    use midnight_circuits::parsing::{automaton_chip::NativeAutomaton, spec_library};
 
     /// Returns a lookup callback that treats the lookup as a range check.
     pub fn range_lookup<F: PrimeField>(size: usize) -> TagRangeLookup<F, 1, 1> {
@@ -73,19 +72,8 @@ pub mod utils {
     }
 
     /// Returns an automaton lookup using the midnight parsing library.
-    pub fn automaton<F: PrimeField + Ord>() -> AutomatonLookup<F> {
-        let automata = spec_library();
-        // The offset needs to start from 1 and not 0, to ensure that no automata will
-        // use the state 0 (required by the automaton chip for soundness, since
-        // 0 is used as a dummy state to encode some checks as fake
-        // transitions).
-        let mut offset = 1;
-        let offset_automata = (automata.iter()).map(|(name, automaton)| {
-            let na: NativeAutomaton<F> = automaton.offset_states(offset).into();
-            offset += automaton.nb_states;
-            (*name, na)
-        });
-        AutomatonLookup::new(offset_automata, 8)
+    pub fn automaton(automaton_module: &'static str, bitsize: u64) -> AutomatonLookup {
+        AutomatonLookup::new(automaton_module, bitsize)
     }
 
     /// Returns a lookup callback that treats the lookup as a range check of specific bit lengths

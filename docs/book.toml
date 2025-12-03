@@ -1,0 +1,5 @@
+[book]
+authors = ["Daniel Dominguez"]
+language = "en"
+src = "src"
+title = "Midnight extractor user manual"
