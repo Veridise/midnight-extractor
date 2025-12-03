@@ -157,8 +157,8 @@ pub fn unit_harness_impl(f: UnitHarnessFn, cfg: impl HarnessCfg) -> syn::Result<
         where_clause,
         &circuit_ty,
         chip_ty,
-        input_ty,
-        &output_ty.to_token_stream(),
+        &syn::parse2(quote! { (#input_ty, #output_ty) })?,
+        &quote! { mdnt_extractor_core::cells::store::FreshVar },
         field_ty,
         f.extra_lifetimes(),
     );
@@ -173,23 +173,25 @@ pub fn unit_harness_impl(f: UnitHarnessFn, cfg: impl HarnessCfg) -> syn::Result<
 
             #circuit_io
 
-            impl #impl_generics mdnt_extractor_core::circuit::AbstractUnitCircuit<#field_ty> for #circuit_ty #ty_generics #where_clause {
+            impl #impl_generics mdnt_extractor_core::circuit::AbstractCircuit<#field_ty> for #circuit_ty #ty_generics #where_clause {
                 fn synthesize<__L>(&self,
                     #chip_pat : &Self::Chip,
                     #layouter_pat : &mut __L,
-                    #input_pat : Self::Input,
-                    #output_pat : Self::Output,
+                    (#input_pat, #output_pat) : Self::Input,
                     #injected_ir: &mut mdnt_support::circuit::injected::InjectedIR<
                                     midnight_proofs::circuit::RegionIndex,
                                     midnight_proofs::plonk::Expression< #field_ty>>
-                ) -> std::result::Result<(), midnight_proofs::plonk::Error>
+                ) -> std::result::Result<Self::Output, midnight_proofs::plonk::Error>
                 where __L: midnight_proofs::circuit::Layouter<#field_ty>{
-                    #user_block
+                    {
+                        #user_block
+                    }?;
+                    Ok(mdnt_extractor_core::cells::store::FreshVar)
                 }
             }
             #chip_args
 
-            let circuit = mdnt_extractor_core::circuit::CircuitImpl::<#field_ty, #circuit_ty #ty_generics, mdnt_extractor_core::circuit::Procedure>::new(ctx, #circuit_ty(Default::default()));
+            let circuit = mdnt_extractor_core::circuit::CircuitImpl::<#field_ty, #circuit_ty #ty_generics, mdnt_extractor_core::circuit::Function>::new(ctx, #circuit_ty(Default::default()));
             ctx.lower_circuit(circuit, #aux_tokens)
         }
     })

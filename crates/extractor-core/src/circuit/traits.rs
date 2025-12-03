@@ -12,12 +12,7 @@ use midnight_proofs::{
     plonk::{Column, Error, Instance},
 };
 
-use mdnt_support::{
-    cells::{load::LoadFromCells, store::StoreIntoCells},
-    circuit::injected::InjectedIR,
-};
-
-use mdnt_support::circuit::{ChipArgs, CircuitInitialization, NoChipArgs};
+use mdnt_support::circuit::injected::InjectedIR;
 
 /// Super trait for extracting IO from an abstract circuit.
 pub trait AbstractCircuitIO {

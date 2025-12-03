@@ -39,20 +39,22 @@ impl AppError {
 impl fmt::Display for AppError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.kind {
-            AppErrorKind::HarnessFailed => write!(f, "Harness {} failed: {}", self.name, self.err),
+            AppErrorKind::HarnessFailed => {
+                write!(f, "Harness {} failed: {:?}", self.name, self.err)
+            }
             AppErrorKind::OptFailed => write!(
                 f,
-                "IR optimization pass failed for harness {}: {}",
+                "IR optimization pass failed for harness {}: {:?}",
                 self.name, self.err
             ),
             AppErrorKind::IRDumpFailed => write!(
                 f,
-                "Failed to write IR dump of harness {}: {}",
+                "Failed to write IR dump of harness {}: {:?}",
                 self.name, self.err
             ),
             AppErrorKind::PicusWriteFailed => write!(
                 f,
-                "Failed to write Picus result of harness {}: {}",
+                "Failed to write Picus result of harness {}: {:?}",
                 self.name, self.err
             ),
         }

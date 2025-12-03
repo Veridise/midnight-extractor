@@ -26,7 +26,6 @@ impl<'a, F: PrimeField> LookupMux<'a, F> {
         self
     }
 
-    #[allow(dead_code)]
     pub fn fallback(mut self, handler: impl LookupCallbacks<F, Expression<F>> + 'a) -> Self {
         self.fallback = Some(Box::new(handler));
         self

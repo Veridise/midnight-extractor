@@ -594,7 +594,7 @@ dependencies = [
 [[package]]
 name = "halo2-llzk-frontend"
 version = "0.1.0"
-source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#dfe65ee894503110815a371af4aea0d5470d3462"
+source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#e17d2c9a8f70e171e4ec750f26489c2e03d1589e"
 dependencies = [
  "anyhow",
  "bit-set",
@@ -665,9 +665,9 @@ dependencies = [
 
 [[package]]
 name = "haloumi-ir"
-version = "0.2.1"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "07e879fa5c2455db24ee42d65903a94fe0edc8adfcbd919d201c306466e1a8e3"
+checksum = "360606c01dfab7e7dcc3d741d4416aa9566eba85d8319ec48bf08380c7c58f17"
 dependencies = [
  "eqv",
  "ff",
@@ -953,9 +953,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.177"
+version = "0.2.178"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2874a2af47a2325c2001a6e6fad9b16a53b802102b528163885171cf92b15976"
+checksum = "37c93d8daa9d8a012fd8ab92f088405fb202ea0b6ab73ee2482ae66af4f42091"
 
 [[package]]
 name = "litemap"
@@ -965,9 +965,9 @@ checksum = "6373607a59f0be73a39b6fe456b8192fcc3585f602af20751600e974dd455e77"
 
 [[package]]
 name = "log"
-version = "0.4.28"
+version = "0.4.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34080505efa8e45a4b816c349525ebe327ceaa8559756f0356cba97ef3bf7432"
+checksum = "5e5032e24019045c762d3c0f28f5b6b8bbf38563a65908389bf7978758920897"
 
 [[package]]
 name = "macro_expand"
@@ -1146,7 +1146,7 @@ checksum = "f52b00d39961fc5b2736ea853c9cc86238e165017a493d1d5c8eac6bdc4cc273"
 [[package]]
 name = "midnight-circuits"
 version = "5.0.1"
-source = "git+https://github.com/Veridise/midnight-zk#d03b52ca02b75323a1edf27e1cabc1d7f52574f8"
+source = "git+https://github.com/Veridise/midnight-zk#0d63a4d4f7b19f01a45a5332409571540e17eec5"
 dependencies = [
  "base64",
  "bincode",
@@ -1172,7 +1172,7 @@ dependencies = [
 [[package]]
 name = "midnight-curves"
 version = "0.1.1"
-source = "git+https://github.com/Veridise/midnight-zk#d03b52ca02b75323a1edf27e1cabc1d7f52574f8"
+source = "git+https://github.com/Veridise/midnight-zk#0d63a4d4f7b19f01a45a5332409571540e17eec5"
 dependencies = [
  "bitvec",
  "blst",
@@ -1191,7 +1191,7 @@ dependencies = [
 [[package]]
 name = "midnight-proofs"
 version = "0.5.1"
-source = "git+https://github.com/Veridise/midnight-zk#d03b52ca02b75323a1edf27e1cabc1d7f52574f8"
+source = "git+https://github.com/Veridise/midnight-zk#0d63a4d4f7b19f01a45a5332409571540e17eec5"
 dependencies = [
  "blake2b_simd",
  "ff",
@@ -1325,7 +1325,7 @@ checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 [[package]]
 name = "picus"
 version = "0.1.0"
-source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#dfe65ee894503110815a371af4aea0d5470d3462"
+source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#e17d2c9a8f70e171e4ec750f26489c2e03d1589e"
 dependencies = [
  "anyhow",
  "disjoint",
@@ -2303,18 +2303,18 @@ dependencies = [
 
 [[package]]
 name = "zerocopy"
-version = "0.8.30"
+version = "0.8.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ea879c944afe8a2b25fef16bb4ba234f47c694565e97383b36f3a878219065c"
+checksum = "fd74ec98b9250adb3ca554bdde269adf631549f51d8a8f8f0a10b50f1cb298c3"
 dependencies = [
  "zerocopy-derive",
 ]
 
 [[package]]
 name = "zerocopy-derive"
-version = "0.8.30"
+version = "0.8.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf955aa904d6040f70dc8e9384444cb1030aed272ba3cb09bbc4ab9e7c1f34f5"
+checksum = "d8a8d209fdf45cf5138cbb5a506f6b52522a25afccc534d1475dad8e31105c6a"
 dependencies = [
  "proc-macro2",
  "quote",

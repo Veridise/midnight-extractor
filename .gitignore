@@ -4,6 +4,7 @@
 *.picus
 *.rir
 *.txt
+!requirements.txt
 findings.json
 compile_commands.json
 picus_files.zip

@@ -41,7 +41,7 @@ impl<'s> Ctx<'s> {
         lookups: Option<&dyn LookupCallbacks<F, Expression<F>>>,
     ) -> anyhow::Result<ResolvedIRCircuit>
     where
-        F: PrimeField,
+        F: PrimeField + Ord,
         C: AbstractCircuitIO + ChipArgs,
         CircuitImpl<'c, F, C, M>: CircuitSynthesis<F, CS = CS>, //<CircuitImpl<'c, F, C, M> as Circuit<F>>::Config: AbstractCircuitConfig,
         CS: ConstraintSystemInfo<F, Polynomial = Expression<F>>,

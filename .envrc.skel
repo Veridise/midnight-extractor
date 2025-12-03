@@ -1,0 +1,16 @@
+layout python3
+
+pip install -r requirements.txt
+
+# Generate the API keys in AuditHub's web UI and then copy the configuration here
+export AUDITHUB_BASE_URL=""
+export AUDITHUB_OIDC_CONFIGURATION_URL=""
+export AUDITHUB_OIDC_CLIENT_ID=""
+export AUDITHUB_OIDC_CLIENT_SECRET=""
+
+# Example LLZK config for a LLVM installation managed with homebrew (brew install llvm@20)
+export MLIR_SYS_200_PREFIX=/opt/homebrew/opt/llvm@20/
+export TABLEGEN_200_PREFIX=/opt/homebrew/opt/llvm@20/
+export CXX=clang++
+export CC=clang
+export RUSTFLAGS='-L /opt/homebrew/lib/'
