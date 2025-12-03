@@ -103,43 +103,42 @@ If the macros shown above don't fit the needs of this new harness they can still
 version of the kind of code the macros generate that can serve as a starting point for creating a harness from scratch.
  
 ```rust
-use mdnt_extractor_core::{
-    entry,
-    fields::Blstrs as F,
-    harness::{Ctx, Output}
-};
-use mdnt_support::circuit::{
-    CircuitInitialization,
-    injected::InjectedIR
-};
-use midnight_proofs::{
-    circuit::{RegionIndex, Layouter},
-    plonk::Expression
-};
-
 entry!("control-flow/select/native-gadget/native", select_native);
 fn select_native(ctx: &Ctx) -> anyhow::Result<Output> {
+    // The actual logic of the harness needs to be wrapped into a trait.
+    // So we need to create a type for that.
     struct Circuit<'s, 'c>(PhantomData<(&'s (), &'c ())>);
 
+    // This trait defines the types that the harness uses. 
+    // The extractor will rely on this trait for finding the right types for 
+    // creating the right final circuit.
     impl<'s, 'c> AbstractCircuitIO for Circuit<'s, 'c> {
-        type Chip = FakeChip;
+        // The chip type. It must implement CircuitInitialization but is not enforced.
+        type Chip = NativeChip<F>;
 
-        type Input = AssignedNative<F>;
+        // The type of the inputs. Must implement `LoadFromCells` and if the method takes several 
+        // they can be grouped in tuples up to 12 elements.
+        type Input = (AssignedBit<F>, AssignedNative<F>, AssignedNative<F>);
 
+        // The type of the outputs. Same as the inputs but must implement the 
+        // `StoreIntoCells` trait instead.
         type Output = AssignedNative<F>;
 
-        type Config = <FakeChip as CircuitInitialization<ExtractionLayouter<'s, 'c, F>>>::Config;
+        // These two types need to be the same as their namesakes in CircuitInitialization.
+        type Config = <NativeChip<F> as CircuitInitialization<ExtractionLayouter<'s, 'c, F>>>::Config;
 
         type ConfigCols =
-            <FakeChip as CircuitInitialization<ExtractionLayouter<'s, 'c, F>>>::ConfigCols;
+            <NativeChip<F> as CircuitInitialization<ExtractionLayouter<'s, 'c, F>>>::ConfigCols;
     }
 
+    // The actual logic is defined with this trait.
+    // `harness_mut` will use `AbstractCircuitMut`
     impl AbstractCircuit<F> for Circuit<'_, '_> {
         fn synthesize<L>(
             &self,
             chip: &Self::Chip,
             layouter: &mut L,
-            input: Self::Input,
+            (cond, a, b): Self::Input,
             _: &mut InjectedIR<
                 RegionIndex,
                 Expression<F>,
@@ -148,15 +147,25 @@ fn select_native(ctx: &Ctx) -> anyhow::Result<Output> {
         where
             L: Layouter<F>,
         {
-            Ok(input)
+            chip.select(layouter, &cond, &a, &b)
         }
     }
 
+    // If the chip arguments is () then this trait can be used.
     impl NoChipArgs for Circuit<'_, '_> {}
 
-    let ctx = Ctx::new(&[], false, false);
+    // The type we created and implemented the types for can be passed to this 
+    // type. This type handles the linking between the inputs, outputs, and the harness logic.
     let ci: CircuitImpl<'_, F, Circuit, Function> =
-        CircuitImpl::new(&ctx, Circuit(Default::default()));
+        CircuitImpl::new(ctx, Circuit(Default::default()));
+    // The first argument of this method is a type that implements the  
+    // CircuitSynthesis trait, which is Haloumi's counterpart to the Circuit trait in Halo2.
+    // As long as the value passed there meets the interface all the stuff above this line is not 
+    // mandatory.
+    // The second argument is an optional dyn reference to a LookupCallbacks implementation.
+    // These callbacks are invoked when the circuit has lookups for getting the IR that needs to be 
+    // generated for handling the lookup.
+    ctx.lower_circuit(ci, None)
 }
 
 ```
