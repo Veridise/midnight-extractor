@@ -30,7 +30,7 @@ pub trait Halo2Types<F: Field> {
     /// Type for a cell.
     type Cell: std::fmt::Debug + Copy + Clone;
     /// Type for an assigned cell.
-    type AssignedCell;
+    type AssignedCell<V>;
     /// Region type.
     type Region<'a>;
     /// Error type.
