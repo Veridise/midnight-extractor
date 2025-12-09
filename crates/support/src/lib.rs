@@ -39,6 +39,8 @@ pub trait Halo2Types<F: Field> {
     type RegionIndex: std::hash::Hash + Copy + Eq;
     /// Expression type
     type Expression;
+    /// Associated type for Rational.
+    type Rational;
 }
 
 /// Parses a value of F from the given string.

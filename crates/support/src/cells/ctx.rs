@@ -18,8 +18,6 @@ use crate::{
 pub trait LayoutAdaptor<F: Field, Halo2: Halo2Types<F>> {
     /// Adapted type
     type Adaptee;
-    /// Associated type for Rational.
-    type Rational;
 
     /// Returns a reference to the adaptee.
     fn adaptee_ref(&self) -> &Self::Adaptee;
@@ -52,7 +50,10 @@ pub trait LayoutAdaptor<F: Field, Halo2: Halo2Types<F>> {
         advice_row: usize,
         instance_col: Halo2::InstanceCol,
         instance_row: usize,
-    ) -> Result<Halo2::AssignedCell<V>, Halo2::Error>;
+    ) -> Result<Halo2::AssignedCell<V>, Halo2::Error>
+    where
+        V: Clone,
+        Halo2::Rational: for<'v> From<&'v V>;
 
     /// Copies the cell's contents into the given advice cell.
     fn copy_advice<V>(
@@ -64,7 +65,7 @@ pub trait LayoutAdaptor<F: Field, Halo2: Halo2Types<F>> {
     ) -> Result<Halo2::AssignedCell<V>, Halo2::Error>
     where
         V: Clone,
-        Self::Rational: for<'v> From<&'v V>;
+        Halo2::Rational: for<'v> From<&'v V>;
 
     /// Enters the scope of a region.
     fn region<A, AR, N, NR>(&mut self, name: N, assignment: A) -> Result<AR, Halo2::Error>
@@ -264,10 +265,14 @@ impl<'i, 's, F: Field, H: Halo2Types<F>> ICtx<'i, 's, F, H> {
     }
 
     /// Assigns the next input to a cell.
-    pub fn assign_next<V>(
+    pub fn assign_next<V, R>(
         &mut self,
         layouter: &mut impl LayoutAdaptor<F, H>,
-    ) -> Result<H::AssignedCell<V>, H::Error> {
+    ) -> Result<H::AssignedCell<V>, H::Error>
+    where
+        V: Clone,
+        H::Rational: for<'v> From<&'v V>,
+    {
         let i = self.next()?;
         layouter.assign_advice_from_instance(i.temp(), i.temp_offset(), i.col(), i.row())
     }
