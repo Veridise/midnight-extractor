@@ -1000,7 +1000,7 @@ dependencies = [
 
 [[package]]
 name = "mdnt-extractor"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "anyhow",
  "cargo-lock",
@@ -1012,7 +1012,7 @@ dependencies = [
  "log",
  "mdnt-extractor-core",
  "mdnt-harnesses",
- "mdnt-support 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mdnt-support 0.2.4",
  "midnight-circuits",
  "multi_log",
  "simplelog",
@@ -1021,7 +1021,7 @@ dependencies = [
 
 [[package]]
 name = "mdnt-extractor-core"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "anyhow",
  "ff",
@@ -1032,7 +1032,7 @@ dependencies = [
  "inventory",
  "log",
  "mdnt-extractor-macros",
- "mdnt-support 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mdnt-support 0.2.4",
  "midnight-circuits",
  "midnight-curves",
  "midnight-proofs",
@@ -1044,7 +1044,7 @@ dependencies = [
 
 [[package]]
 name = "mdnt-extractor-macros"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1059,11 +1059,11 @@ checksum = "03e704bfa829dddf7c2cd9faf1c126be3af58661f266b37949a9001620c9ea4a"
 
 [[package]]
 name = "mdnt-groups-support"
-version = "0.2.4"
+version = "0.2.5"
 
 [[package]]
 name = "mdnt-harnesses"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "anyhow",
  "ff",
@@ -1074,24 +1074,10 @@ dependencies = [
  "inventory",
  "mdnt-extractor-core",
  "mdnt-extractor-macros",
- "mdnt-support 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mdnt-support 0.2.4",
  "midnight-circuits",
  "midnight-proofs",
  "num-bigint",
-]
-
-[[package]]
-name = "mdnt-support"
-version = "0.2.4"
-dependencies = [
- "ff",
- "haloumi-ir",
- "log",
- "mdnt-groups-support 0.2.0",
- "num-bigint",
- "num-traits",
- "rstest",
- "thiserror",
 ]
 
 [[package]]
@@ -1110,6 +1096,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "mdnt-support"
+version = "0.2.5"
+dependencies = [
+ "ff",
+ "haloumi-ir",
+ "log",
+ "mdnt-groups-support 0.2.0",
+ "num-bigint",
+ "num-traits",
+ "rstest",
+ "thiserror",
+]
+
+[[package]]
 name = "mdnt-support-macros"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1123,7 +1123,7 @@ dependencies = [
 
 [[package]]
 name = "mdnt-support-macros"
-version = "0.2.4"
+version = "0.2.5"
 dependencies = [
  "log",
  "macro_expand",
@@ -1156,7 +1156,7 @@ dependencies = [
  "halo2curves",
  "lazy_static",
  "mdnt-groups-support 0.2.0",
- "mdnt-support 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mdnt-support 0.2.4",
  "mdnt-support-macros 0.2.0",
  "midnight-curves",
  "midnight-proofs",
@@ -1200,7 +1200,7 @@ dependencies = [
  "halo2curves",
  "haloumi-core",
  "mdnt-groups-support 0.2.0",
- "mdnt-support 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mdnt-support 0.2.4",
  "midnight-curves",
  "num-bigint",
  "rand_chacha",

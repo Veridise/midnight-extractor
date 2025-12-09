@@ -38,15 +38,25 @@ impl<CS> AutoConfigure<CS> for () {
 }
 
 macro_rules! tuple_auto_conf_impl {
-    ($($t:ident),+) => {
-        impl<CS, $( $t: AutoConfigure<CS>, )+> AutoConfigure<CS> for ( $( $t, )+ ) {
-            fn configure(meta: &mut CS) -> ( $( $t, )+ ) {
+    () => {
+        // Do nothing
+    };
+    ($h:ident $(,$t:ident)* $(,)?) => {
+        tuple_auto_conf_impl!($( $t, )*);
+
+        impl<CS, $h, $( $t, )*> AutoConfigure<CS> for ( $h, $( $t, )* )
+        where
+            $h: AutoConfigure<CS,  $h>,
+            $( $t: AutoConfigure<CS,  $t>, )*
+        {
+            fn configure(meta: &mut CS) -> Self {
                 (
-                    $( $t::configure(meta), )+
+                    $h::configure(meta),
+                    $( $t::configure(meta), )*
                 )
             }
         }
     };
 }
 
-tuple_auto_conf_impl!(A1, A2);
+tuple_auto_conf_impl!(A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12);
