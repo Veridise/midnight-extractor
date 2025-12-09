@@ -18,6 +18,8 @@ use crate::{
 pub trait LayoutAdaptor<F: Field, Halo2: Halo2Types<F>> {
     /// Adapted type
     type Adaptee;
+    /// Associated type for Rational.
+    type Rational;
 
     /// Returns a reference to the adaptee.
     fn adaptee_ref(&self) -> &Self::Adaptee;
@@ -59,7 +61,10 @@ pub trait LayoutAdaptor<F: Field, Halo2: Halo2Types<F>> {
         region: &mut Halo2::Region<'_>,
         advice_col: Halo2::AdviceCol,
         advice_row: usize,
-    ) -> Result<Halo2::AssignedCell<V>, Halo2::Error>;
+    ) -> Result<Halo2::AssignedCell<V>, Halo2::Error>
+    where
+        V: Clone,
+        Self::Rational: for<'v> From<&'v V>;
 
     /// Enters the scope of a region.
     fn region<A, AR, N, NR>(&mut self, name: N, assignment: A) -> Result<AR, Halo2::Error>
