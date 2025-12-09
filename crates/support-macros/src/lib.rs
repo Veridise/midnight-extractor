@@ -4,7 +4,7 @@
 #![deny(missing_docs)]
 
 use proc_macro::TokenStream;
-use syn::{parse_macro_input, DeriveInput, ItemFn};
+use syn::{DeriveInput, ItemFn, parse_macro_input};
 
 mod decompose;
 #[cfg(feature = "extractor-derive")]
@@ -59,9 +59,13 @@ pub fn derive_decompose_in_cells(input: TokenStream) -> TokenStream {
 
 /// Derive macro for the `NoChipArgs` trait.
 #[cfg(feature = "extractor-derive")]
-#[proc_macro_derive(NoChipArgs)]
+#[proc_macro_derive(NoChipArgs, attributes(support_module))]
 pub fn derive_no_chip_args(input: TokenStream) -> TokenStream {
-    extractor::derive_no_chip_args_impl(parse_macro_input!(input as DeriveInput)).into()
+    match extractor::derive_no_chip_args_impl(parse_macro_input!(input as DeriveInput)) {
+        Ok(tok) => tok,
+        Err(e) => e.to_compile_error(),
+    }
+    .into()
 }
 
 /// Derive macro for the `CircuitInitialization` trait that leverages an implementation of

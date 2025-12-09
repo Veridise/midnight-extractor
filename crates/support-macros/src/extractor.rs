@@ -5,15 +5,20 @@ use quote::{format_ident, quote};
 use syn::{spanned::Spanned, Attribute, DeriveInput, Generics, Ident, Path, TypeParamBound};
 
 /// Internal implementation of [`super::derive_no_chip_args`].
-pub fn derive_no_chip_args_impl(input: DeriveInput) -> TokenStream {
+pub fn derive_no_chip_args_impl(input: DeriveInput) -> syn::Result<TokenStream> {
     let name = input.ident;
     let generics = input.generics;
+    let module: Ident = input
+        .attrs
+        .iter()
+        .find_map(|attr| attr.path().is_ident("module").then(|| attr.parse_args()))
+        .unwrap_or(Ok(format_ident!("extractor_support")))?;
     // Split generics into (impl generics) (ty generics) (where clause)
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
-    quote! {
-        impl #impl_generics extractor_support::circuit::NoChipArgs for #name #ty_generics #where_clause {}
-    }
+    Ok(quote! {
+        impl #impl_generics #module::circuit::NoChipArgs for #name #ty_generics #where_clause {}
+    })
 }
 
 /// Internal implementation of [`super::derive_circuit_initialization_from_scratch`].
@@ -198,18 +203,19 @@ mod tests {
     use rstest::{fixture, rstest};
     use simplelog::{Config, TestLogger};
 
-    fn derive_circuit_initialization_from_scratch_test(input: DeriveInput) -> TokenStream {
-        derive_circuit_initialization_from_scratch_impl(input).unwrap()
-    }
-
     #[fixture]
     fn ctx() -> Context<'static> {
         let _ = TestLogger::init(LevelFilter::Debug, Config::default());
         let mut ctx = Context::new();
         ctx.register_proc_macro_derive(
             "InitFromScratch".into(),
-            derive_circuit_initialization_from_scratch_test,
+            |input| derive_circuit_initialization_from_scratch_impl(input).unwrap(),
             vec!["field".to_string(), "from_scratch".to_string()],
+        )
+        .register_proc_macro_derive(
+            "NoChipArgs".into(),
+            |input| derive_no_chip_args_impl(input).unwrap(),
+            vec!["module".to_string()],
         );
 
         ctx
@@ -231,10 +237,31 @@ mod tests {
     // Each #[should_panic] affects only the #[case] below it
 
     #[rstest]
+    #[case::no_chip_args_default(
+        "#[derive(NoChipArgs)] struct S {}",
+        r"
+        struct S {}
+        impl extractor_support::circuit::NoChipArgs for S {}
+        "
+    )]
+    #[case::no_chip_args_configured(
+        "#[derive(NoChipArgs)] #[module(other_module)] struct S {}",
+        r"
+        struct S {}
+        impl other_module::circuit::NoChipArgs for S {}
+        "
+    )]
+    #[should_panic(expected = "unexpected token")]
+    #[case::no_chip_args_fail_not_ident(
+        "#[derive(NoChipArgs)] #[module(a + 2)] struct S {}",
+        r"
+        struct S {}
+        "
+    )]
     #[should_panic(
         expected = "Derived struct requires at least one type parameter implementing ff::PrimeField"
     )]
-    #[case(
+    #[case::no_type_param(
         "#[derive(InitFromScratch)] struct S {}",
         r"
         struct S {}
@@ -245,7 +272,7 @@ mod tests {
         {}
         "
     )]
-    #[case(
+    #[case::basic(
         r"
         #[derive(InitFromScratch)]
         struct S<F> { f: F }
@@ -289,7 +316,7 @@ mod tests {
     #[should_panic(
         expected = "Derived struct requires at least one type parameter implementing ff::PrimeField"
     )]
-    #[case(
+    #[case::layouter_type_name_collision(
         r"
         #[derive(InitFromScratch)]
         struct S<__Layouter> { f: __Layouter }
@@ -306,7 +333,7 @@ mod tests {
     #[should_panic(
         expected = "Derived struct requires at least one type parameter implementing ff::PrimeField"
     )]
-    #[case(
+    #[case::no_field_impl_and_lifetime(
         r"
         #[derive(InitFromScratch)]
         struct S<'a> { f: &'a str }
@@ -320,7 +347,7 @@ mod tests {
         {}
         "
     )]
-    #[case(
+    #[case::with_lifetime(
         r"
         #[derive(InitFromScratch)]
         struct S<'a, F> { f: &'a F }
@@ -361,7 +388,7 @@ mod tests {
             }}
         "
     )]
-    #[case(
+    #[case::with_lifetime_and_inline_bound(
         r"
         #[derive(InitFromScratch)]
         struct S<'a, F: Copy> { f: &'a F }
@@ -402,7 +429,8 @@ mod tests {
             }}
         "
     )]
-    #[case(
+    #[allow(non_snake_case)]
+    #[case::with_lifetime_and_field_type_not_named_F(
         r"
         #[derive(InitFromScratch)]
         struct S<'a, A: Field> { f: &'a A }
@@ -443,7 +471,8 @@ mod tests {
             }}
         "
     )]
-    #[case(
+    #[allow(non_snake_case)]
+    #[case::with_lifetime_and_primefield_type_not_named_F(
         r"
         #[derive(InitFromScratch)]
         struct S<'a, A: PrimeField> { f: &'a A }
@@ -484,7 +513,7 @@ mod tests {
             }}
         "
     )]
-    #[case(
+    #[case::with_lifetime_and_field_type_configured_with_attribute(
         r"
         #[derive(InitFromScratch)]
         #[field(A)]
@@ -526,7 +555,7 @@ mod tests {
             }}
         "
     )]
-    #[case(
+    #[case::with_lifetime_and_where_bound(
         r"
         #[derive(InitFromScratch)]
         struct S<'a, F> where F: Copy { f: &'a F }
@@ -568,7 +597,7 @@ mod tests {
             }}
         "
     )]
-    #[case(
+    #[case::with_lifetime_const_param_and_inline_bound(
         r"
         #[derive(InitFromScratch)]
         struct S<'a, F, const N: usize> where F: Copy { f: [&'a F; N] }
@@ -610,7 +639,7 @@ mod tests {
             }}
         "
     )]
-    #[case(
+    #[case::with_field_type_from_assoc_type(
         r"
         trait CT { type Base; }
         #[derive(InitFromScratch)]
@@ -654,7 +683,7 @@ mod tests {
             }}
         "
     )]
-    #[case(
+    #[case::with_field_type_from_assoc_type(
         r"
         trait CT { type Base; }
         #[derive(InitFromScratch)]
@@ -702,7 +731,7 @@ mod tests {
         "
     )]
 
-    fn init_from_scratch(ctx: Context, #[case] input: &str, #[case] expected: &str) {
+    fn derive_macro_test(ctx: Context, #[case] input: &str, #[case] expected: &str) {
         let input = parse!(input);
         let expected = unparse!(parse!(expected));
         let output = ctx.transform(input);
