@@ -11,7 +11,7 @@ pub fn derive_no_chip_args_impl(input: DeriveInput) -> syn::Result<TokenStream> 
     let module: Ident = input
         .attrs
         .iter()
-        .find_map(|attr| attr.path().is_ident("module").then(|| attr.parse_args()))
+        .find_map(|attr| attr.path().is_ident("support_module").then(|| attr.parse_args()))
         .unwrap_or(Ok(format_ident!("extractor_support")))?;
     // Split generics into (impl generics) (ty generics) (where clause)
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
@@ -215,7 +215,7 @@ mod tests {
         .register_proc_macro_derive(
             "NoChipArgs".into(),
             |input| derive_no_chip_args_impl(input).unwrap(),
-            vec!["module".to_string()],
+            vec!["support_module".to_string()],
         );
 
         ctx
@@ -245,7 +245,7 @@ mod tests {
         "
     )]
     #[case::no_chip_args_configured(
-        "#[derive(NoChipArgs)] #[module(other_module)] struct S {}",
+        "#[derive(NoChipArgs)] #[support_module(other_module)] struct S {}",
         r"
         struct S {}
         impl other_module::circuit::NoChipArgs for S {}
@@ -253,7 +253,7 @@ mod tests {
     )]
     #[should_panic(expected = "unexpected token")]
     #[case::no_chip_args_fail_not_ident(
-        "#[derive(NoChipArgs)] #[module(a + 2)] struct S {}",
+        "#[derive(NoChipArgs)] #[support_module(a + 2)] struct S {}",
         r"
         struct S {}
         "
