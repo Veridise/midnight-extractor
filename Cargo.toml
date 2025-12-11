@@ -9,7 +9,7 @@ members = [ "crates/extractor",
 resolver = "2"
 
 [workspace.package]
-version = "0.2.5"
+version = "0.2.9"
 authors = ["Daniel Dominguez (Veridise) <daniel@veridise.com>"]
 edition = "2024"
 rust-version = "1.85"
@@ -21,10 +21,15 @@ license-file = "LICENSE"
 ff = "0.13"
 haloumi-ir = "^0.2"
 haloumi-ir-base = "^0.2"
-haloumi-core = "0.1"
+haloumi-core = "0.2"
 inventory = "0.3"
 anyhow = "1"
-mdnt-support = "0.2.4"
+mdnt-support = "0.2"
+
+[workspace.dependencies.sha3-circuit]
+git = "https://github.com/Veridise/sha3-circuit-midnight"
+branch = "extraction"
+features = ["extraction"]
 
 [workspace.dependencies.midnight-proofs]
 # Commented out until https://github.com/midnightntwrk/midnight-zk/pull/137 merges.

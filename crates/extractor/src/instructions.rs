@@ -39,6 +39,10 @@ pub enum Instructions {
     Varhash,
     Vector,
     Zero,
+    #[cfg(feature = "sha3")]
+    Sha3,
+    #[cfg(feature = "sha3")]
+    Keccakf,
 }
 
 impl Display for Instructions {
@@ -83,6 +87,11 @@ impl Display for Instructions {
                 Instructions::Varhash => "varhash",
                 Instructions::Vector => "vector",
                 Instructions::Zero => "zero",
+
+                #[cfg(feature = "sha3")]
+                Instructions::Sha3 => "sha3",
+                #[cfg(feature = "sha3")]
+                Instructions::Keccakf => "keccakf",
             }
         )
     }

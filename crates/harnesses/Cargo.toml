@@ -24,3 +24,8 @@ mdnt-support.workspace = true
 anyhow.workspace = true
 inventory.workspace = true
 num-bigint = "0.4"
+sha3-circuit = {workspace = true, optional = true }
+
+[features]
+default = ["sha3"]
+sha3 = ["sha3-circuit"]

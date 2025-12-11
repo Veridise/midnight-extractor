@@ -94,7 +94,14 @@ impl<F: Field, const TAGS: usize, const VALUES: usize> TagRangeLookup<F, TAGS, V
     ) -> [&'a Expression<F>; VALUES] {
         array::from_fn(|idx| {
             let val_idx = self.value_indices[idx];
-            &lookup.inputs()[val_idx]
+            lookup.inputs().get(val_idx).unwrap_or_else(|| {
+                panic!(
+                    "Index out of bounds in lookup '{}': len is {} but the index is {}",
+                    lookup.name(),
+                    lookup.inputs().len(),
+                    val_idx
+                )
+            })
         })
     }
 

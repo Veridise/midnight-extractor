@@ -53,6 +53,10 @@ pub enum Chip {
     Parser,
     VarlenPoseidon,
     VarlenSha256,
+    #[cfg(feature = "sha3")]
+    Sha3,
+    #[cfg(feature = "sha3")]
+    Packed,
 }
 
 impl Display for Chip {
@@ -122,6 +126,10 @@ impl Display for Chip {
                     write!(f, "varlen-sha256")
                 }
             }
+            #[cfg(feature = "sha3")]
+            Chip::Sha3 => write!(f, "sha3"),
+            #[cfg(feature = "sha3")]
+            Chip::Packed => write!(f, "packed"),
         }
     }
 }

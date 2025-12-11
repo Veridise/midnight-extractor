@@ -13,13 +13,13 @@ use crate::lookups::callbacks::range::TagRangeLookup;
 
 /// Lookup handler that adds a range check for a plain-spread pair and
 /// calls a module that declares that the latter is a functional dependency of the former.
-pub struct PlainSpreadLookup<F: Field> {
+pub struct PlainSpreadLookup4<F: Field> {
     range_check: TagRangeLookup<F, 1, 2>,
     spread_module: &'static str,
     unspread_module: &'static str,
 }
 
-impl<F: PrimeField> PlainSpreadLookup<F> {
+impl<F: PrimeField> PlainSpreadLookup4<F> {
     pub fn new(spread_module: &'static str, unspread_module: &'static str) -> Self {
         // Lengths taken from the Sha256Chip.
         let lengths: [u32; 10] = [2, 3, 4, 5, 6, 7, 9, 10, 11, 12];
@@ -62,7 +62,7 @@ mod tests {
     }
 }
 
-impl<F: PrimeField> LookupCallbacks<F, Expression<F>> for PlainSpreadLookup<F> {
+impl<F: PrimeField> LookupCallbacks<F, Expression<F>> for PlainSpreadLookup4<F> {
     fn on_lookup<'syn>(
         &self,
         lookup: &'syn Lookup<Expression<F>>,
@@ -103,50 +103,51 @@ impl<F: PrimeField> LookupCallbacks<F, Expression<F>> for PlainSpreadLookup<F> {
         ]))
     }
 
-    fn on_lookups<'syn>(
-        &self,
-        lookups: &[&'syn Lookup<Expression<F>>],
-        tables: &[&dyn LookupTableGenerator<F>],
-        temps: &mut Temps,
-    ) -> anyhow::Result<IRStmt<ExprOrTemp<Cow<'syn, Expression<F>>>>> {
-        if lookups.len() != 2 {
-            let names = lookups.iter().map(|l| l.name()).collect::<Vec<_>>();
-            let names = names.join(", ");
-            anyhow::bail!(
-                "Unexpected input. Was expecting two lookups but got {}: {}",
-                lookups.len(),
-                names
-            );
-        }
-        let per_lookup_ir = lookups
-            .iter()
-            .zip(tables.iter())
-            .map(|(lookup, table)| self.on_lookup(lookup, *table, temps))
-            .collect::<Result<IRStmt<_>, _>>()?;
-        let fst_spread = self.range_check.value_exprs(&lookups[0])[1];
-        let snd_spread = self.range_check.value_exprs(&lookups[1])[1];
-
-        use IRBexpr::*;
-        let det_axioms1 = IRStmt::assert(Implies(
-            Box::new(Det(Cow::Owned(
-                snd_spread + Expression::Constant(F::from(2u64)) * fst_spread,
-            ))),
-            Box::new(And(vec![
-                Det(Cow::Borrowed(snd_spread)),
-                Det(Cow::Borrowed(fst_spread)),
-            ])),
-        ))
-        .map(&ExprOrTemp::Expr);
-        let det_axioms2 = IRStmt::assert(Implies(
-            Box::new(Det(Cow::Owned(
-                fst_spread + Expression::Constant(F::from(2u64)) * snd_spread,
-            ))),
-            Box::new(And(vec![
-                Det(Cow::Borrowed(snd_spread)),
-                Det(Cow::Borrowed(fst_spread)),
-            ])),
-        ))
-        .map(&ExprOrTemp::Expr);
-        Ok(IRStmt::seq([per_lookup_ir, det_axioms1, det_axioms2]))
-    }
+    // Commented out for now
+    //fn on_lookups<'syn>(
+    //    &self,
+    //    lookups: &[&'syn Lookup<Expression<F>>],
+    //    tables: &[&dyn LookupTableGenerator<F>],
+    //    temps: &mut Temps,
+    //) -> anyhow::Result<IRStmt<ExprOrTemp<Cow<'syn, Expression<F>>>>> {
+    //    if lookups.len() != 2 {
+    //        let names = lookups.iter().map(|l| l.name()).collect::<Vec<_>>();
+    //        let names = names.join(", ");
+    //        anyhow::bail!(
+    //            "Unexpected input. Was expecting two lookups but got {}: {}",
+    //            lookups.len(),
+    //            names
+    //        );
+    //    }
+    //    let per_lookup_ir = lookups
+    //        .iter()
+    //        .zip(tables.iter())
+    //        .map(|(lookup, table)| self.on_lookup(lookup, *table, temps))
+    //        .collect::<Result<IRStmt<_>, _>>()?;
+    //    let fst_spread = self.range_check.value_exprs(&lookups[0])[1];
+    //    let snd_spread = self.range_check.value_exprs(&lookups[1])[1];
+    //
+    //    use IRBexpr::*;
+    //    let det_axioms1 = IRStmt::assert(Implies(
+    //        Box::new(Det(Cow::Owned(
+    //            snd_spread + Expression::Constant(F::from(2u64)) * fst_spread,
+    //        ))),
+    //        Box::new(And(vec![
+    //            Det(Cow::Borrowed(snd_spread)),
+    //            Det(Cow::Borrowed(fst_spread)),
+    //        ])),
+    //    ))
+    //    .map(&ExprOrTemp::Expr);
+    //    let det_axioms2 = IRStmt::assert(Implies(
+    //        Box::new(Det(Cow::Owned(
+    //            fst_spread + Expression::Constant(F::from(2u64)) * snd_spread,
+    //        ))),
+    //        Box::new(And(vec![
+    //            Det(Cow::Borrowed(snd_spread)),
+    //            Det(Cow::Borrowed(fst_spread)),
+    //        ])),
+    //    ))
+    //    .map(&ExprOrTemp::Expr);
+    //    Ok(IRStmt::seq([per_lookup_ir, det_axioms1, det_axioms2]))
+    //}
 }

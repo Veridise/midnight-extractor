@@ -42,5 +42,6 @@ cargo-lock = "10"
 anyhow = "1"
 
 [features]
-default = ["cli"]
+default = ["cli", "sha3"]
 cli = ["clap"]
+sha3 = ["mdnt-harnesses/sha3"]

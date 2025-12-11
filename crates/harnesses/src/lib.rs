@@ -29,6 +29,8 @@ pub mod parser;
 pub mod pow2range;
 pub mod public_input;
 pub mod range_check;
+#[cfg(feature = "sha3")]
+pub mod sha3;
 pub mod sponge;
 pub mod stdlib;
 pub mod unsafe_conversion;
@@ -60,7 +62,7 @@ pub mod utils {
 
     use mdnt_extractor_core::lookups::callbacks::{
         automaton::AutomatonLookup, ignore::IgnoreLookup, mux::LookupMux,
-        plain_spread::PlainSpreadLookup, range::TagRangeLookup,
+        plain_spread::PlainSpreadLookup, plain_spread4::PlainSpreadLookup4, range::TagRangeLookup,
     };
 
     /// Returns a lookup callback that treats the lookup as a range check.
@@ -69,6 +71,14 @@ pub mod utils {
             .map(|n| -> u64 { n.try_into().unwrap() })
             .map(|n| ([F::from(n)], [F::from(1 << n)]));
         TagRangeLookup::new([0], [1], ranges)
+    }
+
+    /// Returns a lookup callback that treats the lookup as a range check.
+    pub fn range_lookup_no_tag<F: PrimeField>(size: usize) -> TagRangeLookup<F, 0, 1> {
+        let ranges = (0..=size)
+            .map(|n| -> u64 { n.try_into().unwrap() })
+            .map(|n| ([], [F::from(1 << n)]));
+        TagRangeLookup::new([], [0], ranges)
     }
 
     /// Returns an automaton lookup using the midnight parsing library.
@@ -85,6 +95,17 @@ pub mod utils {
         unspread_module: &'static str,
     ) -> PlainSpreadLookup<F> {
         PlainSpreadLookup::new(spread_module, unspread_module)
+    }
+
+    /// Returns a lookup callback that treats the lookup as a range check of specific bit lengths
+    /// and the spreaded versions (i.e. 2->4, 3->5, 7->21, etc).
+    ///
+    /// Is meant for the lookup used by the Sha256Chip.
+    pub fn plain_spread_lookup4<F: PrimeField>(
+        spread_module: &'static str,
+        unspread_module: &'static str,
+    ) -> PlainSpreadLookup4<F> {
+        PlainSpreadLookup4::new(spread_module, unspread_module)
     }
 
     /// Returns a lookup callback that ignores all lookups

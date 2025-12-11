@@ -467,17 +467,21 @@ impl<F: Field, L: Layouter<F>> LayoutAdaptor<F, ExtractionSupport> for AdaptsLay
             .cell())
     }
 
-    fn assign_advice_from_instance(
+    fn assign_advice_from_instance<V>(
         &mut self,
         advice_col: Column<Advice>,
         advice_row: usize,
         instance_col: Column<Instance>,
         instance_row: usize,
-    ) -> Result<AssignedCell<F, F>, Error> {
-        self.layouter.assign_region(
+    ) -> Result<AssignedCell<V, F>, Error>
+    where
+        V: Clone,
+        Rational<F>: for<'v> From<&'v V>,
+    {
+        let c = self.layouter.assign_region(
             || "ins",
             |mut region| {
-                region.assign_advice_from_instance(
+                region.assign_advice(
                     || {
                         format!(
                             "Adv[{}, +{advice_row}] == Ins[{}, {instance_row}]",
@@ -485,22 +489,28 @@ impl<F: Field, L: Layouter<F>> LayoutAdaptor<F, ExtractionSupport> for AdaptsLay
                             instance_col.index()
                         )
                     },
-                    instance_col,
-                    instance_row,
                     advice_col,
                     advice_row,
+                    || Value::unknown(),
                 )
             },
-        )
+        )?;
+
+        self.layouter.constrain_instance(c.cell(), instance_col, instance_row)?;
+        Ok(c)
     }
 
-    fn copy_advice(
+    fn copy_advice<V>(
         &mut self,
-        ac: &AssignedCell<F, F>,
+        ac: &AssignedCell<V, F>,
         region: &mut Region<'_, F>,
         advice_col: Column<Advice>,
         advice_row: usize,
-    ) -> Result<AssignedCell<F, F>, Error> {
+    ) -> Result<AssignedCell<V, F>, Error>
+    where
+        V: Clone,
+        Rational<F>: for<'v> From<&'v V>,
+    {
         ac.copy_advice(|| "", region, advice_col, advice_row)
     }
 
