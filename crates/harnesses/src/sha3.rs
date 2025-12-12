@@ -81,6 +81,7 @@ fn assign_message_block(
     Ok(absorbed_block)
 }
 
+// Because the actual type is not public
 type State = <PackedChip<F> as Keccackf1600Instructions<F>>::State;
 
 #[entry("keccakf/initialize_and_absorb/packed/byte")]
