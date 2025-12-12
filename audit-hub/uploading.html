@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-539e258e.js";
+            window.path_to_searchindex_js = "../searchindex-6b199a7c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-abd55088.js"></script>
@@ -175,7 +175,25 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="uploading-new-versions"><a class="header" href="#uploading-new-versions">Uploading new versions</a></h1>
-<p>TBD</p>
+<p>Make sure you went through the steps in <a href="./first-project.html">Creating a new project</a> before continuing.</p>
+<p>After extracting a new version of the circuits but before running Picus with them, they need to be uploaded
+to AuditHub. This can be accomplised with either the UI or with the CLI. In this document we are going to see
+how to do it with the CLI, what you should have <a href="./intro.html">previously configured</a>.</p>
+<p>Each version needs to have a name. As an example we are going to use the date of submission and the
+sha256 of the generated picus files.
+From the shell run the following, assuming the picus files are in the default output folder (<code>picus_files</code>).</p>
+<pre><code class="language-bash">date=$(date "+%Y-%m-%d-%H-%M")
+sum=$(find picus_files -type f | sort | xargs cat | sha256sum | head -c 8)
+version_id=$(ah create-version-via-local-archive \
+    --name "Picus-files-$date-$sum" \
+    --source-folder picus_files \
+    --project-id $PROJECT_ID \
+    --organization-id $ORGANIZATION_ID)
+</code></pre>
+<p>If you configured the <code>AUDITHUB_PROJECT_ID</code> and <code>AUDITHUB_ORGANIZATION_ID</code> environment variables
+you can drop the <code>--project-id</code> and <code>--organization-id</code> flags since the CLI can read them from the environment.
+Note that we stored the output of the CLI in a variable named <code>$version_id</code>. We need this for identifying the
+version when <a href="./jobs.html">launching jobs</a>.</p>
 
                     </main>
 

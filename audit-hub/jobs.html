@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-539e258e.js";
+            window.path_to_searchindex_js = "../searchindex-6b199a7c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-abd55088.js"></script>
@@ -175,7 +175,46 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="launching-jobs"><a class="header" href="#launching-jobs">Launching jobs</a></h1>
-<p>TBD</p>
+<p>Once you have <a href="./uploading.html">uploaded a version</a> of the extracted circuit to AuditHub you can
+start running tools with them.</p>
+<p>We are going to see how to launch a Picus job from the CLI.
+Each individual Picus file needs to be run as a separate task. Pick one of the
+Picus files in the version you last uploaded and note its path relative to
+the directory you uploaded it from. For example, to run a job for up to one hour
+run the following in the shell.</p>
+<pre><code class="language-bash"># Example path that could be extracted 
+PICUS_FILE=arithmetic/add/native/native/output.picus
+ah start-picus-v2-task \
+    --source $PICUS_FILE \
+    --version-id $version_id \
+    --project-id $PROJECT_ID \
+    --organization-id $ORGANIZATION_ID \
+    --time-limit 3600000 \
+    --empty-assume-deterministic \
+    --wait
+</code></pre>
+<p>This will wait until the job has completed in AuditHub. If the <code>--wait</code> flag is dropped the CLI returns immediately,
+responding with the task ID. This ID can be passed to <code>ah monitor-task -t $task_id</code> for checking the status of the task.</p>
+<blockquote>
+<p>You can run <code>ah start-picus-v2-task --help</code> to get more details about the possible flags and arguments.</p>
+</blockquote>
+<p>Similarly to the upload, if you configured the <code>AUDITHUB_PROJECT_ID</code> and <code>AUDITHUB_ORGANIZATION_ID</code> environment variables
+you can drop the <code>--project-id</code> and <code>--organization-id</code> flags since the CLI can read them from the environment.</p>
+<p>Picus requires a bit of configuration
+in some cases; if you passed the <code>--prelude</code> flag while extracting circuits with either <code>spread</code>
+or <code>automaton</code> then you need to pass additional flags.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Prelude</th><th>Additonal Picus flags</th></tr>
+</thead>
+<tbody>
+<tr><td><code>spread</code></td><td><code>--assume-deterministic Spread,Unspread</code></td></tr>
+<tr><td><code>automaton</code></td><td><code>--assume-deterministic Automaton</code></td></tr>
+<tr><td>None</td><td><code>--empty-assume-deterministic</code></td></tr>
+</tbody>
+</table>
+</div>
 
                     </main>
 
