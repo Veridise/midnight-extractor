@@ -62,7 +62,7 @@ pub mod utils {
 
     use mdnt_extractor_core::lookups::callbacks::{
         automaton::AutomatonLookup, ignore::IgnoreLookup, mux::LookupMux,
-        plain_spread::PlainSpreadLookup, plain_spread4::PlainSpreadLookup4, range::TagRangeLookup,
+        plain_spread::PlainSpreadLookup, plain_spread3::PlainSpreadLookup3, range::TagRangeLookup,
     };
 
     /// Returns a lookup callback that treats the lookup as a range check.
@@ -97,15 +97,22 @@ pub mod utils {
         PlainSpreadLookup::new(spread_module, unspread_module)
     }
 
-    /// Returns a lookup callback that treats the lookup as a range check of specific bit lengths
-    /// and the spreaded versions (i.e. 2->4, 3->5, 7->21, etc).
+    /// Lookup handler that adds a range check for a plain-spread pair and
+    /// calls a module that declares that the latter is a functional dependency of the former.
     ///
-    /// Is meant for the lookup used by the Sha256Chip.
-    pub fn plain_spread_lookup4<F: PrimeField>(
+    /// For a lookup in the form `(8, x, ~x)` generates
+    ///
+    /// ```text
+    /// x < 2^8
+    /// ~x <= (8^8 - 1)/7
+    /// ~x = Spread(x)
+    /// x = Unspread(~x)
+    /// ```
+    pub fn plain_spread_lookup3(
         spread_module: &'static str,
         unspread_module: &'static str,
-    ) -> PlainSpreadLookup4<F> {
-        PlainSpreadLookup4::new(spread_module, unspread_module)
+    ) -> PlainSpreadLookup3 {
+        PlainSpreadLookup3::new(spread_module, unspread_module)
     }
 
     /// Returns a lookup callback that ignores all lookups

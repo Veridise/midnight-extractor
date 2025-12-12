@@ -12,33 +12,29 @@ use sha3_circuit::{
     sha3_256_gadget::Sha3_256,
 };
 
-use crate::utils::vec2array;
+use crate::utils::{ignore_lookup, lookup_mux, plain_spread_lookup3, vec2array};
 
 type AssignedDenseBits = <PackedChip<F> as Keccackf1600Instructions<F>>::AssignedByte;
 
 fn lookups() -> impl LookupCallbacks<F, Expression<F>> {
-    //use crate::utils::{
-    //    lookup_mux, plain_spread_lookup4, range_lookup, range_lookup_no_tag,
-    //};
-    crate::utils::ignore_lookup()
-    //lookup_mux()
-    //    .with(
-    //        |n: &str| n.starts_with("spread byte lookup"),
-    //        plain_spread_lookup4("Spread", "Unspread"),
-    //    )
-    //    .with(
-    //        |n: &str| n.starts_with("decomposition lookup"),
-    //        lookup_mux()
-    //            .with(
-    //                |n: &str| {
-    //                    n.ends_with("limb 3")
-    //                        || n.ends_with("limb 1")
-    //                        || n.ends_with("limb 0")
-    //                        || n.ends_with("limb 2")
-    //                },
-    //                range_lookup_no_tag(8),
-    //            )
-    //            .fallback(range_lookup(13)),
+    lookup_mux()
+        .with(
+            |n: &str| n.starts_with("spread byte lookup"),
+            plain_spread_lookup3("Spread", "Unspread"),
+        )
+        //    .with(
+        //        |n: &str| n.starts_with("decomposition lookup"),
+        //        lookup_mux()
+        //            .with(
+        //                |n: &str| {
+        //                    n.ends_with("limb 3")
+        //                        || n.ends_with("limb 1")
+        //                        || n.ends_with("limb 0")
+        //                        || n.ends_with("limb 2")
+        //                },
+        //                range_lookup_no_tag(8),
+        //            )
+        .fallback(ignore_lookup())
     //    )
 }
 

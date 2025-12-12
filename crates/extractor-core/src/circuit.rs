@@ -4,7 +4,7 @@ use crate::{
 };
 use anyhow::{Context, Result};
 use configuration::Config;
-use ff::PrimeField;
+use ff::{Field, PrimeField};
 use haloumi::{
     expressions::ExpressionInRow, AdviceIO, CircuitIO, CircuitSynthesis, InstanceIO, Synthesizer,
 };
@@ -21,8 +21,8 @@ use mdnt_support::{
     },
 };
 use midnight_proofs::{
-    circuit::{Layouter, RegionIndex},
-    plonk::{ConstraintSystem, Error, Expression},
+    circuit::{Layouter, RegionIndex, SimpleFloorPlanner},
+    plonk::{Circuit, ConstraintSystem, Error, Expression},
     ExtractionSupport,
 };
 use std::{cell::RefCell, marker::PhantomData};

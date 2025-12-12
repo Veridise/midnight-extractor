@@ -1675,7 +1675,7 @@ dependencies = [
 [[package]]
 name = "sha3-circuit"
 version = "0.1.0"
-source = "git+https://github.com/Veridise/sha3-circuit-midnight?branch=extraction#16c550d3a428f8aac885e46d0bf4b3ee5c377b26"
+source = "git+https://github.com/Veridise/sha3-circuit-midnight?branch=extraction#3f007119e9b867487223c16984ca6f07294bc80b"
 dependencies = [
  "blake2b_simd",
  "mdnt-groups-support 0.2.0",
