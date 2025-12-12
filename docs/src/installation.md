@@ -3,7 +3,6 @@
 The extraction tool needs to be built from source. This is because the harness definitions depend on 
 the `circuits` crate in [midnight-zk](https://github.com/midnightntwrk/midnight-zk). 
 
-TODO: How to obtain the source distro.
 
 Once inside of the directory where the source is located you can build and run the tool.
 
