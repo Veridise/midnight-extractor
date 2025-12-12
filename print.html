@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-eb7e533e.js";
+            window.path_to_searchindex_js = "searchindex-539e258e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-6ee936f5.js"></script>
+        <script src="toc-abd55088.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -495,10 +495,234 @@ fn select_native(ctx: &amp;Ctx) -&gt; anyhow::Result&lt;Output&gt; {
 <span class="boring">}</span></code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="supporting-new-chips"><a class="header" href="#supporting-new-chips">Supporting new chips</a></h1>
-<p>TBD</p>
+<p>In order to use user defined chips or gadgets in a harness it is necessary to implement a trait.
+This trait makes the chip or gadget compatible with the extraction system.</p>
+<p>Let’s do a small refresher on why this is necessary. A harness can be defined as follows.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[entry("control-flow/select/native/native")]
+#[harness]
+pub fn select_native(
+    chip: &amp;NativeChip&lt;F&gt;,
+    layouter: &amp;mut impl Layouter&lt;F&gt;,
+    (cond, a, b): (AssignedBit&lt;F&gt;, AssignedNative&lt;F&gt;, AssignedNative&lt;F&gt;),
+) -&gt; Result&lt;AssignedNative&lt;F&gt;, Error&gt; {
+    chip.select(layouter, &amp;cond, &amp;a, &amp;b)
+}
+<span class="boring">}</span></code></pre>
+<p>This harness targets the <code>NativeChip</code>. When the extractor attempts to extract the harness it needs to know
+some things about this chip, but it doesn’t know what the <code>NativeChip</code> is. This information is obtained via the
+<a href="https://docs.rs/mdnt-support/latest/mdnt_support/circuit/trait.CircuitInitialization.html"><code>CircuitInitialization</code></a> trait.
+This trait, similar in nature to Halo2’s <code>Circuit</code> trait, enables the extractor to configure and create chips that implement it.</p>
+<p>Let’s consider the following chip as an example.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>struct FooConfig {
+    advice: [Column&lt;Advice&gt;; ADVICE_WIDTH],
+    fixed: [Column&lt;Fixed&gt;; FIXED_WIDTH],
+    table: [TableColumn; TABLE_WIDTH]
+}
+
+struct FooChip&lt;F&gt; {
+    config: FooConfig,
+    native: NativeChip&lt;F&gt;
+}
+
+impl&lt;F: PrimeField&gt; FooChip&lt;F&gt; {
+    fn configure(meta: &amp;mut ConstraintSystem&lt;F&gt;) -&gt; FooConfig {
+        // Create an instance of the config... 
+    }
+
+    fn new(config: FooConfig, native: NativeChip&lt;F&gt;) -&gt; Self {
+        Self { config, native }
+    }
+
+    fn load_table(&amp;self, layouter: impl Layouter&lt;F&gt;) -&gt; Result&lt;(), Error&gt; {
+        // Loads the lookup table...
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>Our example chip has a lookup table and depends on <code>NativeChip</code>, which already implements the trait we are going to implement.
+The trait is parametrized in <code>L</code>, that we can use as an implementation of a <code>Layouter</code>.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>impl&lt;F, L&gt; CircuitInitialization&lt;L&gt; for FooChip&lt;F&gt;
+where
+    F: PrimeField,
+    L: Layouter&lt;F&gt;,
+{
+    // Type that is generated from the ConstraintSystem, usually the Chip's config.
+    type Config = (FooConfig, &lt;NativeChip&lt;F&gt; as CircuitInitialization&lt;F&gt;&gt;::Config);
+
+    // Any external arguments the chip may need. If the chip does not have any then 
+    // a 0-tuple is sufficient.
+    type Args = ();
+
+    // Any type that is part of the configuration that could be potentially shared with other chips.
+    // This should have any type, potentially created by the ConstraintSystem, but that is not created by the chip itself.
+    // FooChip does not have any of that in this case so we just put NativeChip's.
+    type ConfigCols = &lt;NativeChip&lt;F&gt; as CircuitInitialization&lt;F&gt;&gt;::ConfigCols;
+
+    // These two types are required because mdnt-support does not have a dependency on any 
+    // halo2 library. We need to declare what types are used as ConstraintSystem and as Error.
+    // Usually these will be the types `&lt;halo2-crate&gt;::plonk::{ConstraintSystem, Error}`.
+    type CS = ConstraintSystem&lt;F&gt;;
+    type Error = Error;
+
+    /// Initializes a new chip with the given config and arguments, if any.
+    fn new_chip((config, native_config): &amp;Self::Config, _: Self::Args) -&gt; Self {
+        Self::new(config, NativeChip::new_chip(native_config, ()))
+    }
+
+    /// Creates a new configuration.
+    fn configure_circuit(
+        meta: &amp;mut Self::CS,
+        config_cols: &amp;Self::ConfigCols,
+    ) -&gt; Self::Config {
+        (Self::configure(meta), NativeChip::configure_circuit(meta, config_cols))
+    }
+
+    /// Performs any required loading, such as lookup tables.
+    /// This method is called by the extractor after the harness' method has been executed.
+    fn load_chip(&amp;self, layouter: &amp;mut L, (_, native_config): &amp;Self::Config) -&gt; Result&lt;(), Self::Error&gt; {
+        self.load_table(layouter)?;
+        self.native.load_chip(layouter, native_config)
+    }
+}
+
+<span class="boring">}</span></code></pre>
+<p>With this trait implemented the type can now be used as the <em>chip</em> argument in any harness.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="supporting-new-assigned-types"><a class="header" href="#supporting-new-assigned-types">Supporting new assigned types</a></h1>
-<p>TBD</p>
+<p>In order to use user defined types as inputs or outputs in a harness it is necessary to implement some traits.
+These traits make the type compatible with the extraction system.</p>
+<p>Let’s do a small refresher on why this is necessary. A harness can be defined as follows.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[entry("control-flow/select/native/native")]
+#[harness]
+pub fn select_native(
+    chip: &amp;NativeChip&lt;F&gt;,
+    layouter: &amp;mut impl Layouter&lt;F&gt;,
+    (cond, a, b): (AssignedBit&lt;F&gt;, AssignedNative&lt;F&gt;, AssignedNative&lt;F&gt;),
+) -&gt; Result&lt;AssignedNative&lt;F&gt;, Error&gt; {
+    chip.select(layouter, &amp;cond, &amp;a, &amp;b)
+}
+<span class="boring">}</span></code></pre>
+<p>In this example the type <code>(AssignedBit&lt;F&gt;, AssignedNative&lt;F&gt;, AssignedNative&lt;F&gt;)</code> is the type
+of the input and <code>AssignedNative&lt;F&gt;</code> is the type of the output. When lowering to Picus we cannot use
+this types directly because PCL does not support user defined types and everything is a felt. The extractor
+works around this issue by creating two auxiliary tables (one for inputs and another for outputs) that represent
+the inputs and outputs of the circuit as individual cells. In the example above we need 3 cells in the input auxiliary
+table and 1 cells in the output auxiliary table. We know this because <code>AssignedNative&lt;F&gt;</code> is an alias over Halo2’s
+<code>AssignedCell&lt;F,F&gt;</code> and <code>AssignedBit&lt;F&gt;</code> wraps an <code>AssignedNative&lt;F&gt;</code>.</p>
+<p>As a running example, we are going to add support to the following type as we explain the concepts.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>struct AssignedFoo&lt;F&gt; {
+    foo: [AssignedNative&lt;F&gt;; 10],
+    bar: AssignedBit&lt;F&gt;
+}
+<span class="boring">}</span></code></pre>
+<p>In order for the extractor to know how many cells a type occupies we have the <a href="https://docs.rs/mdnt-support/latest/mdnt_support/cells/trait.CellReprSize.html"><code>CellReprSize</code></a> trait from the <code>mdnt-support</code> crate.
+This trait has a constant <code>usize</code> that declares the amount of cells required. Types such as <code>AssignedCell&lt;F,F&gt;</code> or <code>[T;N]</code> already
+implement this trait, so we can leverage that for implementing the trait for <code>AssignedFoo</code>.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// The impl of this trait for AssignedCell shows that it, as expected, only takes up one cell.
+impl&lt;V, F&gt; CellReprSize for AssignedCell&lt;V, F&gt; {
+    const SIZE: usize = 1;
+}
+
+// For our type we can leverage the existing implementations.
+impl&lt;F&gt; CellReprSize for AssignedFoo&lt;F&gt; {
+    const SIZE: usize = &lt;[AssignedNative&lt;F&gt;; 10]&gt;::SIZE + &lt;AssignedBit&lt;F&gt;&gt;::SIZE; // Total 11 cells.
+}
+<span class="boring">}</span></code></pre>
+<p>This trait requires that the type has a known size and won’t work well with types that have dynamically sized types such as <code>Vec</code>.
+The following pattern can be used to work around this limitation.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>/// Dynamically sized version of AssignedFoo
+struct AssignedFooDyn&lt;F&gt; {
+    foo: Vec&lt;AssignedNative&lt;F&gt;&gt;,
+    bar: AssignedBit&lt;F&gt;
+}
+
+/// We create a new type that has a known length.
+struct LoadedFooDyn&lt;F, const N: usize&gt; {
+    foo: AssignedFooDyn&lt;F&gt;,
+    _marker: PhantomData&lt;[(); N]&gt;
+}
+
+impl&lt;F, const N: usize&gt; From&lt;LoadedFooDyn&lt;F, N&gt;&gt; for AssignedFooDyn&lt;F&gt; {
+    fn from(value: LoadedFooDyn&lt;F, N&gt;) -&gt; Self {
+        value.foo
+    }
+}
+
+// And implement the trait on this new type wrapper. The other traits that we will see 
+// below need to be implemented on this trait as well.
+impl&lt;F, const N: usize&gt; CellReprSize for LoadedFooDyn&lt;F, N&gt; {
+    const SIZE: usize = &lt;AssignedNative&lt;F&gt;&gt;::SIZE * N + &lt;AssignedBit&lt;F&gt;&gt;::SIZE; // Total N+1 cells.
+}
+<span class="boring">}</span></code></pre>
+<p>Now that we have the trait that declares the size of the type we can add support for reading, writing, or both.
+For using the type as an input in a harness we need to implement <a href="https://docs.rs/mdnt-support/latest/mdnt_support/cells/load/trait.LoadFromCells.html"><code>LoadFromCells</code></a>. And for using the type as an output
+we need to implement <a href="https://docs.rs/mdnt-support/latest/mdnt_support/cells/store/trait.StoreIntoCells.html"><code>StoreIntoCells</code></a>. Both traits have 4 type parameters: <code>F</code>, <code>C</code>, <code>E</code>, and <code>L</code>. <code>F</code> is the type of the
+field and needs to implement the <code>ff::PrimeField</code> trait. <code>C</code> is the chip we are using for the harness. In the example at the
+beginning of this chapter it would be <code>NativeChip</code>. <code>E</code> is the extraction adaptor, which is a type that has a set of
+associated types representing different Halo2 concepts. <code>E</code> must implement the <a href="https://docs.rs/mdnt-support/latest/mdnt_support/trait.Halo2Types.html"><code>Halo2Types</code></a> trait in <code>mdnt-support</code>. Last, <code>L</code> does not necessarily need to implement any trait in order to satisfy either
+<code>LoadFromCells</code> or <code>StoreIntoCells</code>. However, some implementations may require an instance of a <code>Layouter</code> and <code>L</code> can be constrained
+to that trait (<code>L: Layouter&lt;F&gt;</code>).</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>impl&lt;F, L, C, E&gt; LoadFromCells&lt;F, C, E, L&gt; for AssignedFoo&lt;F&gt;
+where 
+    F: PrimeField,
+    E: Halo2Types&lt;F&gt;
+{
+    fn load(
+        ctx: &amp;mut ICtx&lt;F, E&gt;,
+        chip: &amp;C,
+        layouter: &amp;mut impl LayoutAdaptor&lt;F, E, Adaptee = L&gt;,
+        injected_ir: &amp;mut InjectedIR&lt;E::RegionIndex, E::Expression&gt;,
+    ) -&gt; Result&lt;Self, E::Error&gt; {
+        // Inside this method we need to construct an instance of the type.
+        Ok(Self {
+            // We can leverage the existing implementations of the trait.
+            foo: ctx.load(chip, layouter, injected_ir)?,
+            bar: ctx.load(chip, layouter, injected_ir)?,
+        })
+    }
+}
+
+impl&lt;F, L, C, E&gt; StoreIntoCells&lt;F, C, E, L&gt; for AssignedFoo&lt;F&gt;
+where 
+    F: PrimeField,
+    E: Halo2Types&lt;F&gt;
+{
+    fn store(
+        self,
+        ctx: &amp;mut OCtx&lt;F, E&gt;,
+        chip: &amp;C,
+        layouter: &amp;mut impl LayoutAdaptor&lt;F, E, Adaptee = L&gt;,
+        injected_ir: &amp;mut InjectedIR&lt;E::RegionIndex, E::Expression&gt;,
+    ) -&gt; Result&lt;(), E::Error&gt; {
+        // Inside this method we need to convert the type into a set of cells.
+        // Again, we can leverage existing implementations.
+        self.foo.store(ctx, chip, layouter, injected_ir)?;
+        self.bar.store(ctx, chip, layouter, injected_ir)
+    }
+}
+<span class="boring">}</span></code></pre>
+<p>Inside those traits the programmer has the ability of performing the conversion in different ways.
+The <code>ctx</code> gives access to the raw cells. The <code>chip</code> and <code>layouter</code> allow performing the conversion
+via some method the chip implements. For example, because the target chip implements a trait that
+already has the desired logic (i.e. adding <code>C: ThatTrait</code> to the where bounds). Lastly, <code>injected_ir</code> allows
+writing <a href="https://docs.rs/haloumi-ir/latest/haloumi_ir/">Haloumi IR</a> directly for encoding semantic properties of the type. For example, the implementations for
+<code>AssignedBit</code> and <code>AssignedByte</code> in <code>midnight-circuits</code> emits IR that constraints the value to be within the
+range of the types; 0-1 and 0-255 respetively.</p>
 
                     </main>
 
