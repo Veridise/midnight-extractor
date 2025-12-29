@@ -14,18 +14,15 @@ You can add these dependencies as follows:
 [dependencies.picus]
 version = "..."
 package = "mdnt-support-macros"
+# Optional features
+features = ["extractor-derive"]
 
 [dependencies.picus-support]
 version = "..."
 package = "mdnt-groups-support"
-# Optional features
-features = ["extractor-derive"]
 
 # If `extractor-derive` is enabled
 [dependencies.extractor-support]
-# If `mdnt-support` is not published in crates.io yet.
-git = "https://github.com/Veridise/midnight-extractor"
-# Otherwise 
 version = "..."
 package = "mdnt-support"
 ```

@@ -4,12 +4,15 @@
 #![deny(missing_docs)]
 
 use proc_macro::TokenStream;
-use syn::{DeriveInput, ItemFn, parse_macro_input};
+use syn::{parse_macro_input, DeriveInput, ItemFn};
+
+use crate::parse::group::GroupArgs;
 
 mod decompose;
 #[cfg(feature = "extractor-derive")]
 mod extractor;
 mod group_impl;
+mod parse;
 
 /// Creates a group annotation around the body of a function.
 ///
@@ -25,14 +28,31 @@ mod group_impl;
 /// `#[output]` to signify the kind of IO they represent.
 ///
 /// Any type that is treated as IO of the group must implement the
-/// `DecomposeInCells` trait since the macro will rely on that trait for making
-/// the annotations.
+/// `DecomposeIn<Cell>` trait since the macro will rely on that trait for making
+/// the annotations, where `Cell` is the Halo2 type. By default this trait is
+/// expected to be `picus_support::DecomposeIn` and can be configured to use a different
+/// crate name.
 ///
 /// # Example
 ///
 /// ```ignore
+/// // This crate was renamed in Cargo.toml:
+/// // [dependencies]
+/// // picus = { version = "...", package = "mdnt-support-macros" }
+///
+/// // Default configuration
 /// #[picus::group]
-/// fn foo(&self, layouter: &mut impl Layouter<F>, inputs: #[input] &[AssignedNative<F>]) ->
+/// fn foo(&self, layouter: &mut impl Layouter<F>,#[input] inputs: &[AssignedNative<F>]) ->
+/// Result<AssignedNative<F>, Error> {
+///     // The body of this function is now wrapped in a call to `layouter.group()`.
+///     inputs.iter().try_fold(F::ZERO, |acc, i| self.bar(layouter, i, acc))
+///     // The return value is annotated as an output and gets forwarded untouched.
+/// }
+///
+/// // Different crate name.
+/// // Here the trait is referenced as `mdnt_support::DecomposeIn`.
+/// #[picus::group(crate = mdnt_support)]
+/// fn foo(&self, layouter: &mut impl Layouter<F>,#[input] inputs: &[AssignedNative<F>]) ->
 /// Result<AssignedNative<F>, Error> {
 ///     // The body of this function is now wrapped in a call to `layouter.group()`.
 ///     inputs.iter().try_fold(F::ZERO, |acc, i| self.bar(layouter, i, acc))
@@ -40,8 +60,11 @@ mod group_impl;
 /// }
 /// ```
 #[proc_macro_attribute]
-pub fn group(_: TokenStream, item: TokenStream) -> TokenStream {
-    match group_impl::group_impl(parse_macro_input!(item as ItemFn)) {
+pub fn group(attr: TokenStream, item: TokenStream) -> TokenStream {
+    match group_impl::group_impl(
+        parse_macro_input!(item as ItemFn),
+        parse_macro_input!(attr as GroupArgs),
+    ) {
         Ok(tok) => tok,
         Err(err) => err.to_compile_error(),
     }

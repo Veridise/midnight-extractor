@@ -1,8 +1,12 @@
 use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote};
+#[cfg(feature = "region-groups")]
+use syn::Path;
 use syn::{
     spanned::Spanned, Attribute, Block, FnArg, Ident, ItemFn, Pat, PatType, ReturnType, Visibility,
 };
+
+use crate::parse::group::GroupArgs;
 
 const INPUT_ATTR: &str = "input";
 const OUTPUT_ATTR: &str = "output";
@@ -10,12 +14,14 @@ const LAYOUTER_ATTR: &str = "layouter";
 
 /// Internal implementation of [`super::group`].
 ///
-/// Refer to that macro for details about its user facing API.
-pub fn group_impl(input_fn: ItemFn) -> syn::Result<TokenStream> {
+/// Refer to that macro's documentation for details about its user facing API.
+pub fn group_impl(input_fn: ItemFn, args: GroupArgs) -> syn::Result<TokenStream> {
     let fn_ident = &input_fn.sig.ident;
     let group_ident = format_ident!("__{}__group", fn_ident);
 
     let (layouter, io) = locate_attributes(&input_fn)?;
+    log::debug!("layouter = {layouter:?}");
+    log::debug!("io = {io:?}");
     let layouter = select_layouter(&layouter, input_fn.sig.span())?;
     let io_annotations = generate_io_annotations(io, &group_ident);
     let cleaned_inputs = clean_inputs(input_fn.sig.inputs.iter());
@@ -30,6 +36,7 @@ pub fn group_impl(input_fn: ItemFn) -> syn::Result<TokenStream> {
         &group_ident,
         io_annotations,
         &input_fn.block,
+        args.crate_name(),
     ))
 }
 
@@ -44,16 +51,17 @@ fn emit_wrapped_fn(
     group_ident: &Ident,
     io_annotations: impl Iterator<Item = TokenStream>,
     user_block: &Block,
+    support_crate: Path,
 ) -> TokenStream {
     quote! {
         #(#fn_attrs)*
         #vis fn #fn_ident(#(#cleaned_inputs, )*) #output {
 
             #layouter.group(|| stringify!(#fn_ident), midnight_proofs::default_group_key!(), |#layouter,#[allow(non_snake_case)] #group_ident| {
-                use picus_support::DecomposeIn as _;
+                use #support_crate::DecomposeIn as _;
                 #(#io_annotations)*
                 let inner_result = #user_block;
-                #group_ident.annotate_outputs(inner_result.cells())?;
+                #group_ident.annotate_as_output(&inner_result)?;
                 inner_result
             })
         }
@@ -153,7 +161,7 @@ fn clean_inputs<'a>(inputs: impl Iterator<Item = &'a FnArg>) -> impl Iterator<It
 }
 
 /// Possible attributes for the arguments of the annotated function.
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 enum ArgAttributes {
     Input,
     Output,
@@ -177,9 +185,12 @@ impl ArgAttributes {
     }
 
     fn from_attr(attr: &Attribute) -> Option<Self> {
+        log::debug!("   Creating ArgAttributes from attr = {attr:?}");
         // These attributes must be a path with a single segment (i.e. #[input]).
         let ident = attr.path().get_ident()?;
+        log::debug!("   Attribute is an identifier: {ident}");
         if ident == INPUT_ATTR {
+            log::debug!("     Creating Input");
             return Some(ArgAttributes::Input);
         }
         if ident == OUTPUT_ATTR {
@@ -196,14 +207,21 @@ impl ArgAttributes {
             .iter()
             .filter_map(Self::from_attr)
             .try_fold(None::<Self>, |acc, attr| {
-                acc.map(|acc| acc.try_combine(attr)).transpose().map_err(|(lhs, rhs)| {
-                    syn::Error::new(span, format!("Incompatible attributes '{lhs}' and '{rhs}'"))
+                Ok(match acc {
+                    Some(acc) => Some(acc.try_combine(attr).map_err(|(lhs, rhs)| {
+                        syn::Error::new(
+                            span,
+                            format!("Incompatible attributes '{lhs}' and '{rhs}'"),
+                        )
+                    })?),
+                    None => Some(attr),
                 })
             })
             .transpose()
     }
 
     fn try_from_arg(arg: &FnArg) -> Option<syn::Result<(Self, &syn::PatType)>> {
+        log::debug!("Creating ArgAttributes from arg = {arg:?}");
         let FnArg::Typed(pat) = arg else {
             return None;
         };
@@ -212,10 +230,10 @@ impl ArgAttributes {
 
     pub fn emit_code(self, pat: &syn::Pat, group_ident: &syn::Ident) -> Option<TokenStream> {
         match self {
-            ArgAttributes::Input => Some(quote! { #pat.annotate_as_input(#group_ident)?; }),
-            ArgAttributes::Output => Some(quote! { #pat.annotate_as_output(#group_ident)?; }),
+            ArgAttributes::Input => Some(quote! { #group_ident.annotate_as_input(&#pat)?; }),
+            ArgAttributes::Output => Some(quote! { #group_ident.annotate_as_output(&#pat)?; }),
             ArgAttributes::InputOutput => Some(
-                quote! { #pat.annotate_as_input(#group_ident)?; #pat.annotate_as_output(#group_ident)?;},
+                quote! { #group_ident.annotate_as_input(&#pat)?; #group_ident.annotate_as_output(&#pat)?;},
             ),
             ArgAttributes::Layouter => None,
         }
@@ -234,5 +252,125 @@ impl std::fmt::Display for ArgAttributes {
                 ArgAttributes::Layouter => "#[layouter]",
             }
         )
+    }
+}
+
+#[cfg(feature = "region-groups")]
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use log::LevelFilter;
+    use macro_expand::Context;
+    use rstest::{fixture, rstest};
+    use simplelog::{Config, TestLogger};
+
+    macro_rules! _try {
+        ($p:expr, $s:expr) => {
+            $p.map_err(|err| ParseError::new(err, stringify!($s))).unwrap()
+        };
+    }
+
+    #[fixture]
+    fn ctx() -> Context<'static> {
+        let _ = TestLogger::init(LevelFilter::Debug, Config::default());
+        let mut ctx = Context::new();
+        ctx.register_proc_macro_attribute("group".into(), |input, attr| {
+            group_impl(input, _try!(syn::parse2(attr), attr)).unwrap()
+        });
+
+        ctx
+    }
+
+    #[derive(Debug)]
+    struct ParseError {
+        err: syn::Error,
+        ctx: &'static str,
+        span: Span,
+    }
+
+    impl ParseError {
+        fn new(err: impl Into<syn::Error>, ctx: &'static str) -> Self {
+            let err = err.into();
+            Self {
+                ctx,
+                span: err.span(),
+                err,
+            }
+        }
+    }
+
+    macro_rules! parse {
+        ($s:expr) => {{
+            let ts: proc_macro2::TokenStream = _try!($s.parse(), $s);
+            ts
+        }};
+    }
+
+    macro_rules! unparse {
+        ($ts:expr) => {
+            prettyplease::unparse(&_try!(syn::parse2($ts), $ts))
+        };
+    }
+
+    #[rstest]
+    #[case(
+        r"#[group]
+        fn foo( layouter: &mut impl Layouter<F>, #[input] inputs:  &[AssignedNative<F>]) -> Result<AssignedNative<F>, Error> {
+            inputs.iter().try_fold(F::ZERO, |acc, i| self.bar(layouter, i, acc))
+        }
+        ",
+        r"
+        fn foo( layouter: &mut impl Layouter<F>, inputs:  &[AssignedNative<F>]) -> Result<AssignedNative<F>, Error> {
+            layouter.group(
+                || stringify!(foo),
+                midnight_proofs::default_group_key!(),
+                |layouter, #[allow(non_snake_case)] __foo__group| {
+                    use picus_support::DecomposeIn as _;
+                    __foo__group.annotate_as_input(&inputs)?;
+                    let inner_result = {
+                        inputs.iter().try_fold(F::ZERO, |acc, i| self.bar(layouter, i, acc))
+                    };
+                    __foo__group.annotate_as_output(&inner_result)?;
+                    inner_result
+                }
+            )
+        }
+        "
+    )]
+    #[case::different_crate(
+        r"#[group(crate = ::other)]
+        fn foo( layouter: &mut impl Layouter<F>, #[input] inputs:  &[AssignedNative<F>]) -> Result<AssignedNative<F>, Error> {
+            inputs.iter().try_fold(F::ZERO, |acc, i| self.bar(layouter, i, acc))
+        }
+        ",
+        r"
+        fn foo( layouter: &mut impl Layouter<F>, inputs:  &[AssignedNative<F>]) -> Result<AssignedNative<F>, Error> {
+            layouter.group(
+                || stringify!(foo),
+                midnight_proofs::default_group_key!(),
+                |layouter, #[allow(non_snake_case)] __foo__group| {
+                    use ::other::DecomposeIn as _;
+                    __foo__group.annotate_as_input(&inputs)?;
+                    let inner_result = {
+                        inputs.iter().try_fold(F::ZERO, |acc, i| self.bar(layouter, i, acc))
+                    };
+                    __foo__group.annotate_as_output(&inner_result)?;
+                    inner_result
+                }
+            )
+        }
+        "
+    )]
+    fn derive_macro_test(ctx: Context, #[case] input: &str, #[case] expected: &str) {
+        log::debug!("Parsing input:\n{input}");
+        let input = parse!(input);
+        log::debug!("Parsed input:\n{input}");
+        log::debug!("Parsing expected:\n{expected}");
+        let expected = unparse!(parse!(expected));
+        log::debug!("Transforming input");
+        let output = ctx.transform(input);
+        let formatted = unparse!(output);
+        log::debug!("Produced output:\n{formatted}");
+        similar_asserts::assert_eq!(expected, formatted);
     }
 }
