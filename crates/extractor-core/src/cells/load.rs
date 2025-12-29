@@ -13,7 +13,6 @@ use mdnt_support::{
 use midnight_circuits::{
     ecc::{curves::CircuitCurve, native::AssignedScalarOfNativeCurve as ScalarVar},
     field::AssignedBounded,
-    halo2curves::CurveExt as _,
     instructions::{ComparisonInstructions, ConversionInstructions, EccInstructions},
     midnight_proofs::{
         circuit::{AssignedCell, Layouter},
@@ -21,6 +20,7 @@ use midnight_circuits::{
     },
     types::{AssignedNative, AssignedNativePoint},
 };
+use midnight_curves::CurveExt as _;
 use midnight_proofs::circuit::RegionIndex;
 use midnight_proofs::ExtractionSupport;
 use num_bigint::BigUint;

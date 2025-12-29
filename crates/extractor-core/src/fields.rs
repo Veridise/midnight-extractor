@@ -4,11 +4,9 @@ use std::marker::PhantomData;
 
 use ff::PrimeField;
 pub use midnight_curves::{
+    secp256k1::{Fp as Secp256k1Fp, Fq as Secp256k1Fq, Secp256k1},
     Fp as MidnightFp, Fq as Blstrs, Fr as JubjubFr, G1Projective as G1, JubjubExtended as Jubjub,
     JubjubSubgroup,
-};
-pub use midnight_proofs::halo2curves::secp256k1::{
-    Fp as Secp256k1Fp, Fq as Secp256k1Fq, Secp256k1,
 };
 use midnight_proofs::{
     circuit::RegionIndex,

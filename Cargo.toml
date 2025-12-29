@@ -25,6 +25,7 @@ haloumi-core = "0.2"
 inventory = "0.3"
 anyhow = "1"
 mdnt-support = "0.2"
+halo2curves = { version = "0.7.0", default-features = false }
 
 [workspace.dependencies.sha3-circuit]
 git = "https://github.com/Veridise/sha3-circuit-midnight"

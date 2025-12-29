@@ -1,3 +1,4 @@
+use halo2curves::group::Group;
 use midnight_circuits::{
     biguint::BigUintGadget,
     ecc::{
@@ -14,7 +15,6 @@ use midnight_circuits::{
     parsing::ParserGadget,
     types::{AssignedField, AssignedForeignPoint, AssignedNative},
 };
-use midnight_proofs::halo2curves::group::Group;
 
 use crate::chips::{native::NativeGadgetAdaptor, vector::VectorGadgetAdaptor};
 
