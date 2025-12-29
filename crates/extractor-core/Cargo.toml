@@ -15,7 +15,7 @@ ff.workspace = true
 midnight-proofs.workspace = true
 midnight-circuits.workspace = true
 midnight-curves.workspace = true
-mdnt-support = { version = "0.2.4"}
+mdnt-support = { version = "0.2"}
 num-bigint = "0.4"
 haloumi-ir.workspace =true
 haloumi-ir-base.workspace =true

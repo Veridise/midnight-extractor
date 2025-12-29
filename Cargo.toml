@@ -9,7 +9,7 @@ members = [ "crates/extractor",
 resolver = "2"
 
 [workspace.package]
-version = "0.2.10"
+version = "0.2.11"
 authors = ["Daniel Dominguez (Veridise) <daniel@veridise.com>"]
 edition = "2024"
 rust-version = "1.85"
@@ -37,7 +37,7 @@ features = ["extraction"]
 git = "https://github.com/Veridise/midnight-zk"
 default-features = false
 features = [
-    "bits",
+    # "bits",
     # "cost-estimator",
     "circuit-params",
     "committed-instances",
