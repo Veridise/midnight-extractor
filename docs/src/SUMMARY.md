@@ -2,6 +2,7 @@
 
 # User manual
 
+- [Introduction](./intro.md)
 - [Installation](./installation.md)
 - [Extraction](./extraction.md)
 - [AuditHub](./audit-hub/intro.md)
@@ -9,7 +10,7 @@
     - [Uploading new versions](./audit-hub/uploading.md)
     - [Launching jobs](./audit-hub/jobs.md)
 
-# Supporting new chips
+# Developer manual
 
 - [Writing new harnesses](./new_harness.md)
 - [Supporting new chips](./chip_support.md)

@@ -3,3 +3,6 @@ authors = ["Daniel Dominguez"]
 language = "en"
 src = "src"
 title = "Midnight extractor user manual"
+
+[output.html.playground]
+runnable = false

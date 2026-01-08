@@ -1,10 +1,10 @@
 # Writing new harnesses
 
-Adding more harnesses is done in the `crates/harnesses` crate. The crate is organized by instructions and, 
+Add new harnesses in the `crates/harnesses` crate. That crate is organized by instructions and, 
 in some cases, by chips or gadgets that implement the instructions.
 
-Conceptually, a harness is a function that receives a *chip*, a *layouter*, some inputs and returns a `Result`.
-In reallity a harness is a function with a more abstract signature but that complexity is usually managed by a macro
+Conceptually, a harness is a function that receives a *chip*, a *layouter*, some inputs, and returns a `Result`.
+In reallity a harness is a function with a more abstract signature, but that complexity is usually managed by a macro
 that allows for a more declarative approach. However, if the macro is not an option see the section below 
 on how to write harnesses from scratch.
 
@@ -13,26 +13,27 @@ on how to write harnesses from scratch.
 A harnesses written declaratively has the following structure.
 
 ```rust
-// The harnesses are NOT parametrized by a field.
+// The harnesses are NOT parametrized by a field
+// but we use an alias for readibility.
 use mdnt_extractor_core::fields::Blstrs as F;
 
-// Sets the harness name of the function below.
+// Sets the harness name for the function below.
 #[entry("control-flow/select/native/native")]
 // Marks the function as a harness
 #[harness]
 pub fn select_native(
-    // The first argument is the chip. The only requirement is that the type is a &-reference.
+    // The first argument is the chip, a &-reference to a type that implements 
+    // `CircuitInitialization`.
     chip: &NativeChip<F>,
     // The second argument is the layouter. The actual layouter variable is not a 
     // `impl Layouter<F>`. This is syntactic sugar for a namesake variable that 
     // implements `midnight_proofs::circuit::Layouter`. So the result is the same.
     layouter: &mut impl Layouter<F>,
-    // The third argument are the inputs. The type of the input must implement `LoadFromCells`.
+    // The third argument are the inputs, whose type must implement `LoadFromCells`.
     (cond, a, b): (AssignedBit<F>, AssignedNative<F>, AssignedNative<F>),
     // Optional fourth argument that allows injecting additional IR for aiding verification.
     injected_ir: &mut InjectedIR<RegionIndex, Expression<F>>
-    // The output must be a Result<T, E> where T is a type that implements `StoreIntoCells` and 
-    // E is `midnight_proofs::plonk::Error`.
+    // The output must be a Result<T, Errot> where T is a type that implements `StoreIntoCells`.
 ) -> Result<AssignedNative<F>, Error> {
     // Runs the target method.
     chip.select(layouter, &cond, &a, &b)
@@ -44,9 +45,9 @@ can be obtained by calling the `mdnt_harnesses::harnesses` function.
 The extractor uses that function for selecting what harnesses need to be extracted.
 
 The macros do a lot of heavy lifting in converting this form to how the harnesses look internally.
-The `#[entry("...")]` macro registers the function in the list of harnesses. This registration is accomplised 
+The `#[entry("...")]` macro registers the function in the list of harnesses. This registration is actually accomplised 
 with `mdnt_extractor_core::entry!` and in some cases is actually better to use this macro instead of `#[entry]`.
-For example, a harness that is parametrized by a constant parameter for selecting the size of some arrays.
+For example, when a harness is parametrized by a constant parameter for selecting the size of some arrays.
 
 ```rust 
 entry!("bar/example_10/foo/native", example::<10>);
@@ -63,25 +64,29 @@ pub fn example<const N: usize>(
 
 The harness macro family has 6 macros that can be used for declaring harnesses and offer some flexibility for covering most cases.
 
-For most chips (the ones where `ChipArgs::Args == ()`) use the macros `harness`, `harness_mut`, and `unit_harness`. The
-first macro is the one we saw above already. `harness_mut` is similar to `harness` but the first argument (the *chip* argument)
-must be a `&mut`-reference instead. `unit_harness` is for methods that do have a return value (`Result<(),Error>`). For this 
-macro split the inputs of the function into two sets and pass them as the 3rd and 4th argument. The 4th argument can be 
+For most chips (the ones where `CircuitInitialization::Args == ()`) use the macros `harness`, `harness_mut`, or `unit_harness`.
+The first macro is the one we saw above already. `harness_mut` is similar to `harness` but the first 
+argument (the *chip* argument)
+must be a `&mut`-reference instead. `unit_harness` is for methods that don't have a return value (`Result<(), Error>`). To use
+this 
+macro split the inputs of the function into two sets and pass them as the third and fourth argument. The 4th argument can be 
 considered the *output* and additional constraints can be injected for aiding Picus with verification. That argument, however,
 is not encoded as a Picus output. Is just a separation for readability. In these cases a vacuous output is generated 
-that is constrained to be equal to 0.
+that is constrained to be equal to 0. If you need to inject IR in a `unit_harness` you can access the injector via 
+the fifth optional argument.
 
-If for the target chip `ChipArgs::Args != ()` then you need to use `harness_with_args`, `harness_with_args_mut`, and
+If the target chip `CircuitInitialization::Args != ()` then you need to use `harness_with_args`, `harness_with_args_mut`, or
 `unit_harness_with_args`. These macros work identically to their counterparts but require declaring the type of
-`ChipArgs::Args` (i.e. `#[harness_with_args(usize)]`). For providing the argument you need to define a function that has
+`CircuitInitialization::Args` (i.e. `#[harness_with_args(usize)]`). To provide the arguments you need to define a function that has
 the same name as the harness function followed by `_args` (i.e. `foo` would be `foo_args`). That function cannot take any
 arguments and return a value of the declared type.
 
 Since the most common argument type is `usize` we include a convenience macro `#[usize_args(<usize>)]` that automatically creates 
 the function with the correct name and returns the value passed as argument to the macro.
 
-All the macros accept an optional argument with an expression containing `LookupCallbacks`. For example, for extracting a 
-harness like the first one but for `NativeGadget` instead we need to handle the range lookup that gadget uses. For that we can 
+All the macros accept an optional argument with an expression of type `LookupCallbacks` that allows defining custom behaviors 
+to handle lookups. For example, a 
+harness like the first one but for `NativeGadget` instead needs to handle the range lookup the gadget uses. For that we can 
 do as follows:
 
 ```rust
@@ -97,9 +102,9 @@ pub fn select_native(
 }
 ```
 
-## Writing harnesses from scratch (WIP)
+## Writing harnesses from scratch
 
-If the macros shown above don't fit the needs of this new harness they can still be defined by hand. Below is an annotated 
+If the macros shown above do not fit the needs of a new harness they can still be defined by hand. Below is an annotated 
 version of the kind of code the macros generate that can serve as a starting point for creating a harness from scratch.
  
 ```rust
@@ -159,13 +164,14 @@ fn select_native(ctx: &Ctx) -> anyhow::Result<Output> {
     let ci: CircuitImpl<'_, F, Circuit, Function> =
         CircuitImpl::new(ctx, Circuit(Default::default()));
     // The first argument of this method is a type that implements the  
-    // CircuitSynthesis trait, which is Haloumi's counterpart to the Circuit trait in Halo2.
-    // As long as the value passed there meets the interface all the stuff above this line is not 
-    // mandatory.
-    // The second argument is an optional dyn reference to a LookupCallbacks implementation.
+    // `CircuitSynthesis` trait, which is Haloumi's counterpart to the Circuit trait in Halo2.
+    // The types and traits above handle most of the boilerplate and help keep the harnesses more readable.
+    // However, the only trait the frontend needs is `CircuitSynthesis` so other approaches are possible so long 
+    // they implement that trait.
+    // 
+    // The second argument is an optional &dyn-reference to a LookupCallbacks implementation.
     // These callbacks are invoked when the circuit has lookups for getting the IR that needs to be 
     // generated for handling the lookup.
     ctx.lower_circuit(ci, None)
 }
-
 ```

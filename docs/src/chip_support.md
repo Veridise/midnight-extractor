@@ -1,7 +1,7 @@
 # Supporting new chips
 
-In order to use user defined chips or gadgets in a harness it is necessary to implement a trait.
-This trait makes the chip or gadget compatible with the extraction system.
+In order to use user defined chips or gadgets in a harness it is necessary to implement a trait
+that makes it compatible with the extraction system.
 
 Let's do a small refresher on why this is necessary. A harness can be defined as follows.
 
@@ -51,7 +51,7 @@ impl<F: PrimeField> FooChip<F> {
 }
 ```
 
-Our example chip has a lookup table and depends on `NativeChip`, which already implements the trait we are going to implement.
+The example chip has a lookup table and depends on `NativeChip`, which already implements the trait we are going to implement.
 The trait is parametrized in `L`, that we can use as an implementation of a `Layouter`.
 
 ```rust
@@ -64,11 +64,10 @@ where
     type Config = (FooConfig, <NativeChip<F> as CircuitInitialization<F>>::Config);
 
     // Any external arguments the chip may need. If the chip does not have any then 
-    // a 0-tuple is sufficient.
+    // an empty tuple is sufficient.
     type Args = ();
 
     // Any type that is part of the configuration that could be potentially shared with other chips.
-    // This should have any type, potentially created by the ConstraintSystem, but that is not created by the chip itself.
     // FooChip does not have any of that in this case so we just put NativeChip's.
     type ConfigCols = <NativeChip<F> as CircuitInitialization<F>>::ConfigCols;
 
@@ -101,4 +100,4 @@ where
 
 ```
 
-With this trait implemented the type can now be used as the _chip_ argument in any harness.
+After implementing this trait the type can be used as the _chip_ argument in any harness.

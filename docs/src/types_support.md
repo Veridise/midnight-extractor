@@ -1,7 +1,7 @@
 # Supporting new assigned types
 
-In order to use user defined types as inputs or outputs in a harness it is necessary to implement some traits.
-These traits make the type compatible with the extraction system.
+In order to use user defined types as inputs or outputs in a harness it is necessary to implement traits
+that make the type compatible with the extraction system.
 
 Let's do a small refresher on why this is necessary. A harness can be defined as follows.
 
@@ -17,15 +17,15 @@ pub fn select_native(
 }
 ```
 
-In this example the type `(AssignedBit<F>, AssignedNative<F>, AssignedNative<F>)` is the type 
-of the input and `AssignedNative<F>` is the type of the output. When lowering to Picus we cannot use 
-this types directly because PCL does not support user defined types and everything is a felt. The extractor 
+In this example the input has type `(AssignedBit<F>, AssignedNative<F>, AssignedNative<F>)` and 
+the output has type `AssignedNative<F>`. When lowering to Picus we cannot use 
+these types directly because PCL does not support user defined types and everything is a field element. The extractor 
 works around this issue by creating two auxiliary tables (one for inputs and another for outputs) that represent 
 the inputs and outputs of the circuit as individual cells. In the example above we need 3 cells in the input auxiliary 
-table and 1 cells in the output auxiliary table. We know this because `AssignedNative<F>` is an alias over Halo2's 
-`AssignedCell<F,F>` and `AssignedBit<F>` wraps an `AssignedNative<F>`.
+table and 1 cells in the output auxiliary table. This is because `AssignedNative<F>` is an alias over Halo2's 
+`AssignedCell<F,F>`, which takes up 1 cell, and `AssignedBit<F>` wraps an `AssignedNative<F>`.
 
-As a running example, we are going to add support to the following type as we explain the concepts.
+As an example, we are going to add support to the following type as we explain the concepts.
 
 ```rust
 struct AssignedFoo<F> {
@@ -34,12 +34,15 @@ struct AssignedFoo<F> {
 }
 ```
 
-In order for the extractor to know how many cells a type occupies we have the [`CellReprSize`](https://docs.rs/mdnt-support/latest/mdnt_support/cells/trait.CellReprSize.html) trait from the `mdnt-support` crate. 
-This trait has a constant `usize` that declares the amount of cells required. Types such as `AssignedCell<F,F>` or `[T;N]` already 
+The extractor knows how many cells a type occupies using the
+[`CellReprSize`](https://docs.rs/mdnt-support/latest/mdnt_support/cells/trait.CellReprSize.html) 
+trait from the `mdnt-support` crate. 
+This trait has a constant `usize` that declares the amount of cells required. 
+Types such as `AssignedCell<F,F>` or `[T;N]` already 
 implement this trait, so we can leverage that for implementing the trait for `AssignedFoo`.
 
 ```rust
-// The impl of this trait for AssignedCell shows that it, as expected, only takes up one cell.
+// Showcase of the implementation for AssignedCell.
 impl<V, F> CellReprSize for AssignedCell<V, F> {
     const SIZE: usize = 1;
 }
@@ -50,34 +53,6 @@ impl<F> CellReprSize for AssignedFoo<F> {
 }
 ```
 
-This trait requires that the type has a known size and won't work well with types that have dynamically sized types such as `Vec`.
-The following pattern can be used to work around this limitation.
-
-```rust
-/// Dynamically sized version of AssignedFoo
-struct AssignedFooDyn<F> {
-    foo: Vec<AssignedNative<F>>,
-    bar: AssignedBit<F>
-}
-
-/// We create a new type that has a known length.
-struct LoadedFooDyn<F, const N: usize> {
-    foo: AssignedFooDyn<F>,
-    _marker: PhantomData<[(); N]>
-}
-
-impl<F, const N: usize> From<LoadedFooDyn<F, N>> for AssignedFooDyn<F> {
-    fn from(value: LoadedFooDyn<F, N>) -> Self {
-        value.foo
-    }
-}
-
-// And implement the trait on this new type wrapper. The other traits that we will see 
-// below need to be implemented on this trait as well.
-impl<F, const N: usize> CellReprSize for LoadedFooDyn<F, N> {
-    const SIZE: usize = <AssignedNative<F>>::SIZE * N + <AssignedBit<F>>::SIZE; // Total N+1 cells.
-}
-```
 
 Now that we have the trait that declares the size of the type we can add support for reading, writing, or both.
 For using the type as an input in a harness we need to implement [`LoadFromCells`](https://docs.rs/mdnt-support/latest/mdnt_support/cells/load/trait.LoadFromCells.html). And for using the type as an output 
@@ -129,10 +104,85 @@ where
 }
 ```
 
-Inside those traits the programmer has the ability of performing the conversion in different ways.
+Inside those traits the programmer has the freedom to perform the conversion in different ways.
 The `ctx` gives access to the raw cells. The `chip` and `layouter` allow performing the conversion 
 via some method the chip implements. For example, because the target chip implements a trait that 
-already has the desired logic (i.e. adding `C: ThatTrait` to the where bounds). Lastly, `injected_ir` allows 
-writing [Haloumi IR](https://docs.rs/haloumi-ir/latest/haloumi_ir/) directly for encoding semantic properties of the type. For example, the implementations for 
-`AssignedBit` and `AssignedByte` in `midnight-circuits` emits IR that constraints the value to be within the 
+already has the desired logic (adding `C: ThatTrait` to the where bounds). `injected_ir` allows 
+writing [Haloumi IR](https://docs.rs/haloumi-ir/latest/haloumi_ir/) encoding semantic properties of the type. 
+For example, the implementations for 
+`AssignedBit` and `AssignedByte` in `midnight-circuits` emit IR that constraints the value to be within the 
 range of the types; 0-1 and 0-255 respetively.
+
+
+These traits require that the type has a known size and won't work well with types that have dynamically sized types such as `Vec`.
+To work around this limitation we can use the following pattern.
+
+```rust
+/// Dynamically sized version of AssignedFoo
+struct AssignedFooDyn<F> {
+    foo: Vec<AssignedNative<F>>,
+    bar: AssignedBit<F>
+}
+
+/// We create a new type that has a known length.
+/// We will implement the traits on this type and use it as input and/or output.
+/// Inside the harness we then convert between this type and [`AssignedFooDyn`].
+struct LoadedFooDyn<F, const N: usize> {
+    foo: AssignedFooDyn<F>,
+    _marker: PhantomData<[(); N]>
+}
+
+impl<F, const N: usize> From<LoadedFooDyn<F, N>> for AssignedFooDyn<F> {
+    fn from(value: LoadedFooDyn<F, N>) -> Self {
+        value.foo
+    }
+}
+
+// And implement the traits on this new type wrapper. 
+
+impl<F, const N: usize> CellReprSize for LoadedFooDyn<F, N> {
+    const SIZE: usize = <AssignedNative<F>>::SIZE * N + <AssignedBit<F>>::SIZE; // Total N+1 cells.
+}
+
+impl<F, L, C, E, const N: usize> LoadFromCells<F, C, E, L> for LoadedFooDyn<F, N>
+where 
+    F: PrimeField,
+    E: Halo2Types<F>
+{
+    fn load(
+        ctx: &mut ICtx<F, E>,
+        chip: &C,
+        layouter: &mut impl LayoutAdaptor<F, E, Adaptee = L>,
+        injected_ir: &mut InjectedIR<E::RegionIndex, E::Expression>,
+    ) -> Result<Self, E::Error> {
+        let foo_arr: [AssignedNative<F>; N] = ctx.load(chip, layouter, injected_ir)?;
+        Ok(Self {
+            foo: AssignedFooDyn {
+                foo: foo_arr.to_vec(),
+                bar: ctx.load(chip, layouter, injected_ir)?,
+            },
+            _marker: PhantomData
+        })
+    }
+}
+
+impl<F, L, C, E, const N: usize> StoreIntoCells<F, C, E, L> for LoadedFooDyn<F, N>
+where 
+    F: PrimeField,
+    E: Halo2Types<F>
+{
+    fn store(
+        self,
+        ctx: &mut OCtx<F, E>,
+        chip: &C,
+        layouter: &mut impl LayoutAdaptor<F, E, Adaptee = L>,
+        injected_ir: &mut InjectedIR<E::RegionIndex, E::Expression>,
+    ) -> Result<(), E::Error> {
+        let foo_arr: [AssignedNative<F>; N] = self.foo.foo.try_into().map_err(|_| {
+            // Handle error...
+        })?;
+        foo_arr.store(ctx, chip, layouter, injected_ir)?;
+        self.foo.bar.store(ctx, chip, layouter, injected_ir)
+    }
+}
+```
