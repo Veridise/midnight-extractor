@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-049236c5.js";
+            window.path_to_searchindex_js = "searchindex-90e6ecb0.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-abd55088.js"></script>
+        <script src="toc-e2b6dfdf.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -175,12 +175,10 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="supporting-new-chips"><a class="header" href="#supporting-new-chips">Supporting new chips</a></h1>
-<p>In order to use user defined chips or gadgets in a harness it is necessary to implement a trait.
-This trait makes the chip or gadget compatible with the extraction system.</p>
+<p>In order to use user defined chips or gadgets in a harness it is necessary to implement a trait
+that makes it compatible with the extraction system.</p>
 <p>Let’s do a small refresher on why this is necessary. A harness can be defined as follows.</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[entry("control-flow/select/native/native")]
+<pre><code class="language-rust">#[entry("control-flow/select/native/native")]
 #[harness]
 pub fn select_native(
     chip: &amp;NativeChip&lt;F&gt;,
@@ -188,16 +186,13 @@ pub fn select_native(
     (cond, a, b): (AssignedBit&lt;F&gt;, AssignedNative&lt;F&gt;, AssignedNative&lt;F&gt;),
 ) -&gt; Result&lt;AssignedNative&lt;F&gt;, Error&gt; {
     chip.select(layouter, &amp;cond, &amp;a, &amp;b)
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p>This harness targets the <code>NativeChip</code>. When the extractor attempts to extract the harness it needs to know
 some things about this chip, but it doesn’t know what the <code>NativeChip</code> is. This information is obtained via the
 <a href="https://docs.rs/mdnt-support/latest/mdnt_support/circuit/trait.CircuitInitialization.html"><code>CircuitInitialization</code></a> trait.
 This trait, similar in nature to Halo2’s <code>Circuit</code> trait, enables the extractor to configure and create chips that implement it.</p>
 <p>Let’s consider the following chip as an example.</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>struct FooConfig {
+<pre><code class="language-rust">struct FooConfig {
     advice: [Column&lt;Advice&gt;; ADVICE_WIDTH],
     fixed: [Column&lt;Fixed&gt;; FIXED_WIDTH],
     table: [TableColumn; TABLE_WIDTH]
@@ -220,13 +215,10 @@ impl&lt;F: PrimeField&gt; FooChip&lt;F&gt; {
     fn load_table(&amp;self, layouter: impl Layouter&lt;F&gt;) -&gt; Result&lt;(), Error&gt; {
         // Loads the lookup table...
     }
-}
-<span class="boring">}</span></code></pre>
-<p>Our example chip has a lookup table and depends on <code>NativeChip</code>, which already implements the trait we are going to implement.
+}</code></pre>
+<p>The example chip has a lookup table and depends on <code>NativeChip</code>, which already implements the trait we are going to implement.
 The trait is parametrized in <code>L</code>, that we can use as an implementation of a <code>Layouter</code>.</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>impl&lt;F, L&gt; CircuitInitialization&lt;L&gt; for FooChip&lt;F&gt;
+<pre><code class="language-rust">impl&lt;F, L&gt; CircuitInitialization&lt;L&gt; for FooChip&lt;F&gt;
 where
     F: PrimeField,
     L: Layouter&lt;F&gt;,
@@ -235,11 +227,10 @@ where
     type Config = (FooConfig, &lt;NativeChip&lt;F&gt; as CircuitInitialization&lt;F&gt;&gt;::Config);
 
     // Any external arguments the chip may need. If the chip does not have any then 
-    // a 0-tuple is sufficient.
+    // an empty tuple is sufficient.
     type Args = ();
 
     // Any type that is part of the configuration that could be potentially shared with other chips.
-    // This should have any type, potentially created by the ConstraintSystem, but that is not created by the chip itself.
     // FooChip does not have any of that in this case so we just put NativeChip's.
     type ConfigCols = &lt;NativeChip&lt;F&gt; as CircuitInitialization&lt;F&gt;&gt;::ConfigCols;
 
@@ -269,9 +260,8 @@ where
         self.native.load_chip(layouter, native_config)
     }
 }
-
-<span class="boring">}</span></code></pre>
-<p>With this trait implemented the type can now be used as the <em>chip</em> argument in any harness.</p>
+</code></pre>
+<p>After implementing this trait the type can be used as the <em>chip</em> argument in any harness.</p>
 
                     </main>
 

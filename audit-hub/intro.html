@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-049236c5.js";
+            window.path_to_searchindex_js = "../searchindex-90e6ecb0.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-abd55088.js"></script>
+        <script src="../toc-e2b6dfdf.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -176,20 +176,22 @@
                     <main>
                         <h1 id="audithub"><a class="header" href="#audithub">AuditHub</a></h1>
 <p>AuditHub is a Veridise service where users can run verification tools such as Picus.
-Is accesible via both its web interface and CLI. In this document we will explain
+Is accesible via both its web UI and CLI. In these sections we will explain
 how to prepare a project for AuditHub, how to configure the CLI, and how to use it for
 interacting with AuditHub.</p>
 <h2 id="audithub-cli"><a class="header" href="#audithub-cli">AuditHub CLI</a></h2>
-<p>The CLI is a Python 3 program that can be installed with pip (<code>pip install audithub-client</code>).</p>
-<p>The CLI needs to be configured before using it. For that go to Account Settings / API Keys in
-AuditHub’s UI. Store the given client id and client secret somewhere secure
+<p>The CLI is a Python 3 program that can be installed with pip.</p>
+<pre><code class="language-bash">pip install audithub-client
+</code></pre>
+<p>The CLI needs to be configured before use. To do that go AuditHub’s UI and navigate to Account Settings / API Keys.
+Follow the wizard to create a new API key and store the given client id and client secret somewhere secure
 depending on the intended usage of the keys.</p>
 <p><img src="../images/api-key.png" alt="API Key generation dialog"></p>
-<p>For using the keys locally it could be a <code>.envrc</code> file
+<p>For local use that could be a <code>.envrc</code> file
 managed by <a href="https://direnv.net">direnv</a>. For using them in CI that could be Github Secrets accesible
 by Github Actions.</p>
 <p>Once the keys are ready check the <a href="https://pypi.org/project/audithub-client/">CLI’s documentation</a> on how to
-configure you system such that the CLI can use them to connect to AuditHub.</p>
+configure your system such that the CLI can use the keys to connect to AuditHub.</p>
 <p>You can confirm that the CLI is working correctly by running the following</p>
 <pre><code>$ ah get-my-profile
 {"id": "...", "name": "&lt;Your name&gt;", "email": "&lt;Your email&gt;", "rights": [...], ...}

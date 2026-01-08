@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-049236c5.js";
+            window.path_to_searchindex_js = "searchindex-90e6ecb0.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-abd55088.js"></script>
+        <script src="toc-e2b6dfdf.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -175,51 +175,47 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="writing-new-harnesses"><a class="header" href="#writing-new-harnesses">Writing new harnesses</a></h1>
-<p>Adding more harnesses is done in the <code>crates/harnesses</code> crate. The crate is organized by instructions and,
+<p>Add new harnesses in the <code>crates/harnesses</code> crate. That crate is organized by instructions and,
 in some cases, by chips or gadgets that implement the instructions.</p>
-<p>Conceptually, a harness is a function that receives a <em>chip</em>, a <em>layouter</em>, some inputs and returns a <code>Result</code>.
-In reallity a harness is a function with a more abstract signature but that complexity is usually managed by a macro
+<p>Conceptually, a harness is a function that receives a <em>chip</em>, a <em>layouter</em>, some inputs, and returns a <code>Result</code>.
+In reallity a harness is a function with a more abstract signature, but that complexity is usually managed by a macro
 that allows for a more declarative approach. However, if the macro is not an option see the section below
 on how to write harnesses from scratch.</p>
 <h2 id="writing-declarative-harnesses"><a class="header" href="#writing-declarative-harnesses">Writing declarative harnesses</a></h2>
 <p>A harnesses written declaratively has the following structure.</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// The harnesses are NOT parametrized by a field.
+<pre><code class="language-rust">// The harnesses are NOT parametrized by a field
+// but we use an alias for readibility.
 use mdnt_extractor_core::fields::Blstrs as F;
 
-// Sets the harness name of the function below.
+// Sets the harness name for the function below.
 #[entry("control-flow/select/native/native")]
 // Marks the function as a harness
 #[harness]
 pub fn select_native(
-    // The first argument is the chip. The only requirement is that the type is a &amp;-reference.
+    // The first argument is the chip, a &amp;-reference to a type that implements 
+    // `CircuitInitialization`.
     chip: &amp;NativeChip&lt;F&gt;,
     // The second argument is the layouter. The actual layouter variable is not a 
     // `impl Layouter&lt;F&gt;`. This is syntactic sugar for a namesake variable that 
     // implements `midnight_proofs::circuit::Layouter`. So the result is the same.
     layouter: &amp;mut impl Layouter&lt;F&gt;,
-    // The third argument are the inputs. The type of the input must implement `LoadFromCells`.
+    // The third argument are the inputs, whose type must implement `LoadFromCells`.
     (cond, a, b): (AssignedBit&lt;F&gt;, AssignedNative&lt;F&gt;, AssignedNative&lt;F&gt;),
     // Optional fourth argument that allows injecting additional IR for aiding verification.
     injected_ir: &amp;mut InjectedIR&lt;RegionIndex, Expression&lt;F&gt;&gt;
-    // The output must be a Result&lt;T, E&gt; where T is a type that implements `StoreIntoCells` and 
-    // E is `midnight_proofs::plonk::Error`.
+    // The output must be a Result&lt;T, Errot&gt; where T is a type that implements `StoreIntoCells`.
 ) -&gt; Result&lt;AssignedNative&lt;F&gt;, Error&gt; {
     // Runs the target method.
     chip.select(layouter, &amp;cond, &amp;a, &amp;b)
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p>And that’s it. The list of harnesses is defined automatically at compile time and
 can be obtained by calling the <code>mdnt_harnesses::harnesses</code> function.
 The extractor uses that function for selecting what harnesses need to be extracted.</p>
 <p>The macros do a lot of heavy lifting in converting this form to how the harnesses look internally.
-The <code>#[entry("...")]</code> macro registers the function in the list of harnesses. This registration is accomplised
+The <code>#[entry("...")]</code> macro registers the function in the list of harnesses. This registration is actually accomplised
 with <code>mdnt_extractor_core::entry!</code> and in some cases is actually better to use this macro instead of <code>#[entry]</code>.
-For example, a harness that is parametrized by a constant parameter for selecting the size of some arrays.</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>entry!("bar/example_10/foo/native", example::&lt;10&gt;);
+For example, when a harness is parametrized by a constant parameter for selecting the size of some arrays.</p>
+<pre><code class="language-rust">entry!("bar/example_10/foo/native", example::&lt;10&gt;);
 entry!("bar/example_20/foo/native", example::&lt;20&gt;);
 #[harness]
 pub fn example&lt;const N: usize&gt;(
@@ -228,29 +224,30 @@ pub fn example&lt;const N: usize&gt;(
     arr: [AssignedNative&lt;F&gt;; N]
 ) -&gt; Result&lt;AssignedNative&lt;F&gt;, Error&gt; {
     chip.foo(layouter, &amp;arr)
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p>The harness macro family has 6 macros that can be used for declaring harnesses and offer some flexibility for covering most cases.</p>
-<p>For most chips (the ones where <code>ChipArgs::Args == ()</code>) use the macros <code>harness</code>, <code>harness_mut</code>, and <code>unit_harness</code>. The
-first macro is the one we saw above already. <code>harness_mut</code> is similar to <code>harness</code> but the first argument (the <em>chip</em> argument)
-must be a <code>&amp;mut</code>-reference instead. <code>unit_harness</code> is for methods that do have a return value (<code>Result&lt;(),Error&gt;</code>). For this
-macro split the inputs of the function into two sets and pass them as the 3rd and 4th argument. The 4th argument can be
+<p>For most chips (the ones where <code>CircuitInitialization::Args == ()</code>) use the macros <code>harness</code>, <code>harness_mut</code>, or <code>unit_harness</code>.
+The first macro is the one we saw above already. <code>harness_mut</code> is similar to <code>harness</code> but the first
+argument (the <em>chip</em> argument)
+must be a <code>&amp;mut</code>-reference instead. <code>unit_harness</code> is for methods that don’t have a return value (<code>Result&lt;(), Error&gt;</code>). To use
+this
+macro split the inputs of the function into two sets and pass them as the third and fourth argument. The 4th argument can be
 considered the <em>output</em> and additional constraints can be injected for aiding Picus with verification. That argument, however,
 is not encoded as a Picus output. Is just a separation for readability. In these cases a vacuous output is generated
-that is constrained to be equal to 0.</p>
-<p>If for the target chip <code>ChipArgs::Args != ()</code> then you need to use <code>harness_with_args</code>, <code>harness_with_args_mut</code>, and
+that is constrained to be equal to 0. If you need to inject IR in a <code>unit_harness</code> you can access the injector via
+the fifth optional argument.</p>
+<p>If the target chip <code>CircuitInitialization::Args != ()</code> then you need to use <code>harness_with_args</code>, <code>harness_with_args_mut</code>, or
 <code>unit_harness_with_args</code>. These macros work identically to their counterparts but require declaring the type of
-<code>ChipArgs::Args</code> (i.e. <code>#[harness_with_args(usize)]</code>). For providing the argument you need to define a function that has
+<code>CircuitInitialization::Args</code> (i.e. <code>#[harness_with_args(usize)]</code>). To provide the arguments you need to define a function that has
 the same name as the harness function followed by <code>_args</code> (i.e. <code>foo</code> would be <code>foo_args</code>). That function cannot take any
 arguments and return a value of the declared type.</p>
 <p>Since the most common argument type is <code>usize</code> we include a convenience macro <code>#[usize_args(&lt;usize&gt;)]</code> that automatically creates
 the function with the correct name and returns the value passed as argument to the macro.</p>
-<p>All the macros accept an optional argument with an expression containing <code>LookupCallbacks</code>. For example, for extracting a
-harness like the first one but for <code>NativeGadget</code> instead we need to handle the range lookup that gadget uses. For that we can
+<p>All the macros accept an optional argument with an expression of type <code>LookupCallbacks</code> that allows defining custom behaviors
+to handle lookups. For example, a
+harness like the first one but for <code>NativeGadget</code> instead needs to handle the range lookup the gadget uses. For that we can
 do as follows:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[entry("control-flow/select/native-gadget/native")]
+<pre><code class="language-rust">#[entry("control-flow/select/native-gadget/native")]
 // The range_lookup function creates the appropiate handler for the lookup.
 #[harness(range_lookup(8))]
 pub fn select_native(
@@ -259,14 +256,11 @@ pub fn select_native(
     (cond, a, b): (AssignedBit&lt;F&gt;, AssignedNative&lt;F&gt;, AssignedNative&lt;F&gt;),
 ) -&gt; Result&lt;AssignedNative&lt;F&gt;, Error&gt; {
     chip.select(layouter, &amp;cond, &amp;a, &amp;b)
-}
-<span class="boring">}</span></code></pre>
-<h2 id="writing-harnesses-from-scratch-wip"><a class="header" href="#writing-harnesses-from-scratch-wip">Writing harnesses from scratch (WIP)</a></h2>
-<p>If the macros shown above don’t fit the needs of this new harness they can still be defined by hand. Below is an annotated
+}</code></pre>
+<h2 id="writing-harnesses-from-scratch"><a class="header" href="#writing-harnesses-from-scratch">Writing harnesses from scratch</a></h2>
+<p>If the macros shown above do not fit the needs of a new harness they can still be defined by hand. Below is an annotated
 version of the kind of code the macros generate that can serve as a starting point for creating a harness from scratch.</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>entry!("control-flow/select/native-gadget/native", select_native);
+<pre><code class="language-rust">entry!("control-flow/select/native-gadget/native", select_native);
 fn select_native(ctx: &amp;Ctx) -&gt; anyhow::Result&lt;Output&gt; {
     // The actual logic of the harness needs to be wrapped into a trait.
     // So we need to create a type for that.
@@ -322,16 +316,16 @@ fn select_native(ctx: &amp;Ctx) -&gt; anyhow::Result&lt;Output&gt; {
     let ci: CircuitImpl&lt;'_, F, Circuit, Function&gt; =
         CircuitImpl::new(ctx, Circuit(Default::default()));
     // The first argument of this method is a type that implements the  
-    // CircuitSynthesis trait, which is Haloumi's counterpart to the Circuit trait in Halo2.
-    // As long as the value passed there meets the interface all the stuff above this line is not 
-    // mandatory.
-    // The second argument is an optional dyn reference to a LookupCallbacks implementation.
+    // `CircuitSynthesis` trait, which is Haloumi's counterpart to the Circuit trait in Halo2.
+    // The types and traits above handle most of the boilerplate and help keep the harnesses more readable.
+    // However, the only trait the frontend needs is `CircuitSynthesis` so other approaches are possible so long 
+    // they implement that trait.
+    // 
+    // The second argument is an optional &amp;dyn-reference to a LookupCallbacks implementation.
     // These callbacks are invoked when the circuit has lookups for getting the IR that needs to be 
     // generated for handling the lookup.
     ctx.lower_circuit(ci, None)
-}
-
-<span class="boring">}</span></code></pre>
+}</code></pre>
 
                     </main>
 
