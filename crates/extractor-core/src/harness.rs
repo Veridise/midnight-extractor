@@ -49,6 +49,7 @@ impl<'s> Ctx<'s> {
         let mut driver = Driver::default();
         let syn = driver.synthesize(&circuit).context("Synthesis failed")?;
         log::info!("Synthesis completed");
+        log::info!("Synthesized circuit = {syn:#?}");
 
         let mut ir_params = IRGenParamsBuilder::new();
 
@@ -65,7 +66,6 @@ impl<'s> Ctx<'s> {
 
         let mut unresolved =
             driver.generate_ir(&syn, ir_params.build()).context("IR generation failed")?;
-
         let (status, errs) = unresolved.validate();
         if status.is_err() {
             for err in errs {
@@ -80,6 +80,9 @@ impl<'s> Ctx<'s> {
         log::info!("Injected additional IR");
         let resolved = unresolved.resolve().context("IR resolution failed")?;
 
+        {
+            log::info!("Driver = {driver:#?}");
+        }
         let (status, errs) = resolved.validate();
         if status.is_err() {
             for err in errs {

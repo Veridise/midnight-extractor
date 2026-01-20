@@ -101,7 +101,7 @@ impl<F: PrimeField> LookupCallbacks<F, Expression<F>> for LookupMux<'_, F> {
         temps: &mut Temps,
     ) -> anyhow::Result<IRStmt<ExprOrTemp<Cow<'syn, Expression<F>>>>> {
         for l in lookups {
-            log::info!("Lookup: '{}'", l.name());
+            log::debug!("Lookup: '{}'", l.name());
         }
         let mut lookups = std::iter::zip(lookups.iter().copied(), tables.iter().copied())
             .map(Some)

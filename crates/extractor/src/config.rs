@@ -35,6 +35,8 @@ pub trait AppConfig {
 
     fn chip(&self) -> Option<Chip>;
 
+    fn ignore_chips(&self) -> &[Chip];
+
     fn r#type(&self) -> Option<Type>;
 
     fn method_whitelist(&self) -> &[String];

@@ -1707,7 +1707,7 @@ dependencies = [
 [[package]]
 name = "sha3-circuit"
 version = "0.1.0"
-source = "git+https://github.com/Veridise/sha3-circuit-midnight?branch=extraction#27b342a9595d709896ac521bf0b084a54265414a"
+source = "git+https://github.com/Veridise/sha3-circuit-midnight?branch=extraction#02deae27fc7ab3fb6b652c9b95a7a8e293bd3c08"
 dependencies = [
  "blake2b_simd",
  "ff",

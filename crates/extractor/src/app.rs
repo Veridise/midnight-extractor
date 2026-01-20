@@ -53,6 +53,7 @@ where
         let query = Query::new(
             config.instructions(),
             config.chip(),
+            config.ignore_chips(),
             config.r#type(),
             config.method_whitelist(),
             config.method_blacklist(),
