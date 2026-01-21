@@ -9,7 +9,7 @@ members = [ "crates/extractor",
 resolver = "2"
 
 [workspace.package]
-version = "0.2.11"
+version = "0.2.12"
 authors = ["Daniel Dominguez (Veridise) <daniel@veridise.com>"]
 edition = "2024"
 rust-version = "1.85"
@@ -19,10 +19,9 @@ license-file = "LICENSE"
 
 [workspace.dependencies]
 ff = "0.13"
-haloumi-ir = "^0.2"
-haloumi-ir-base = "^0.2"
-haloumi-core = "0.2"
-inventory = "0.3"
+haloumi-ir = "0"
+haloumi-core = "0"
+inventory = "0"
 anyhow = "1"
 mdnt-support = "0.2"
 halo2curves = { version = "0.7.0", default-features = false }
@@ -60,9 +59,10 @@ git = "https://github.com/Veridise/midnight-zk"
 
 
 [workspace.dependencies.haloumi]
-git = "https://github.com/Veridise/llzk-rs"
+path = "../llzk-rs/frontends/halo2"
+# git = "https://github.com/Veridise/llzk-rs"
 default-features = false
 features = ["picus-backend"]
 package = "halo2-llzk-frontend"
-branch = "dani/convenience-methods"
+# branch = "dani/convenience-methods"
 
