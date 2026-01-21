@@ -59,3 +59,51 @@ impl<Cell, T: DecomposeIn<Cell>> DecomposeIn<Cell> for Vec<T> {
         self.iter().flat_map(|t| t.cells())
     }
 }
+
+macro_rules! chain {
+    () => {
+        std::iter::empty()
+    };
+    ($h:expr $(,$t:expr)* $(,)?) => {
+        $h.into_iter().chain( chain!($( $t, )*))
+    };
+}
+
+macro_rules! tuple_impl {
+    () => {
+        tuple_impl!(@impl [] [] [A1 A2 A3 A4 A5 A6 A7 A8 A9 A10 A11 A12] [0 1 2 3 4 5 6 7 8 9 10 11]);
+    };
+
+    (@impl [$($done:ident)*] [$($idxs:tt)*] [$head:ident $($rest:ident)*] [$i:tt $($is:tt)*]) => {
+        //// Implement for tuple ($head, $done...)
+        impl<Cell, $head: DecomposeIn<Cell>, $( $done: DecomposeIn<Cell>, )*> DecomposeIn<Cell> for (
+                $head, $( $done, )*
+            )
+        {
+            fn cells(&self) -> impl IntoIterator<Item = Cell> {
+                chain!($(
+                    self.$idxs.cells(),
+                )*
+                self.$i.cells())
+            }
+        }
+
+        // Recurse
+        tuple_impl!(
+            @impl [$head $($done)*] [$($idxs)* $i] [$($rest)*] [$($is)*]
+        );
+    };
+
+    // Stop when no identifiers remain
+    (@impl [$($done:ident)*] [$($idxs:tt)*] [] $rem:tt) => {
+        // Also emit the 0-tuple base case
+        impl<Cell> DecomposeIn<Cell> for () {
+            fn cells(&self) -> impl IntoIterator<Item = Cell> {
+                std::iter::empty()
+            }
+        }
+    };
+
+}
+
+tuple_impl!();
