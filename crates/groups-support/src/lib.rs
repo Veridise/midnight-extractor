@@ -24,9 +24,15 @@ impl<Cell> DecomposeIn<Cell> for u32 {
     }
 }
 
-impl<Cell, T: DecomposeIn<Cell>> DecomposeIn<Cell> for &T {
+impl<Cell, T: DecomposeIn<Cell> + ?Sized> DecomposeIn<Cell> for &T {
     fn cells(&self) -> impl IntoIterator<Item = Cell> {
         (*self).cells()
+    }
+}
+
+impl<Cell, T: DecomposeIn<Cell> + ?Sized> DecomposeIn<Cell> for &mut T {
+    fn cells(&self) -> impl IntoIterator<Item = Cell> {
+        (**self).cells()
     }
 }
 
@@ -42,7 +48,7 @@ impl<Cell, T: DecomposeIn<Cell>> DecomposeIn<Cell> for Option<T> {
     }
 }
 
-impl<Cell, T: DecomposeIn<Cell>> DecomposeIn<Cell> for &[T] {
+impl<Cell, T: DecomposeIn<Cell>> DecomposeIn<Cell> for [T] {
     fn cells(&self) -> impl IntoIterator<Item = Cell> {
         self.iter().flat_map(|t| t.cells())
     }
