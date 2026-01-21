@@ -10,8 +10,8 @@ use midnight_circuits::{
 };
 use midnight_proofs::plonk::Error;
 
-entry!("varhash/varhash_1/sha256/byte", varhash_sha256::<1>);
-entry!("varhash/varhash_10/sha256/byte", varhash_sha256::<10>);
+entry!("varhash/varhash_64/sha256/byte", varhash_sha256::<64>);
+entry!("varhash/varhash_100/sha256/byte", varhash_sha256::<100>);
 #[harness(lookup_mux::<F>()
             .with("pow2range column check", range_lookup(8))
             .with("plain-spreaded lookup", plain_spread_lookup("Spread", "Unspread"))
