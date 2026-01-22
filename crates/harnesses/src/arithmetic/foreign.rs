@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::utils::{range_lookup, vec_len_err};
-use haloumi_ir::{cmp::CmpOp, expr::IRBexpr, stmt::IRStmt};
+use haloumi_ir::{expr::IRBexpr, stmt::IRStmt};
 use mdnt_extractor_core::circuit::to_plonk_error;
 use mdnt_extractor_core::fields::Loaded as L;
 use mdnt_extractor_core::{
@@ -138,8 +138,7 @@ pub fn inv_foreign_non_det_v2(
         .inspect(|(o1, o2)| assert_eq!(o1.cell().region_index, o2.cell().region_index))
         .try_for_each(|(o1, o2)| -> Result<(), Error> {
             let region = o1.cell().region_index;
-            let stmt = IRStmt::assert(IRBexpr::Not(Box::new(IRBexpr::Cmp(
-                CmpOp::Eq,
+            let stmt = IRStmt::assert(!IRBexpr::eq(
                 (
                     o1.cell().row_offset,
                     cell_to_expr!(&o1, F).map_err(to_plonk_error)?,
@@ -148,7 +147,7 @@ pub fn inv_foreign_non_det_v2(
                     o2.cell().row_offset,
                     cell_to_expr!(&o2, F).map_err(to_plonk_error)?,
                 ),
-            ))));
+            ));
             injected_ir.entry(region).or_default().push(stmt);
 
             Ok(())

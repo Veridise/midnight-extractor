@@ -84,6 +84,19 @@ impl QueryPart {
         }
     }
 
+    fn new_chips<T: ToString>(key: Option<T>, ignore_list: &[T]) -> Self {
+        if key.is_none() && ignore_list.is_empty() {
+            return QueryPart::Wildcard;
+        }
+        let chip = key.as_ref().map(ToString::to_string).map(QueryPart::Exact);
+
+        QueryPart::And(
+            chip.into_iter()
+                .chain(ignore_list.iter().map(ToString::to_string).map(QueryPart::Negated))
+                .collect(),
+        )
+    }
+
     fn new_part<T: ToString>(key: Option<T>) -> Self {
         key.as_ref()
             .map(ToString::to_string)
@@ -174,6 +187,7 @@ impl Query {
     pub fn new(
         instructions: &[Instructions],
         chip: Option<Chip>,
+        ignored_chips: &[Chip],
         r#type: Option<Type>,
         whitelist: &[String],
         blacklist: &[String],
@@ -181,7 +195,7 @@ impl Query {
         Self {
             instruction: QueryPart::new_instructions_part(instructions),
             method: QueryPart::new_method_part(whitelist, blacklist),
-            chip: QueryPart::new_part(chip),
+            chip: QueryPart::new_chips(chip, ignored_chips),
             r#type: QueryPart::new_part(r#type),
         }
     }

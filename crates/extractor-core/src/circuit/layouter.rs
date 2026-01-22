@@ -29,6 +29,8 @@ pub struct ExtractionLayouter<'s, 'c, F: Field> {
     columns: HashMap<RegionColumn, usize>,
     /// Stores the table fixed columns.
     table_columns: Vec<TableColumn>,
+    /// Group depth
+    group_depth: usize,
 }
 
 impl<'s, 'c, F: Field> ExtractionLayouter<'s, 'c, F> {
@@ -39,6 +41,7 @@ impl<'s, 'c, F: Field> ExtractionLayouter<'s, 'c, F> {
             regions: Default::default(),
             columns: Default::default(),
             table_columns: Default::default(),
+            group_depth: Default::default(),
         }
     }
 }
@@ -53,6 +56,12 @@ impl<F: Field> Layouter<F> for ExtractionLayouter<'_, '_, F> {
         NR: Into<String>,
     {
         let region_index = self.regions.len();
+
+        let name: String = name().into();
+        log::info!(
+            "{}> Entering region '{name}' ({region_index})",
+            "-".repeat(self.group_depth)
+        );
 
         // Get shape of the region.
         let mut shape = RegionShape::new(region_index.into());
@@ -75,7 +84,9 @@ impl<F: Field> Layouter<F> for ExtractionLayouter<'_, '_, F> {
         }
 
         // Assign region cells.
-        self.synthesizer.enter_region(name().into());
+        self.synthesizer
+            //.enter_region(name, Some(region_index.into()), Some(region_start.into()));
+            .enter_region(name, None, None);
         let mut region = ExtractionLayouterRegion::new(self, region_index.into());
         let result = {
             let region: &mut dyn RegionLayouter<F> = &mut region;
@@ -119,7 +130,7 @@ impl<F: Field> Layouter<F> for ExtractionLayouter<'_, '_, F> {
         N: Fn() -> NR,
         NR: Into<String>,
     {
-        self.synthesizer.enter_region(name().into());
+        self.synthesizer.enter_region(name().into(), None, None);
         let mut table = ExtractionTableLayouter::new(self.synthesizer, &self.table_columns);
         {
             let table: &mut dyn TableLayouter<F> = &mut table;
@@ -195,10 +206,26 @@ impl<F: Field> Layouter<F> for ExtractionLayouter<'_, '_, F> {
         N: FnOnce() -> NR,
         K: groups::GroupKey,
     {
-        self.synthesizer.enter_group(name().into(), *GroupKeyInstance::from(key));
+        self.group_depth += 1;
+        let name: String = name().into();
+        log::info!("{}> Pushing group '{name}'", "-".repeat(self.group_depth));
+
+        self.synthesizer.enter_group(name, *GroupKeyInstance::from(key));
     }
 
     fn pop_group(&mut self, meta: groups::RegionsGroup) {
+        log::info!("{}> Popping group", "-".repeat(self.group_depth));
+        log::info!(
+            "{}>   Inputs:  {:?}",
+            "-".repeat(self.group_depth),
+            Vec::from_iter(meta.inputs().map(CellDbg))
+        );
+        log::info!(
+            "{}>   Outputs: {:?}",
+            "-".repeat(self.group_depth),
+            Vec::from_iter(meta.outputs().map(CellDbg))
+        );
+        self.group_depth -= 1;
         self.synthesizer.exit_group(meta)
     }
 }
@@ -225,10 +252,18 @@ impl<'r, 'a, 'b, F: Field> ExtractionLayouterRegion<'r, 'a, 'b, F> {
 impl<'a, 'b, F: Field> RegionLayouter<F> for ExtractionLayouterRegion<'_, 'a, 'b, F> {
     fn enable_selector<'v>(
         &'v mut self,
-        _annotation: &'v (dyn Fn() -> String + 'v),
+        annotation: &'v (dyn Fn() -> String + 'v),
         selector: &Selector,
         offset: usize,
     ) -> Result<(), Error> {
+        log::info!(
+            "{}> Enabled selector {} @ R{}+{offset}(={}) (note: {:?})",
+            "-".repeat(self.layouter.group_depth),
+            selector.index(),
+            *self.region_index,
+            *self.layouter.regions[*self.region_index] + offset,
+            annotation()
+        );
         self.layouter.synthesizer.enable_selector(
             selector,
             *self.layouter.regions[*self.region_index] + offset,
@@ -245,11 +280,19 @@ impl<'a, 'b, F: Field> RegionLayouter<F> for ExtractionLayouterRegion<'_, 'a, 'b
 
     fn assign_advice<'v>(
         &'v mut self,
-        _annotation: &'v (dyn Fn() -> String + 'v),
+        annotation: &'v (dyn Fn() -> String + 'v),
         column: Column<Advice>,
         offset: usize,
         _to: &'v mut (dyn FnMut() -> Value<Rational<F>> + 'v),
     ) -> Result<Cell, Error> {
+        log::info!(
+            "{}> Assigned advice to Adv:{} @ R{}+{offset}(={}) (note: {:?})",
+            "-".repeat(self.layouter.group_depth),
+            column.index(),
+            *self.region_index,
+            *self.layouter.regions[*self.region_index] + offset,
+            annotation()
+        );
         self.layouter
             .synthesizer
             .on_advice_assigned(column, *self.layouter.regions[*self.region_index] + offset);
@@ -268,6 +311,14 @@ impl<'a, 'b, F: Field> RegionLayouter<F> for ExtractionLayouterRegion<'_, 'a, 'b
         offset: usize,
         constant: Rational<F>,
     ) -> Result<Cell, Error> {
+        log::info!(
+            "{}> Assigned advice to Adv:{} @ R{}+{offset}(={}) with constant (note: {:?})",
+            "-".repeat(self.layouter.group_depth),
+            column.index(),
+            *self.region_index,
+            *self.layouter.regions[*self.region_index] + offset,
+            annotation()
+        );
         let advice =
             self.assign_advice(annotation, column, offset, &mut || Value::known(constant))?;
         self.constrain_constant(advice, constant)?;
@@ -283,6 +334,15 @@ impl<'a, 'b, F: Field> RegionLayouter<F> for ExtractionLayouterRegion<'_, 'a, 'b
         advice: Column<Advice>,
         offset: usize,
     ) -> Result<(Cell, Value<F>), Error> {
+        log::info!(
+            "{}> Assigned advice to Adv:{} @ R{}+{offset}(={}) with instance (Ins:{}, {row}) (note: {:?})",
+            "-".repeat(self.layouter.group_depth),
+            advice.index(),
+            *self.region_index,
+            *self.layouter.regions[*self.region_index] + offset,
+            instance.index(),
+            annotation()
+        );
         let cell = self.assign_advice(annotation, advice, offset, &mut || Value::unknown())?;
 
         self.layouter.synthesizer.copy(
@@ -305,11 +365,20 @@ impl<'a, 'b, F: Field> RegionLayouter<F> for ExtractionLayouterRegion<'_, 'a, 'b
 
     fn assign_fixed<'v>(
         &'v mut self,
-        _annotation: &'v (dyn Fn() -> String + 'v),
+        annotation: &'v (dyn Fn() -> String + 'v),
         column: Column<Fixed>,
         offset: usize,
         to: &'v mut (dyn FnMut() -> Value<Rational<F>> + 'v),
     ) -> Result<Cell, Error> {
+        log::info!(
+            "{}> Assigned fixed to Fix:{} @ R{}+{offset}(={}) (note: {:?})",
+            "-".repeat(self.layouter.group_depth),
+            column.index(),
+            *self.region_index,
+            *self.layouter.regions[*self.region_index] + offset,
+            annotation()
+        );
+
         self.layouter.synthesizer.on_fixed_assigned(
             column,
             *self.layouter.regions[*self.region_index] + offset,
@@ -336,6 +405,14 @@ impl<'a, 'b, F: Field> RegionLayouter<F> for ExtractionLayouterRegion<'_, 'a, 'b
     }
 
     fn constrain_equal(&mut self, left: Cell, right: Cell) -> Result<(), Error> {
+        log::info!(
+            "{}> {:?}(={}) === {:?}(={})",
+            "-".repeat(self.layouter.group_depth),
+            CellDbg(left),
+            *self.layouter.regions[*left.region_index] + left.row_offset,
+            CellDbg(right),
+            *self.layouter.regions[*right.region_index] + right.row_offset,
+        );
         self.layouter.synthesizer.copy(
             left.column,
             *self.layouter.regions[*left.region_index] + left.row_offset,
@@ -562,4 +639,24 @@ fn steal<T>(value: Value<T>) -> Option<T> {
     let data = RefCell::new(None);
     value.map(|t| data.replace(Some(t)));
     data.replace(None)
+}
+
+struct CellDbg(Cell);
+
+impl std::fmt::Debug for CellDbg {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let cell = &self.0;
+        write!(
+            f,
+            "({}:{}, R{}+{})",
+            match cell.column.column_type() {
+                Any::Advice(_) => "Adv",
+                Any::Fixed => "Fix",
+                Any::Instance => "Ins",
+            },
+            cell.column.index(),
+            *cell.region_index,
+            cell.row_offset
+        )
+    }
 }

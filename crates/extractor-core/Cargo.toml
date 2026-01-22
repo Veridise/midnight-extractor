@@ -18,7 +18,6 @@ midnight-curves.workspace = true
 mdnt-support = { version = "0.2"}
 num-bigint = "0.4"
 haloumi-ir.workspace =true
-haloumi-ir-base.workspace =true
 haloumi-core.workspace =true
 haloumi.workspace =true
 mdnt-extractor-macros = { path = "../extractor-macros"}

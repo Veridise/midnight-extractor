@@ -1,5 +1,4 @@
-
-#!/bin/sh 
+#!/bin/bash 
 set -e 
 
 cargo build --release
@@ -15,24 +14,26 @@ function extract {
   shift 
   c=$1 
   shift
- $tool \
-  --debug-comments \
-  --prelude spread \
-  --fail-fast \
-  --type $t \
-  --constants $c $@
+  args=""
+  if ! printf '%s\n' "$@" | grep -qE '^--prelude(=|$)'; then
+    args="$args --prelude spread"
+  fi
+  $tool \
+    --debug-comments \
+    $args \
+    --fail-fast \
+    --type $t \
+    --constants $c $@
 }
 
-# $tool --debug-comments --prelude spread --fail-fast base64 -o base64_picus_files --no-opt
-# samply record --save-only -o prof.json -- \
-$tool --debug-comments  --fail-fast --prelude automaton automaton -o automaton_picus_files --no-opt
-
-# extract native $constants 
-# extract byte $constants base64 --no-opt
-# extract bit true 
-# extract field $constants assignment
-# extract biguint 0,$constants
-# extract scalar 0,$constants
-# extract point 0,$constants --chip ecc
-# extract point "$curve_constants,$curve_constants,$curve_constants,$curve_constants,$curve_constants" --chip foreign-ecc-native 
-# extract point "$curve_constants,$curve_constants,$curve_constants,$curve_constants,$curve_constants" --chip foreign-ecc-field 
+extract native $constants 
+extract byte $constants --ignore-chips base64,automaton
+extract byte $constants automaton --prelude automaton
+extract byte $constants base64 --no-opt
+extract bit true 
+extract field $constants assignment
+extract biguint 0,$constants
+extract scalar 0,$constants
+extract point 0,$constants --chip ecc
+extract point "$curve_constants,$curve_constants,$curve_constants,$curve_constants,$curve_constants" --chip foreign-ecc-native 
+extract point "$curve_constants,$curve_constants,$curve_constants,$curve_constants,$curve_constants" --chip foreign-ecc-field 

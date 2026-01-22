@@ -6,7 +6,7 @@ use haloumi::{
     temps::{ExprOrTemp, Temps},
     LookupCallbacks,
 };
-use haloumi_ir::{cmp::CmpOp, expr::IRBexpr, stmt::IRStmt};
+use haloumi_ir::{expr::IRBexpr, stmt::IRStmt, CmpOp};
 use midnight_proofs::plonk::Expression;
 
 use crate::lookups::callbacks::range::TagRangeLookup;
@@ -77,8 +77,7 @@ impl<F: PrimeField> LookupCallbacks<F, Expression<F>> for PlainSpreadLookup<F> {
             [ExprOrTemp::Expr(Cow::Borrowed(plain))],
             [temp.into()],
         );
-        let spread_out_constr = IRStmt::constraint(
-            CmpOp::Eq,
+        let spread_out_constr = IRStmt::eq(
             ExprOrTemp::Expr(Cow::Borrowed(spread)),
             ExprOrTemp::Temp(temp),
         );
@@ -88,8 +87,7 @@ impl<F: PrimeField> LookupCallbacks<F, Expression<F>> for PlainSpreadLookup<F> {
             [ExprOrTemp::Expr(Cow::Borrowed(spread))],
             [temp.into()],
         );
-        let unspread_out_constr = IRStmt::constraint(
-            CmpOp::Eq,
+        let unspread_out_constr = IRStmt::eq(
             ExprOrTemp::Expr(Cow::Borrowed(plain)),
             ExprOrTemp::Temp(temp),
         );
@@ -126,27 +124,24 @@ impl<F: PrimeField> LookupCallbacks<F, Expression<F>> for PlainSpreadLookup<F> {
         let fst_spread = self.range_check.value_exprs(&lookups[0])[1];
         let snd_spread = self.range_check.value_exprs(&lookups[1])[1];
 
-        use IRBexpr::*;
-        let det_axioms1 = IRStmt::assert(Implies(
-            Box::new(Det(Cow::Owned(
+        let det_axioms1 = IRStmt::assert(
+            IRBexpr::det(Cow::Owned(
                 snd_spread + Expression::Constant(F::from(2u64)) * fst_spread,
-            ))),
-            Box::new(And(vec![
-                Det(Cow::Borrowed(snd_spread)),
-                Det(Cow::Borrowed(fst_spread)),
-            ])),
-        ))
-        .map(&ExprOrTemp::Expr);
-        let det_axioms2 = IRStmt::assert(Implies(
-            Box::new(Det(Cow::Owned(
+            ))
+            .implies(
+                IRBexpr::det(Cow::Borrowed(snd_spread)) & IRBexpr::det(Cow::Borrowed(fst_spread)),
+            ),
+        )
+        .map(&mut ExprOrTemp::Expr);
+        let det_axioms2 = IRStmt::assert(
+            IRBexpr::det(Cow::Owned(
                 fst_spread + Expression::Constant(F::from(2u64)) * snd_spread,
-            ))),
-            Box::new(And(vec![
-                Det(Cow::Borrowed(snd_spread)),
-                Det(Cow::Borrowed(fst_spread)),
-            ])),
-        ))
-        .map(&ExprOrTemp::Expr);
+            ))
+            .implies(
+                IRBexpr::det(Cow::Borrowed(snd_spread)) & IRBexpr::det(Cow::Borrowed(fst_spread)),
+            ),
+        )
+        .map(&mut ExprOrTemp::Expr);
         Ok(IRStmt::seq([per_lookup_ir, det_axioms1, det_axioms2]))
     }
 }

@@ -14,7 +14,6 @@ publish = false
 mdnt-extractor-core = { path = "../extractor-core"}
 mdnt-extractor-macros = { path = "../extractor-macros"}
 haloumi-ir.workspace =true
-haloumi-ir-base.workspace =true
 haloumi-core.workspace =true
 haloumi.workspace =true
 ff.workspace = true 

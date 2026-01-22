@@ -61,8 +61,15 @@ pub mod utils {
     use ff::PrimeField;
 
     use mdnt_extractor_core::lookups::callbacks::{
-        automaton::AutomatonLookup, ignore::IgnoreLookup, mux::LookupMux,
-        plain_spread::PlainSpreadLookup, plain_spread3::PlainSpreadLookup3, range::TagRangeLookup,
+        automaton::AutomatonLookup,
+        ignore::IgnoreLookup,
+        mux::LookupMux,
+        plain_spread::PlainSpreadLookup,
+        plain_spread3::{
+            AnySpread, PlainSpreadLookup3, PlainSpreadLookup3Mode, Spread12, SpreadByTag,
+            SpreadByteLookup,
+        },
+        range::TagRangeLookup,
     };
 
     /// Returns a lookup callback that treats the lookup as a range check.
@@ -99,20 +106,28 @@ pub mod utils {
 
     /// Lookup handler that adds a range check for a plain-spread pair and
     /// calls a module that declares that the latter is a functional dependency of the former.
-    ///
-    /// For a lookup in the form `(8, x, ~x)` generates
-    ///
-    /// ```text
-    /// x < 2^8
-    /// ~x <= (8^8 - 1)/7
-    /// ~x = Spread(x)
-    /// x = Unspread(~x)
-    /// ```
-    pub fn plain_spread_lookup3(
+    pub fn plain_spread_lookup3<M: PlainSpreadLookup3Mode>(
         spread_module: &'static str,
         unspread_module: &'static str,
-    ) -> PlainSpreadLookup3 {
-        PlainSpreadLookup3::new(spread_module, unspread_module)
+        mode: M,
+    ) -> PlainSpreadLookup3<M> {
+        PlainSpreadLookup3::new(spread_module, unspread_module, mode)
+    }
+
+    pub fn any_spread() -> AnySpread {
+        AnySpread
+    }
+
+    pub fn spread12() -> Spread12 {
+        Spread12
+    }
+
+    pub fn spread_by_tag() -> SpreadByTag {
+        SpreadByTag
+    }
+
+    pub fn spread_byte_lookup() -> SpreadByteLookup {
+        SpreadByteLookup
     }
 
     /// Returns a lookup callback that ignores all lookups

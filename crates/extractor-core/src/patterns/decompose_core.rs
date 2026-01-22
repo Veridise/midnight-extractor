@@ -8,8 +8,8 @@ use std::{
 use haloumi::{
     gates::GateRewritePattern, gates::GateScope, gates::RewriteError, gates::RewriteOutput,
 };
+use haloumi_core::cmp::CmpOp;
 use haloumi_ir::stmt::IRStmt;
-use haloumi_ir_base::cmp::CmpOp;
 use midnight_proofs::{
     plonk::{
         Advice, AdviceQuery, ColumnType, Expression, FirstPhase, Fixed, Instance, SecondPhase,
@@ -65,7 +65,7 @@ impl<F: PrimeField> GateRewritePattern<F, Expression<F>> for DecomposeCorePatter
             rewrite_poly(exprs, &mut stmts, gate.start_row());
         }
 
-        Ok(IRStmt::seq(stmts).map(&|(row, expr)| (row, Cow::Owned(expr))))
+        Ok(IRStmt::seq(stmts).map(&mut |(row, expr)| (row, Cow::Owned(expr))))
     }
 }
 

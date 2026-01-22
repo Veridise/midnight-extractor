@@ -22,6 +22,8 @@ pub struct Cli {
     #[arg(long, value_enum)]
     chip: Option<Chip>,
     #[arg(long, value_delimiter = ',')]
+    ignore_chips: Vec<Chip>,
+    #[arg(long, value_delimiter = ',')]
     format: Vec<OutputFormat>,
     #[arg(long, value_enum)]
     r#type: Option<Type>,
@@ -35,24 +37,10 @@ pub struct Cli {
     method_whitelist: Vec<String>,
     #[arg(long, value_delimiter = ',')]
     method_blacklist: Vec<String>,
-    //#[arg(long)]
-    //pub picus_expr_cutoff: Option<usize>,
-    //#[arg(long)]
-    //verify_with_picus: bool,
     #[arg(long)]
     pub log: Option<PathBuf>,
     #[arg(long, default_value_t = Level::Info)]
     pub log_level: Level,
-    //#[arg(long)]
-    //pub picus_short_names: bool,
-    //#[arg(long)]
-    //pub zeroed_inputs: bool,
-    //#[arg(long, default_value_t = 10)]
-    //pub prover_k: u32,
-    //#[arg(long)]
-    //pub constraint_missing_outputs: bool,
-    //#[arg(long)]
-    //pub prover_constrain_outputs: bool,
     #[arg(long)]
     pub disable_decomposition_rewrite: bool,
     #[arg(long)]
@@ -116,6 +104,10 @@ impl AppConfig for Cli {
 
     fn chip(&self) -> Option<Chip> {
         self.chip
+    }
+
+    fn ignore_chips(&self) -> &[Chip] {
+        &self.ignore_chips
     }
 
     fn r#type(&self) -> Option<Type> {

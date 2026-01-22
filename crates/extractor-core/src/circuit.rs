@@ -73,7 +73,7 @@ impl<'a, F, C, M> CircuitImpl<'a, F, C, M> {
                 (
                     idx,
                     IRStmt::<ExpressionInRow<_>>::seq(
-                        ir.into_iter().map(|s| s.map(&|(row, e)| ExpressionInRow::new(row, e))),
+                        ir.into_iter().map(|s| s.map(&mut |(row, e)| ExpressionInRow::new(row, e))),
                     )
                     .into(),
                 )

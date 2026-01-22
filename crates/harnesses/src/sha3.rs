@@ -12,30 +12,43 @@ use sha3_circuit::{
     sha3_256_gadget::Sha3_256,
 };
 
-use crate::utils::{ignore_lookup, lookup_mux, plain_spread_lookup3, vec2array};
+use crate::utils::{
+    any_spread, lookup_mux, plain_spread_lookup3, spread12, spread_by_tag, spread_byte_lookup,
+    vec2array,
+};
 
 type AssignedDenseBits = <PackedChip<F> as Keccackf1600Instructions<F>>::AssignedByte;
 
 fn lookups() -> impl LookupCallbacks<F, Expression<F>> {
+    fn decomposition_lookup_limbs_0_2(n: &str) -> bool {
+        n.starts_with("decomposition lookup")
+            && (n.ends_with("limb 0") || n.ends_with("limb 1") || n.ends_with("limb 2"))
+    }
+
+    fn decomposition_lookup_limbs_4_5(n: &str) -> bool {
+        n.starts_with("decomposition lookup") && (n.ends_with("limb 4") || n.ends_with("limb 5"))
+    }
+
+    let spread = "Spread";
+    let unspread = "Unspread";
+
     lookup_mux()
         .with(
             |n: &str| n.starts_with("spread byte lookup"),
-            plain_spread_lookup3("Spread", "Unspread"),
+            plain_spread_lookup3(spread, unspread, spread_byte_lookup()),
         )
-        //    .with(
-        //        |n: &str| n.starts_with("decomposition lookup"),
-        //        lookup_mux()
-        //            .with(
-        //                |n: &str| {
-        //                    n.ends_with("limb 3")
-        //                        || n.ends_with("limb 1")
-        //                        || n.ends_with("limb 0")
-        //                        || n.ends_with("limb 2")
-        //                },
-        //                range_lookup_no_tag(8),
-        //            )
-        .fallback(ignore_lookup())
-    //    )
+        .with(
+            decomposition_lookup_limbs_0_2,
+            plain_spread_lookup3(spread, unspread, any_spread()),
+        )
+        .with(
+            "decomposition lookup: limb 3",
+            plain_spread_lookup3(spread, unspread, spread12()),
+        )
+        .with(
+            decomposition_lookup_limbs_4_5,
+            plain_spread_lookup3(spread, unspread, spread_by_tag()),
+        )
 }
 
 add_entry!("sha3/digest_1/sha3/byte", sha3_digest::<1>);

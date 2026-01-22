@@ -5,7 +5,7 @@ use haloumi::{
     lookups::{callbacks::LookupCallbacks, table::LookupTableGenerator, Lookup},
     temps::{ExprOrTemp, Temps},
 };
-use haloumi_ir::{cmp::CmpOp, expr::IRBexpr, stmt::IRStmt};
+use haloumi_ir::{expr::IRBexpr, stmt::IRStmt};
 use midnight_proofs::plonk::Expression;
 
 /// Maps a set of tag values to a set of ranges
@@ -40,14 +40,14 @@ fn f_to_e<'a, 'f, F: Field>(
 }
 
 fn chunk<'a, 'f, F: Field>(
-    op: CmpOp,
+    op: impl Fn(Cow<'a, Expression<F>>, Cow<'a, Expression<F>>) -> IRBexpr<Cow<'a, Expression<F>>>,
     lhs: impl IntoIterator<Item = &'a Expression<F>>,
     rhs: impl IntoIterator<Item = &'f F>,
 ) -> impl Iterator<Item = IRBexpr<Cow<'a, Expression<F>>>> {
     lhs.into_iter()
         .map(Cow::Borrowed)
         .zip(f_to_e(rhs))
-        .map(move |(lhs, rhs)| IRBexpr::Cmp(op, lhs, rhs))
+        .map(move |(lhs, rhs)| op(lhs, rhs))
 }
 
 impl<F: Field, const TAGS: usize, const VALUES: usize> TagRangeLookup<F, TAGS, VALUES> {
@@ -111,21 +111,20 @@ impl<F: Field, const TAGS: usize, const VALUES: usize> TagRangeLookup<F, TAGS, V
         tags: &[F; TAGS],
         values: &[F; VALUES],
     ) -> IRBexpr<Cow<'a, Expression<F>>> {
-        let tags = chunk(CmpOp::Eq, self.tag_exprs(lookup), tags);
-        let values = chunk(CmpOp::Lt, self.value_exprs(lookup), values);
-        IRBexpr::And(tags.chain(values).collect())
+        let tags = chunk(IRBexpr::eq, self.tag_exprs(lookup), tags);
+        let values = chunk(IRBexpr::lt, self.value_exprs(lookup), values);
+        IRBexpr::and_many(tags.chain(values))
     }
 
     fn process_rows<'a>(
         &self,
         lookup: &'a Lookup<Expression<F>>,
     ) -> IRBexpr<Cow<'a, Expression<F>>> {
-        IRBexpr::Or(
+        IRBexpr::or_many(
             self.ranges
                 .0
                 .iter()
-                .map(|(tags, values)| self.process_row(lookup, tags, values))
-                .collect(),
+                .map(|(tags, values)| self.process_row(lookup, tags, values)),
         )
     }
 }
@@ -139,6 +138,6 @@ impl<const TAGS: usize, const VALUES: usize, F: Field> LookupCallbacks<F, Expres
         _table: &dyn LookupTableGenerator<F>,
         _temps: &mut Temps,
     ) -> anyhow::Result<IRStmt<ExprOrTemp<Cow<'a, Expression<F>>>>> {
-        Ok(IRStmt::assert(self.process_rows(&lookup)).map(&ExprOrTemp::Expr))
+        Ok(IRStmt::assert(self.process_rows(&lookup)).map(&mut ExprOrTemp::Expr))
     }
 }

@@ -1,10 +1,10 @@
 use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote};
-#[cfg(feature = "region-groups")]
-use syn::Path;
 use syn::{
     spanned::Spanned, Attribute, Block, FnArg, Ident, ItemFn, Pat, PatType, ReturnType, Visibility,
 };
+#[cfg(feature = "region-groups")]
+use syn::{ImplGenerics, Path, TypeGenerics, WhereClause};
 
 use crate::parse::group::GroupArgs;
 
@@ -17,6 +17,7 @@ const LAYOUTER_ATTR: &str = "layouter";
 /// Refer to that macro's documentation for details about its user facing API.
 pub fn group_impl(input_fn: ItemFn, args: GroupArgs) -> syn::Result<TokenStream> {
     let fn_ident = &input_fn.sig.ident;
+    let (impl_generics, ty_generics, where_clause) = input_fn.sig.generics.split_for_impl();
     let group_ident = format_ident!("__{}__group", fn_ident);
 
     let (layouter, io) = locate_attributes(&input_fn)?;
@@ -37,6 +38,9 @@ pub fn group_impl(input_fn: ItemFn, args: GroupArgs) -> syn::Result<TokenStream>
         io_annotations,
         &input_fn.block,
         args.crate_name(),
+        &impl_generics,
+        &ty_generics,
+        where_clause,
     ))
 }
 
@@ -52,10 +56,13 @@ fn emit_wrapped_fn(
     io_annotations: impl Iterator<Item = TokenStream>,
     user_block: &Block,
     support_crate: Path,
+    impl_generics: &ImplGenerics,
+    _ty_generics: &TypeGenerics,
+    where_clause: Option<&WhereClause>,
 ) -> TokenStream {
     quote! {
         #(#fn_attrs)*
-        #vis fn #fn_ident(#(#cleaned_inputs, )*) #output {
+        #vis fn  #fn_ident #impl_generics (#(#cleaned_inputs, )*) #output #where_clause {
 
             #layouter.group(|| stringify!(#fn_ident), midnight_proofs::default_group_key!(), |#layouter,#[allow(non_snake_case)] #group_ident| {
                 use #support_crate::DecomposeIn as _;
@@ -81,10 +88,13 @@ fn emit_wrapped_fn(
     _: &Ident,
     _: impl Iterator<Item = TokenStream>,
     user_block: &Block,
+    impl_generics: &ImplGenerics,
+    _ty_generics: &TypeGenerics,
+    where_clause: Option<&WhereClause>,
 ) -> TokenStream {
     quote! {
         #(#fn_attrs)*
-        #vis fn #fn_ident(#(#cleaned_inputs, )*) #output {
+        #vis fn #fn_ident #impl_generics (#(#cleaned_inputs, )*) #output #where_clause {
             #user_block
         }
     }
@@ -321,6 +331,30 @@ mod tests {
         ",
         r"
         fn foo( layouter: &mut impl Layouter<F>, inputs:  &[AssignedNative<F>]) -> Result<AssignedNative<F>, Error> {
+            layouter.group(
+                || stringify!(foo),
+                midnight_proofs::default_group_key!(),
+                |layouter, #[allow(non_snake_case)] __foo__group| {
+                    use picus_support::DecomposeIn as _;
+                    __foo__group.annotate_as_input(&inputs)?;
+                    let inner_result = {
+                        inputs.iter().try_fold(F::ZERO, |acc, i| self.bar(layouter, i, acc))
+                    };
+                    __foo__group.annotate_as_output(&inner_result)?;
+                    inner_result
+                }
+            )
+        }
+        "
+    )]
+    #[case(
+        r"#[group]
+        fn foo<const M: usize>( layouter: &mut impl Layouter<F>, #[input] inputs:  &[AssignedNative<F>]) -> Result<AssignedNative<F>, Error> {
+            inputs.iter().try_fold(F::ZERO, |acc, i| self.bar(layouter, i, acc))
+        }
+        ",
+        r"
+        fn foo<const M: usize>( layouter: &mut impl Layouter<F>, inputs:  &[AssignedNative<F>]) -> Result<AssignedNative<F>, Error> {
             layouter.group(
                 || stringify!(foo),
                 midnight_proofs::default_group_key!(),
