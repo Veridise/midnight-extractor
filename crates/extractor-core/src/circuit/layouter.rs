@@ -73,10 +73,7 @@ impl<F: Field> Layouter<F> for ExtractionLayouter<'_, '_, F> {
         // Lay out this region. We implement the simplest approach here: position the
         // region starting at the earliest row for which none of the columns are in use.
         let mut region_start = 0;
-        let mut found_earliest_row = false;
         for column in shape.columns() {
-            let row = self.columns.get(column);
-            found_earliest_row = found_earliest_row || row.is_some();
             region_start = cmp::max(region_start, self.columns.get(column).cloned().unwrap_or(0));
         }
         self.regions.push(region_start.into());
@@ -87,11 +84,9 @@ impl<F: Field> Layouter<F> for ExtractionLayouter<'_, '_, F> {
         }
 
         // Assign region cells.
-        self.synthesizer.enter_region(
-            name,
-            Some(region_index.into()),
-            found_earliest_row.then_some(region_start.into()),
-        );
+        self.synthesizer
+            //.enter_region(name, Some(region_index.into()), Some(region_start.into()));
+            .enter_region(name, None, None);
         let mut region = ExtractionLayouterRegion::new(self, region_index.into());
         let result = {
             let region: &mut dyn RegionLayouter<F> = &mut region;

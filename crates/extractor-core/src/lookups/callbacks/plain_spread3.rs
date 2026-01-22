@@ -312,15 +312,14 @@ impl<M: PlainSpreadLookup3Mode> PlainSpreadLookup3<M> {
             ]
         });
 
-        IRStmt::assert(IRBexpr::Or(
+        IRStmt::assert(IRBexpr::or_many(
             std::iter::once([
                 eq_zero(tag_expr.clone()),
                 eq_zero(dense.clone()),
                 eq_zero(spread.clone()),
             ])
             .chain(checks)
-            .map(|checks| IRBexpr::And(checks.to_vec()))
-            .collect(),
+            .map(|checks| IRBexpr::and_many(checks)),
         ))
     }
 }
