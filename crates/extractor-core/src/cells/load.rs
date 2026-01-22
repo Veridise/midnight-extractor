@@ -312,9 +312,8 @@ where
         injected_ir: &mut InjectedIR<RegionIndex, Expression<F>>,
     ) -> Result<Self, Error> {
         let native = AssignedNative::load(ctx, chip, layouter, injected_ir)?;
-        Ok(chip
-            .bounded_of_element(layouter.adaptee_ref_mut(), BOUND, &native)
-            .map(AssignedBoundedLoad)?)
+        chip.bounded_of_element(layouter.adaptee_ref_mut(), BOUND, &native)
+            .map(AssignedBoundedLoad)
     }
 }
 
@@ -369,7 +368,7 @@ where
             (cell.cell().row_offset, lhs),
             (cell.cell().row_offset, rhs),
         ));
-        Ok(chip.convert(layouter.adaptee_ref_mut(), &cell).map(BoundedScalarVar)?)
+        chip.convert(layouter.adaptee_ref_mut(), &cell).map(BoundedScalarVar)
     }
 }
 

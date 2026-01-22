@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::HashMap};
+use std::borrow::Cow;
 
 use ff::PrimeField;
 use haloumi::{
@@ -32,13 +32,15 @@ impl<T: Fn(&str) -> bool> LookupName for T {
     }
 }
 
+pub type LookupHandler<'a, F> = (
+    Box<dyn LookupName + 'static>,
+    Box<dyn LookupCallbacks<F, Expression<F>> + 'a>,
+);
+
 /// Stores several lookup callbacks and dispatches them based on the name of the lookup.
 #[derive(Default)]
 pub struct LookupMux<'a, F: PrimeField> {
-    handlers: Vec<(
-        Box<dyn LookupName + 'static>,
-        Box<dyn LookupCallbacks<F, Expression<F>> + 'a>,
-    )>,
+    handlers: Vec<LookupHandler<'a, F>>,
     fallback: Option<Box<dyn LookupCallbacks<F, Expression<F>> + 'a>>,
 }
 

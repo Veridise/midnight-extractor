@@ -31,29 +31,34 @@ pub struct PlainSpreadLookup3<M: PlainSpreadLookup3Mode> {
 /// This is just a marker trait and the implementation is defined somewhere else.
 pub trait PlainSpreadLookup3Mode: PlainSpreadLookup3ModeImpl {}
 
-/// Actual implementation of the mode.
-trait PlainSpreadLookup3ModeImpl {
-    fn tag<'syn, F: PrimeField>(
-        &self,
-        lookup: &'syn Lookup<Expression<F>>,
-    ) -> ExprOrTemp<Cow<'syn, Expression<F>>>;
+mod sealed {
+    use super::*;
+    /// Actual implementation of the mode.
+    pub trait PlainSpreadLookup3ModeImpl {
+        fn tag<'syn, F: PrimeField>(
+            &self,
+            lookup: &'syn Lookup<Expression<F>>,
+        ) -> ExprOrTemp<Cow<'syn, Expression<F>>>;
 
-    fn spread<'syn, F: PrimeField>(
-        &self,
-        lookup: &'syn Lookup<Expression<F>>,
-    ) -> ExprOrTemp<Cow<'syn, Expression<F>>>;
+        fn spread<'syn, F: PrimeField>(
+            &self,
+            lookup: &'syn Lookup<Expression<F>>,
+        ) -> ExprOrTemp<Cow<'syn, Expression<F>>>;
 
-    fn dense<'syn, F: PrimeField>(
-        &self,
-        lookup: &'syn Lookup<Expression<F>>,
-        temps: &mut Temps,
-    ) -> ExprOrTemp<Cow<'syn, Expression<F>>>;
+        fn dense<'syn, F: PrimeField>(
+            &self,
+            lookup: &'syn Lookup<Expression<F>>,
+            temps: &mut Temps,
+        ) -> ExprOrTemp<Cow<'syn, Expression<F>>>;
 
-    fn validate_lookup<'syn, F: PrimeField>(
-        &self,
-        lookup: &'syn Lookup<Expression<F>>,
-    ) -> anyhow::Result<()>;
+        fn validate_lookup<F: PrimeField>(
+            &self,
+            lookup: &Lookup<Expression<F>>,
+        ) -> anyhow::Result<()>;
+    }
 }
+
+use sealed::PlainSpreadLookup3ModeImpl;
 
 /// The lookup queries an spread value that is valid on the whole table.
 ///
@@ -92,10 +97,7 @@ impl PlainSpreadLookup3ModeImpl for AnySpread {
         ExprOrTemp::Temp(temps.next().unwrap())
     }
 
-    fn validate_lookup<'syn, F: PrimeField>(
-        &self,
-        lookup: &'syn Lookup<Expression<F>>,
-    ) -> anyhow::Result<()> {
+    fn validate_lookup<F: PrimeField>(&self, lookup: &Lookup<Expression<F>>) -> anyhow::Result<()> {
         ensure_lookup_size(lookup, 1)
     }
 }
@@ -139,10 +141,7 @@ impl PlainSpreadLookup3ModeImpl for Spread12 {
         ExprOrTemp::Temp(temps.next().unwrap())
     }
 
-    fn validate_lookup<'syn, F: PrimeField>(
-        &self,
-        lookup: &'syn Lookup<Expression<F>>,
-    ) -> anyhow::Result<()> {
+    fn validate_lookup<F: PrimeField>(&self, lookup: &Lookup<Expression<F>>) -> anyhow::Result<()> {
         ensure_lookup_size(lookup, 2)?;
         ensure_tag_is_constant_value(&lookup.inputs()[0], 12)
     }
@@ -189,10 +188,7 @@ impl PlainSpreadLookup3ModeImpl for SpreadByTag {
         ExprOrTemp::Temp(temps.next().unwrap())
     }
 
-    fn validate_lookup<'syn, F: PrimeField>(
-        &self,
-        lookup: &'syn Lookup<Expression<F>>,
-    ) -> anyhow::Result<()> {
+    fn validate_lookup<F: PrimeField>(&self, lookup: &Lookup<Expression<F>>) -> anyhow::Result<()> {
         ensure_lookup_size(lookup, 2)
     }
 }
@@ -231,10 +227,7 @@ impl PlainSpreadLookup3ModeImpl for SpreadByteLookup {
         ExprOrTemp::Expr(Cow::Borrowed(&lookup.inputs()[1]))
     }
 
-    fn validate_lookup<'syn, F: PrimeField>(
-        &self,
-        lookup: &'syn Lookup<Expression<F>>,
-    ) -> anyhow::Result<()> {
+    fn validate_lookup<F: PrimeField>(&self, lookup: &Lookup<Expression<F>>) -> anyhow::Result<()> {
         ensure_lookup_size(lookup, 3)?;
         ensure_tag_is_constant_value(&lookup.inputs()[0], 8)
     }
@@ -259,7 +252,7 @@ impl<M: PlainSpreadLookup3Mode> PlainSpreadLookup3<M> {
         temps: &mut Temps,
     ) -> IRStmt<ExprOrTemp<Cow<'syn, Expression<F>>>> {
         let (temp, reused) = reuse_temp_or_create(&output, temps);
-        let call = IRStmt::call(name, [input], [temp.clone().into()]);
+        let call = IRStmt::call(name, [input], [temp.into()]);
 
         let out_constr = if !reused {
             IRStmt::eq(output, ExprOrTemp::Temp(temp))
@@ -298,9 +291,9 @@ impl<M: PlainSpreadLookup3Mode> PlainSpreadLookup3<M> {
         fn mk_expr<'syn, F: PrimeField>(value: u64) -> ExprOrTemp<Cow<'syn, Expression<F>>> {
             ExprOrTemp::Expr(Cow::Owned(value.into()))
         }
-        fn eq_zero<'syn, F: PrimeField>(
-            input: ExprOrTemp<Cow<'syn, Expression<F>>>,
-        ) -> IRBexpr<ExprOrTemp<Cow<'syn, Expression<F>>>> {
+        fn eq_zero<F: PrimeField>(
+            input: ExprOrTemp<Cow<'_, Expression<F>>>,
+        ) -> IRBexpr<ExprOrTemp<Cow<'_, Expression<F>>>> {
             IRBexpr::eq(input, mk_expr::<F>(0))
         }
 
@@ -319,7 +312,7 @@ impl<M: PlainSpreadLookup3Mode> PlainSpreadLookup3<M> {
                 eq_zero(spread.clone()),
             ])
             .chain(checks)
-            .map(|checks| IRBexpr::and_many(checks)),
+            .map(IRBexpr::and_many),
         ))
     }
 }
@@ -383,7 +376,7 @@ fn ensure_lookup_size<E>(lookup: &Lookup<E>, size: usize) -> anyhow::Result<()> 
 
 fn reuse_temp_or_create<E>(expr: &ExprOrTemp<E>, temps: &mut Temps) -> (Temp, bool) {
     match expr {
-        ExprOrTemp::Temp(temp) => (temp.clone(), true),
+        ExprOrTemp::Temp(temp) => (*temp, true),
         ExprOrTemp::Expr(_) => (temps.next().unwrap(), false),
     }
 }

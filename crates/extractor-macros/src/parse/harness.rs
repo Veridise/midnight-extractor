@@ -23,6 +23,7 @@ pub struct HarnessFnCommon {
 }
 
 impl HarnessFnCommon {
+    #[allow(clippy::too_many_arguments)]
     fn new(
         chip: ArgParts,
         layouter: Pat,

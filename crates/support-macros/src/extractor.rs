@@ -107,7 +107,8 @@ pub fn derive_circuit_initialization_from_scratch_impl(
 fn find_annotated_params(attrs: &[Attribute]) -> syn::Result<Vec<Path>> {
     attrs
         .iter()
-        .filter_map(|a| a.path().is_ident("from_scratch").then(|| a.parse_args::<Path>()))
+        .filter(|a| a.path().is_ident("from_scratch"))
+        .map(|a| a.parse_args::<Path>())
         .collect()
 }
 

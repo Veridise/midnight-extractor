@@ -249,6 +249,7 @@ impl<'r, 'a, 'b, F: Field> ExtractionLayouterRegion<'r, 'a, 'b, F> {
     }
 }
 
+#[allow(clippy::needless_lifetimes)]
 impl<'a, 'b, F: Field> RegionLayouter<F> for ExtractionLayouterRegion<'_, 'a, 'b, F> {
     fn enable_selector<'v>(
         &'v mut self,
@@ -430,6 +431,7 @@ struct ExtractionTableLayouter<'r, 'a, F: Field> {
     used_columns: &'r [TableColumn],
     /// maps from a fixed column to a pair (default value, vector saying which
     /// rows are assigned)
+    #[allow(clippy::type_complexity)]
     pub default_and_assigned: HashMap<TableColumn, (Option<Value<Rational<F>>>, Vec<bool>)>,
 }
 
@@ -443,6 +445,8 @@ impl<'r, 'a, F: Field> ExtractionTableLayouter<'r, 'a, F> {
         }
     }
 }
+
+#[allow(clippy::needless_lifetimes)]
 impl<'r, 'a, F: Field> TableLayouter<F> for ExtractionTableLayouter<'r, 'a, F> {
     fn assign_cell<'v>(
         &'v mut self,
@@ -601,6 +605,7 @@ impl<F: Field, L: Layouter<F>> LayoutAdaptor<F, ExtractionSupport> for AdaptsLay
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn compute_table_lengths<F: std::fmt::Debug>(
     default_and_assigned: &HashMap<TableColumn, (Option<Value<Rational<F>>>, Vec<bool>)>,
 ) -> Result<usize, Error> {
