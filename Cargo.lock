@@ -592,22 +592,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "halo2-frontend-core"
+version = "0.1.0"
+source = "git+https://github.com/Veridise/llzk-rs#1fab594b7c7c451d86f8c0bd038adf0fe621f17e"
+dependencies = [
+ "anyhow",
+ "ff",
+]
+
+[[package]]
 name = "halo2-llzk-frontend"
 version = "0.1.0"
+source = "git+https://github.com/Veridise/llzk-rs#1fab594b7c7c451d86f8c0bd038adf0fe621f17e"
 dependencies = [
  "anyhow",
  "bit-set",
  "disjoint",
- "eqv",
  "ff",
- "haloumi-core",
- "haloumi-ir",
- "haloumi-lowering",
+ "halo2-frontend-core",
+ "internment",
  "log",
  "num-bigint",
  "paste",
  "picus",
- "thiserror",
 ]
 
 [[package]]
@@ -1341,6 +1348,7 @@ checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 [[package]]
 name = "picus"
 version = "0.1.0"
+source = "git+https://github.com/Veridise/llzk-rs#1fab594b7c7c451d86f8c0bd038adf0fe621f17e"
 dependencies = [
  "anyhow",
  "disjoint",

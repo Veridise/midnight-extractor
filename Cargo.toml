@@ -59,10 +59,10 @@ git = "https://github.com/Veridise/midnight-zk"
 
 
 [workspace.dependencies.haloumi]
-path = "../llzk-rs/frontends/halo2"
-# git = "https://github.com/Veridise/llzk-rs"
+# path = "../llzk-rs/frontends/halo2"
+git = "https://github.com/Veridise/llzk-rs"
 default-features = false
 features = ["picus-backend"]
 package = "halo2-llzk-frontend"
-# branch = "dani/convenience-methods"
+branch = "dani/convenience-methods"
 
