@@ -1,12 +1,13 @@
 use crate::parse::harness::{HarnessFn, Output, UnitHarnessFn};
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote, ToTokens as _};
+use quote::{format_ident, quote};
 use syn::{Ident, ImplGenerics, Lifetime, Type, TypeGenerics, WhereClause};
 
 pub mod cfg;
 
 pub use cfg::*;
 
+#[allow(clippy::too_many_arguments)]
 fn abstract_circuit_io<'g>(
     impl_generics: &ImplGenerics<'g>,
     ty_generics: &TypeGenerics<'g>,

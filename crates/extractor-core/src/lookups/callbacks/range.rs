@@ -138,6 +138,6 @@ impl<const TAGS: usize, const VALUES: usize, F: Field> LookupCallbacks<F, Expres
         _table: &dyn LookupTableGenerator<F>,
         _temps: &mut Temps,
     ) -> anyhow::Result<IRStmt<ExprOrTemp<Cow<'a, Expression<F>>>>> {
-        Ok(IRStmt::assert(self.process_rows(&lookup)).map(&mut ExprOrTemp::Expr))
+        Ok(IRStmt::assert(self.process_rows(lookup)).map(&mut ExprOrTemp::Expr))
     }
 }

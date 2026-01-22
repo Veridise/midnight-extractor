@@ -40,7 +40,7 @@ type RewriteResult<T> = Result<T, &'static str>;
 pub struct DecomposeCorePattern;
 
 impl<F: PrimeField> GateRewritePattern<F, Expression<F>> for DecomposeCorePattern {
-    fn match_gate<'a>(&self, gate: GateScope<'a, '_, F, Expression<F>>) -> Result<(), RewriteError>
+    fn match_gate(&self, gate: GateScope<'_, '_, F, Expression<F>>) -> Result<(), RewriteError>
     where
         F: Field,
     {
@@ -424,6 +424,8 @@ mod test {
         Expression::Constant(vec![F::ONE; n].into_iter().sum())
     }
 
+    type ExprInRow<F> = (usize, (AdviceQuery, Vec<Expression<F>>));
+
     impl RecEqualityTestFixture {
         fn setup(cs: &mut ConstraintSystem<F>) -> Self {
             let (_, fixed, advice, _instance) = Self::cols(cs);
@@ -459,10 +461,7 @@ mod test {
             (f0, a1, a0)
         }
 
-        fn expr_per_row(
-            &self,
-            rows: impl Iterator<Item = usize>,
-        ) -> Vec<(usize, (AdviceQuery, Vec<Expression<F>>))> {
+        fn expr_per_row(&self, rows: impl Iterator<Item = usize>) -> Vec<ExprInRow<F>> {
             rows.map(|row| (row, (self.lhs(), self.rhs_on_row_flat(row)))).collect()
         }
 
@@ -471,7 +470,7 @@ mod test {
         }
 
         /// f(n) = f0 * s2 + f(n+1)
-        fn step<'a>(
+        fn step(
             &self,
             n: usize,
             start_row: usize,
@@ -501,17 +500,22 @@ mod test {
             ((start_row, Expression::Advice(lhs)), (start_row, rhs))
         }
 
-        fn cols(
-            cs: &mut ConstraintSystem<F>,
-        ) -> (
-            [Selector; 0],
-            [Column<Fixed>; 1],
-            [Column<Advice>; 2],
-            [Column<Instance>; 0],
-        ) {
+        fn cols(cs: &mut ConstraintSystem<F>) -> Cols<0, 1, 2, 0> {
             columns::<F, 0, 1, 2, 0>(cs)
         }
     }
+
+    type Cols<
+        const SELECTOR: usize,
+        const FIXED: usize,
+        const ADVICE: usize,
+        const INSTANCE: usize,
+    > = (
+        [Selector; SELECTOR],
+        [Column<Fixed>; FIXED],
+        [Column<Advice>; ADVICE],
+        [Column<Instance>; INSTANCE],
+    );
 
     fn columns<
         F: Field,
@@ -521,12 +525,7 @@ mod test {
         const INSTANCE: usize,
     >(
         meta: &mut ConstraintSystem<F>,
-    ) -> (
-        [Selector; SELECTOR],
-        [Column<Fixed>; FIXED],
-        [Column<Advice>; ADVICE],
-        [Column<Instance>; INSTANCE],
-    ) {
+    ) -> Cols<SELECTOR, FIXED, ADVICE, INSTANCE> {
         (
             from_fn(|_| meta.selector()),
             from_fn(|_| meta.fixed_column()),
@@ -604,31 +603,31 @@ mod test {
                 Expression::Negated(expression) => {
                     writeln!(self.f, "{}(-", self.indent)?;
                     self.indent.push();
-                    self.print_expr(&expression)?;
+                    self.print_expr(expression)?;
                     self.indent.pop();
                     writeln!(self.f, "{})", self.indent)
                 }
                 Expression::Sum(lhs, rhs) => {
                     writeln!(self.f, "{}(+", self.indent)?;
                     self.indent.push();
-                    self.print_expr(&lhs)?;
-                    self.print_expr(&rhs)?;
+                    self.print_expr(lhs)?;
+                    self.print_expr(rhs)?;
                     self.indent.pop();
                     writeln!(self.f, "{})", self.indent)
                 }
                 Expression::Product(lhs, rhs) => {
                     writeln!(self.f, "{}(*", self.indent)?;
                     self.indent.push();
-                    self.print_expr(&lhs)?;
-                    self.print_expr(&rhs)?;
+                    self.print_expr(lhs)?;
+                    self.print_expr(rhs)?;
                     self.indent.pop();
                     writeln!(self.f, "{})", self.indent)
                 }
                 Expression::Scaled(lhs, rhs) => {
                     writeln!(self.f, "{}(scaled/*", self.indent)?;
                     self.indent.push();
-                    self.print_expr(&lhs)?;
-                    self.print_f(&rhs)?;
+                    self.print_expr(lhs)?;
+                    self.print_f(rhs)?;
                     self.indent.pop();
                     writeln!(self.f, "{})", self.indent)
                 }

@@ -11,12 +11,14 @@ fn cell_to_expr_inner<F: PrimeField>(c: Cell) -> Result<Expression<F>, Error> {
     Ok(c.column.query_cell::<F>(Rotation(c.row_offset.try_into()?)))
 }
 
+type StmtInRegion<F> = (RegionIndex, IRStmt<(usize, Expression<F>)>);
+
 /// Convenience method for creating a less-than constraint between a cell and a
 /// constant.
 pub fn injectable_less_than<F: PrimeField>(
     cell: Cell,
     constant: F,
-) -> Result<(RegionIndex, IRStmt<(usize, Expression<F>)>), Error> {
+) -> Result<StmtInRegion<F>, Error> {
     let lhs = cell_to_expr_inner(cell)?;
     let rhs = Expression::Constant(constant);
     Ok((

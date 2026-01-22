@@ -21,7 +21,7 @@ pub fn parse_constants_file(reader: impl BufRead) -> Result<Vec<String>, io::Err
 #[cfg(test)]
 mod tests {
     use ff::PrimeField;
-    use midnight_circuits::halo2curves::bn256::Fr;
+    use halo2curves::bn256::Fr;
 
     use mdnt_support::parse_field;
 

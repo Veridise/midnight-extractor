@@ -44,6 +44,7 @@ pub fn group_impl(input_fn: ItemFn, args: GroupArgs) -> syn::Result<TokenStream>
     ))
 }
 
+#[allow(clippy::too_many_arguments)]
 #[cfg(feature = "region-groups")]
 fn emit_wrapped_fn(
     fn_attrs: &[Attribute],
@@ -77,6 +78,7 @@ fn emit_wrapped_fn(
 
 /// If region-groups is disabled we emit the function as is but with the inputs cleaned to avoid
 /// errors with the attributes.
+#[allow(clippy::too_many_arguments)]
 #[cfg(not(feature = "region-groups"))]
 fn emit_wrapped_fn(
     fn_attrs: &[Attribute],
@@ -291,6 +293,7 @@ mod tests {
         ctx
     }
 
+    #[allow(dead_code)]
     #[derive(Debug)]
     struct ParseError {
         err: syn::Error,

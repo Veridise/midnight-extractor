@@ -62,7 +62,7 @@ where
         Ok(Self { config, query })
     }
 
-    fn output_base<'a>(&'a self) -> Result<Cow<'a, Path>> {
+    fn output_base(&self) -> Result<Cow<'_, Path>> {
         let path = if let Some(path) = self.config.output() {
             Cow::Borrowed(path)
         } else {
@@ -172,7 +172,7 @@ where
     ) -> Result<(), AppError> {
         log::info!("Extracting harness {name}");
 
-        let mut ir = harness(&ctx).map_err(AppError::harness(name))?;
+        let mut ir = harness(ctx).map_err(AppError::harness(name))?;
         if self.config.optimize_ir() {
             self.optimize_ir(&mut ir).map_err(AppError::opt(name))?;
         }

@@ -6,7 +6,7 @@ use haloumi::{
     temps::{ExprOrTemp, Temps},
     LookupCallbacks,
 };
-use haloumi_ir::{expr::IRBexpr, stmt::IRStmt, CmpOp};
+use haloumi_ir::{expr::IRBexpr, stmt::IRStmt};
 use midnight_proofs::plonk::Expression;
 
 use crate::lookups::callbacks::range::TagRangeLookup;
@@ -43,25 +43,6 @@ fn spread_bound(n: u32) -> u64 {
     ((1 << (2 * n)) - 1) / 3 + 1
 }
 
-#[cfg(test)]
-mod tests {
-    //! Tests to double check the formula for the spread bound is correct.
-
-    #[test]
-    fn test_2_to_the_11th() {
-        let n = 11u32;
-        assert_eq!(2048, 1 << n);
-        assert_eq!(1398102, super::spread_bound(n));
-    }
-
-    #[test]
-    fn test_2_to_the_10th() {
-        let n = 10u32;
-        assert_eq!(1024, 1 << n);
-        assert_eq!(349526, super::spread_bound(n));
-    }
-}
-
 impl<F: PrimeField> LookupCallbacks<F, Expression<F>> for PlainSpreadLookup<F> {
     fn on_lookup<'syn>(
         &self,
@@ -69,7 +50,7 @@ impl<F: PrimeField> LookupCallbacks<F, Expression<F>> for PlainSpreadLookup<F> {
         table: &dyn LookupTableGenerator<F>,
         temps: &mut Temps,
     ) -> anyhow::Result<IRStmt<ExprOrTemp<Cow<'syn, Expression<F>>>>> {
-        let [plain, spread] = self.range_check.value_exprs(&lookup);
+        let [plain, spread] = self.range_check.value_exprs(lookup);
         let range_check_ir = self.range_check.on_lookup(lookup, table, temps)?;
         let temp = temps.next().ok_or_else(|| unreachable!())?;
         let spread_call = IRStmt::call(
@@ -121,8 +102,8 @@ impl<F: PrimeField> LookupCallbacks<F, Expression<F>> for PlainSpreadLookup<F> {
             .zip(tables.iter())
             .map(|(lookup, table)| self.on_lookup(lookup, *table, temps))
             .collect::<Result<IRStmt<_>, _>>()?;
-        let fst_spread = self.range_check.value_exprs(&lookups[0])[1];
-        let snd_spread = self.range_check.value_exprs(&lookups[1])[1];
+        let fst_spread = self.range_check.value_exprs(lookups[0])[1];
+        let snd_spread = self.range_check.value_exprs(lookups[1])[1];
 
         let det_axioms1 = IRStmt::assert(
             IRBexpr::det(Cow::Owned(
@@ -143,5 +124,24 @@ impl<F: PrimeField> LookupCallbacks<F, Expression<F>> for PlainSpreadLookup<F> {
         )
         .map(&mut ExprOrTemp::Expr);
         Ok(IRStmt::seq([per_lookup_ir, det_axioms1, det_axioms2]))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    //! Tests to double check the formula for the spread bound is correct.
+
+    #[test]
+    fn test_2_to_the_11th() {
+        let n = 11u32;
+        assert_eq!(2048, 1 << n);
+        assert_eq!(1398102, super::spread_bound(n));
+    }
+
+    #[test]
+    fn test_2_to_the_10th() {
+        let n = 10u32;
+        assert_eq!(1024, 1 << n);
+        assert_eq!(349526, super::spread_bound(n));
     }
 }

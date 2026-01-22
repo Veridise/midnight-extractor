@@ -41,6 +41,9 @@ clap = { version = "4.5", features = ["derive"], optional = true}
 cargo-lock = "10"
 anyhow = "1"
 
+[dev-dependencies]
+halo2curves = "0.7"
+
 [features]
 default = ["cli", "sha3"]
 cli = ["clap"]

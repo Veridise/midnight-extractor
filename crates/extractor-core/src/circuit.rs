@@ -4,7 +4,7 @@ use crate::{
 };
 use anyhow::{Context, Result};
 use configuration::Config;
-use ff::{Field, PrimeField};
+use ff::PrimeField;
 use haloumi::{
     expressions::ExpressionInRow, AdviceIO, CircuitIO, CircuitSynthesis, InstanceIO, Synthesizer,
 };
@@ -21,8 +21,8 @@ use mdnt_support::{
     },
 };
 use midnight_proofs::{
-    circuit::{Layouter, RegionIndex, SimpleFloorPlanner},
-    plonk::{Circuit, ConstraintSystem, Error, Expression},
+    circuit::{Layouter, RegionIndex},
+    plonk::{ConstraintSystem, Error, Expression},
     ExtractionSupport,
 };
 use std::{cell::RefCell, marker::PhantomData};
@@ -144,7 +144,7 @@ where
     {
         let mut layouter = AdaptsLayouter::new(layouter);
         let mut injected_ir = self.injected_ir.borrow_mut();
-        Ok(Load::load(
+        Load::load(
             &mut ICtx::new(
                 cells
                     .into_iter()
@@ -158,7 +158,7 @@ where
             chip,
             &mut layouter,
             &mut injected_ir,
-        )?)
+        )
     }
 
     fn load_inputs<L>(

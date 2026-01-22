@@ -86,6 +86,7 @@ fn test_fakechip_function() {
     impl<A, B> NoChipArgs for Circuit<A, B> {}
 
     let ctx = Ctx::new(&[], false, false);
+    #[allow(clippy::type_complexity)]
     let ci: CircuitImpl<
         '_,
         F,
@@ -141,6 +142,7 @@ fn test_fakechip_function_2() {
     fake_synthesize(ci)
 }
 
+#[allow(unused)]
 #[harness]
 fn test_fakechip_function_macro_impl(
     fake: &FakeChip,
@@ -197,6 +199,7 @@ fn test_fakechip_function_mut() {
     impl<A, B> NoChipArgs for Circuit<A, B> {}
 
     let ctx = Ctx::new(&[], false, false);
+    #[allow(clippy::type_complexity)]
     let ci: CircuitImpl<
         '_,
         F,
@@ -209,6 +212,7 @@ fn test_fakechip_function_mut() {
     fake_synthesize(ci)
 }
 
+#[allow(unused)]
 #[harness_mut]
 fn test_fakechip_function_mut_macro_impl(
     fake: &mut FakeChip,
@@ -266,6 +270,7 @@ fn test_fakechip_procedure() {
     impl<A, B> NoChipArgs for Circuit<A, B> {}
 
     let ctx = Ctx::new(&[], false, false);
+    #[allow(clippy::type_complexity)]
     let ci: CircuitImpl<
         '_,
         F,
@@ -278,6 +283,7 @@ fn test_fakechip_procedure() {
     fake_synthesize(ci)
 }
 
+#[allow(unused)]
 #[unit_harness]
 fn test_fakechip_procedure_macro_impl(
     fake: &mut FakeChip,
@@ -285,7 +291,7 @@ fn test_fakechip_procedure_macro_impl(
     i: AssignedNative<F>,
     o: AssignedNative<F>,
 ) -> Result<(), Error> {
-    Ok(())
+    Ok::<_, Error>(())
 }
 
 #[test]

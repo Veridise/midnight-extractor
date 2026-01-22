@@ -1019,6 +1019,7 @@ dependencies = [
  "env_logger",
  "ff",
  "halo2-llzk-frontend",
+ "halo2curves",
  "log",
  "mdnt-extractor-core",
  "mdnt-harnesses",

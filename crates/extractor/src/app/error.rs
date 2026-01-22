@@ -1,5 +1,6 @@
 use std::fmt;
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Debug)]
 enum AppErrorKind {
     HarnessFailed,
