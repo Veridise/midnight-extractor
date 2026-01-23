@@ -231,9 +231,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.2.53"
+version = "1.2.54"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "755d2fce177175ffca841e9a06afdb2c4ab0f593d53b4dee48147dfaade85932"
+checksum = "6354c81bbfd62d9cfa9cb3c773c2b7b2a3a482d569de977fd0e961f6e7c00583"
 dependencies = [
  "find-msvc-tools",
  "shlex",
@@ -594,6 +594,7 @@ dependencies = [
 [[package]]
 name = "halo2-llzk-frontend"
 version = "0.1.0"
+source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#d406a9ab6b6f51c1fdbf58711565dcdd50b7f3b2"
 dependencies = [
  "anyhow",
  "bit-set",
@@ -667,9 +668,9 @@ dependencies = [
 
 [[package]]
 name = "haloumi-core"
-version = "0.4.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9bb73cc88d0d3a4536b6277fd4aa0bd90a14d0e5bee7318d31bb109a085e1bc7"
+checksum = "05104114020c2c7db95291b470e4421d45e35bf570f22afd3ae4387d21540a61"
 dependencies = [
  "eqv",
  "ff",
@@ -681,14 +682,16 @@ dependencies = [
 
 [[package]]
 name = "haloumi-ir"
-version = "0.4.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b49fa628e3568d6c49d56cd8ce99235576ecb00155997389f577dde5ff971865"
+checksum = "e06bd2146cc51b3e5253eeaa5b863ae19fb254c3578f0f6a05a8a255b39437cd"
 dependencies = [
+ "bit-set",
  "eqv",
  "ff",
  "haloumi-core",
  "haloumi-lowering",
+ "internment",
  "log",
  "num-bigint",
  "thiserror",
@@ -696,9 +699,9 @@ dependencies = [
 
 [[package]]
 name = "haloumi-lowering"
-version = "0.4.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8800bc7a658b5c92e23380b022ba2790673c804f3390a94215edaf15ec93a7f"
+checksum = "72ffcdab00a69ee3f2828658a0d9662d5bfef10ae6db4c8093d734ee257ed5a7"
 dependencies = [
  "ff",
  "haloumi-core",
@@ -1045,8 +1048,8 @@ dependencies = [
  "mdnt-extractor-macros",
  "mdnt-support 0.2.12",
  "midnight-circuits",
- "midnight-curves 0.1.1 (git+https://github.com/Veridise/midnight-zk.git)",
- "midnight-proofs 0.5.1 (git+https://github.com/Veridise/midnight-zk.git)",
+ "midnight-curves",
+ "midnight-proofs",
  "num-bigint",
  "rstest",
  "similar-asserts",
@@ -1086,7 +1089,7 @@ dependencies = [
  "mdnt-extractor-macros",
  "mdnt-support 0.2.12",
  "midnight-circuits",
- "midnight-proofs 0.5.1 (git+https://github.com/Veridise/midnight-zk.git)",
+ "midnight-proofs",
  "num-bigint",
  "sha3-circuit",
 ]
@@ -1157,7 +1160,7 @@ checksum = "f52b00d39961fc5b2736ea853c9cc86238e165017a493d1d5c8eac6bdc4cc273"
 [[package]]
 name = "midnight-circuits"
 version = "5.0.1"
-source = "git+https://github.com/Veridise/midnight-zk?branch=develop#20139c271e472fe86b96944543829c91724ac1c0"
+source = "git+https://github.com/Veridise/midnight-zk#20139c271e472fe86b96944543829c91724ac1c0"
 dependencies = [
  "base64",
  "bincode",
@@ -1168,8 +1171,8 @@ dependencies = [
  "mdnt-groups-support 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "mdnt-support 0.2.12",
  "mdnt-support-macros 0.2.13",
- "midnight-curves 0.1.1 (git+https://github.com/Veridise/midnight-zk?branch=develop)",
- "midnight-proofs 0.5.1 (git+https://github.com/Veridise/midnight-zk?branch=develop)",
+ "midnight-curves",
+ "midnight-proofs",
  "num-bigint",
  "num-integer",
  "num-traits",
@@ -1182,33 +1185,7 @@ dependencies = [
 [[package]]
 name = "midnight-curves"
 version = "0.1.1"
-source = "git+https://github.com/Veridise/midnight-zk?branch=develop#20139c271e472fe86b96944543829c91724ac1c0"
-dependencies = [
- "bitvec",
- "blst",
- "byte-slice-cast",
- "digest",
- "ff",
- "getrandom",
- "group",
- "halo2derive 0.2.0",
- "hex",
- "lazy_static",
- "num-bigint",
- "pairing",
- "paste",
- "rand_core",
- "rayon",
- "serde",
- "serde_arrays",
- "sha2",
- "subtle",
-]
-
-[[package]]
-name = "midnight-curves"
-version = "0.1.1"
-source = "git+https://github.com/Veridise/midnight-zk.git#20139c271e472fe86b96944543829c91724ac1c0"
+source = "git+https://github.com/Veridise/midnight-zk#20139c271e472fe86b96944543829c91724ac1c0"
 dependencies = [
  "bitvec",
  "blst",
@@ -1234,7 +1211,7 @@ dependencies = [
 [[package]]
 name = "midnight-proofs"
 version = "0.5.1"
-source = "git+https://github.com/Veridise/midnight-zk?branch=develop#20139c271e472fe86b96944543829c91724ac1c0"
+source = "git+https://github.com/Veridise/midnight-zk#20139c271e472fe86b96944543829c91724ac1c0"
 dependencies = [
  "blake2b_simd",
  "ff",
@@ -1243,29 +1220,7 @@ dependencies = [
  "haloumi-core",
  "mdnt-groups-support 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "mdnt-support 0.2.12",
- "midnight-curves 0.1.1 (git+https://github.com/Veridise/midnight-zk?branch=develop)",
- "num-bigint",
- "rand_chacha",
- "rand_core",
- "rayon",
- "serde",
- "serde_derive",
- "tracing",
-]
-
-[[package]]
-name = "midnight-proofs"
-version = "0.5.1"
-source = "git+https://github.com/Veridise/midnight-zk.git#20139c271e472fe86b96944543829c91724ac1c0"
-dependencies = [
- "blake2b_simd",
- "ff",
- "getrandom",
- "group",
- "haloumi-core",
- "mdnt-groups-support 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
- "mdnt-support 0.2.12",
- "midnight-curves 0.1.1 (git+https://github.com/Veridise/midnight-zk.git)",
+ "midnight-curves",
  "num-bigint",
  "rand_chacha",
  "rand_core",
@@ -1389,6 +1344,7 @@ checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 [[package]]
 name = "picus"
 version = "0.1.0"
+source = "git+https://github.com/Veridise/llzk-rs?branch=dani%2Fconvenience-methods#d406a9ab6b6f51c1fdbf58711565dcdd50b7f3b2"
 dependencies = [
  "anyhow",
  "disjoint",
@@ -1479,9 +1435,9 @@ dependencies = [
 
 [[package]]
 name = "quote"
-version = "1.0.43"
+version = "1.0.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc74d9a594b72ae6656596548f56f667211f8a97b3d4c3d467150794690dc40a"
+checksum = "21b2ebcf727b7760c461f091f9f0f539b77b8e87f2fd88131e7f1b433b3cece4"
 dependencies = [
  "proc-macro2",
 ]
@@ -1737,7 +1693,7 @@ dependencies = [
  "mdnt-groups-support 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "mdnt-support 0.2.12",
  "mdnt-support-macros 0.2.13",
- "midnight-proofs 0.5.1 (git+https://github.com/Veridise/midnight-zk.git)",
+ "midnight-proofs",
  "num-bigint",
  "rand",
 ]

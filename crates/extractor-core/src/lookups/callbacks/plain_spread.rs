@@ -73,13 +73,17 @@ impl<F: PrimeField> LookupCallbacks<F, Expression<F>> for PlainSpreadLookup<F> {
             ExprOrTemp::Temp(temp),
         );
 
-        Ok(IRStmt::seq([
+        let mut stmt = IRStmt::seq([
             range_check_ir,
             spread_call,
             spread_out_constr,
             unspread_call,
             unspread_out_constr,
-        ]))
+        ]);
+        use haloumi_ir::meta::HasMeta as _;
+        stmt.meta_mut().at_lookup(lookup.name(), lookup.idx(), None);
+        stmt.propagate_meta();
+        Ok(stmt)
     }
 
     fn on_lookups<'syn>(

@@ -1,13 +1,13 @@
-use std::borrow::Cow;
-
 use ff::PrimeField;
 use haloumi::{
     lookups::{table::LookupTableGenerator, Lookup},
     temps::{ExprOrTemp, Temp, Temps},
     LookupCallbacks,
 };
+use haloumi_ir::meta::HasMeta;
 use haloumi_ir::{expr::IRBexpr, stmt::IRStmt};
 use midnight_proofs::plonk::Expression;
+use std::borrow::Cow;
 
 /// Lookup handler that adds a range check for a plain-spread pair and
 /// calls a module that declares that the latter is a functional dependency of the former.
@@ -334,7 +334,10 @@ impl<F: PrimeField, M: PlainSpreadLookup3Mode> LookupCallbacks<F, Expression<F>>
         let unspread_call = self.unspread_call(spread.clone(), dense.clone(), temps);
         let inequalities = self.inequalities(tag, dense, spread);
 
-        Ok(IRStmt::seq([inequalities, spread_call, unspread_call]))
+        let mut stmt = IRStmt::seq([inequalities, spread_call, unspread_call]);
+        stmt.meta_mut().at_lookup(lookup.name(), lookup.idx(), None);
+        stmt.propagate_meta();
+        Ok(stmt)
     }
 }
 

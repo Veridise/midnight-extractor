@@ -55,6 +55,10 @@ impl<F: PrimeField> LookupCallbacks<F, Expression<F>> for AutomatonLookup {
             ExprOrTemp::Expr(Cow::Owned(Expression::from(self.invalid_word))),
         ));
 
-        Ok(IRStmt::seq([range_check, automaton_call, copy_constraints]))
+        let mut stmt = IRStmt::seq([range_check, automaton_call, copy_constraints]);
+        use haloumi_ir::meta::HasMeta as _;
+        stmt.meta_mut().at_lookup(lookup.name(), lookup.idx(), None);
+        stmt.propagate_meta();
+        Ok(stmt)
     }
 }

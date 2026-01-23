@@ -53,16 +53,15 @@ default-features = false
 features = [
     "extraction"
 ] 
-branch = "develop"
 
 [workspace.dependencies.midnight-curves]
 git = "https://github.com/Veridise/midnight-zk"
 
 
 [workspace.dependencies.haloumi]
-path = "../llzk-rs/frontends/halo2"
-# git = "https://github.com/Veridise/llzk-rs"
+#path = "../llzk-rs/frontends/halo2"
+git = "https://github.com/Veridise/llzk-rs"
 default-features = false
 features = ["picus-backend"]
 package = "halo2-llzk-frontend"
-
+branch = "dani/convenience-methods"
