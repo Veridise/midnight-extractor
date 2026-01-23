@@ -34,7 +34,7 @@ features = ["extraction"]
 [workspace.dependencies.midnight-proofs]
 # Commented out until https://github.com/midnightntwrk/midnight-zk/pull/137 merges.
 # git = "https://github.com/midnightntwrk/midnight-zk"
-git = "https://github.com/Veridise/midnight-zk"
+path = "../midnight-zk/proofs"
 default-features = false
 features = [
     # "bits",
@@ -48,14 +48,14 @@ features = [
 [workspace.dependencies.midnight-circuits]
 # Commented out until https://github.com/midnightntwrk/midnight-zk/pull/137 merges.
 # git = "https://github.com/midnightntwrk/midnight-zk"
-git = "https://github.com/Veridise/midnight-zk"
+path = "../midnight-zk/circuits"
 default-features = false
 features = [
     "extraction"
 ] 
 
 [workspace.dependencies.midnight-curves]
-git = "https://github.com/Veridise/midnight-zk"
+path = "../midnight-zk/curves"
 
 
 [workspace.dependencies.haloumi]
