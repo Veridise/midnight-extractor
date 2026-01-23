@@ -98,21 +98,15 @@ where
         Ok(())
     }
 
-    fn check_validation(
-        &self,
-        (status, errs): (Result<()>, Vec<String>),
-        step: OptStep,
-    ) -> Result<()> {
-        if status.is_err() {
-            for err in errs {
-                log::error!(
-                    "Validation error after {}: {err}",
-                    match step {
-                        OptStep::ConstantFold => "constant folding",
-                        OptStep::Canonicalization => "canonicalization",
-                    }
-                );
-            }
+    fn check_validation(&self, status: Result<()>, step: OptStep) -> Result<()> {
+        if let Err(err) = status {
+            log::error!(
+                "Validation error after {}: {err}",
+                match step {
+                    OptStep::ConstantFold => "constant folding",
+                    OptStep::Canonicalization => "canonicalization",
+                }
+            );
             return Err(anyhow::anyhow!(
                 "{} pass failed",
                 match step {

@@ -1,12 +1,12 @@
-use std::{array, borrow::Cow, collections::HashSet};
-
 use ff::Field;
 use haloumi::{
     lookups::{callbacks::LookupCallbacks, table::LookupTableGenerator, Lookup},
     temps::{ExprOrTemp, Temps},
 };
+use haloumi_ir::meta::HasMeta;
 use haloumi_ir::{expr::IRBexpr, stmt::IRStmt};
 use midnight_proofs::plonk::Expression;
+use std::{array, borrow::Cow, collections::HashSet};
 
 /// Maps a set of tag values to a set of ranges
 pub struct TagsToRangesMap<T, V, const TAGS: usize, const VALUES: usize>(
@@ -138,6 +138,8 @@ impl<const TAGS: usize, const VALUES: usize, F: Field> LookupCallbacks<F, Expres
         _table: &dyn LookupTableGenerator<F>,
         _temps: &mut Temps,
     ) -> anyhow::Result<IRStmt<ExprOrTemp<Cow<'a, Expression<F>>>>> {
-        Ok(IRStmt::assert(self.process_rows(lookup)).map(&mut ExprOrTemp::Expr))
+        let mut stmt = IRStmt::assert(self.process_rows(lookup)).map(&mut ExprOrTemp::Expr);
+        stmt.meta_mut().at_lookup(lookup.name(), lookup.idx(), None);
+        Ok(stmt)
     }
 }

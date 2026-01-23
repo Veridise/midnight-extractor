@@ -66,11 +66,10 @@ impl<'s> Ctx<'s> {
 
         let mut unresolved =
             driver.generate_ir(&syn, ir_params.build()).context("IR generation failed")?;
-        let (status, errs) = unresolved.validate();
-        if status.is_err() {
-            for err in errs {
-                log::error!("{err}");
-            }
+        let status = unresolved.validate();
+        if let Err(err) = status {
+            log::error!("{err}");
+
             anyhow::bail!("Failed due to validation errors on unresolved IR");
         }
 
@@ -81,11 +80,9 @@ impl<'s> Ctx<'s> {
         let resolved = unresolved.resolve().context("IR resolution failed")?;
 
         //std::fs::write("driver_state.txt", format!("{driver:#?}"))?;
-        let (status, errs) = resolved.validate();
-        if status.is_err() {
-            for err in errs {
-                log::error!("{err}");
-            }
+        let status = resolved.validate();
+        if let Err(err) = status {
+            log::error!("{err}");
             anyhow::bail!("Failed due to validation errors on resolved IR");
         }
         Ok(resolved)

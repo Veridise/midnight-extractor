@@ -4,7 +4,7 @@ use crate::{
 };
 use anyhow::{Context, Result};
 use configuration::Config;
-use ff::PrimeField;
+use ff::{Field, PrimeField};
 use haloumi::{
     expressions::ExpressionInRow, AdviceIO, CircuitIO, CircuitSynthesis, InstanceIO, Synthesizer,
 };
@@ -62,9 +62,9 @@ impl<'a, F, C, M> CircuitImpl<'a, F, C, M> {
     /// Consumes the circuit wrapper and returns the extra IR added during synthesis.
     pub fn take_injected_ir<'ir>(
         self,
-    ) -> Vec<(RegionIndex, IRStmt<ExpressionInRow<'ir, Expression<F>>>)>
+    ) -> Vec<(RegionIndex, IRStmt<ExpressionInRow<'ir, Expression<F>, F>>)>
     where
-        F: Clone,
+        F: Field,
     {
         self.injected_ir
             .into_inner()
@@ -72,7 +72,7 @@ impl<'a, F, C, M> CircuitImpl<'a, F, C, M> {
             .map(|(idx, ir)| {
                 (
                     idx,
-                    IRStmt::<ExpressionInRow<_>>::seq(
+                    IRStmt::<ExpressionInRow<_, F>>::seq(
                         ir.into_iter().map(|s| s.map(&mut |(row, e)| ExpressionInRow::new(row, e))),
                     )
                     .into(),
