@@ -30,7 +30,7 @@ pub mod pow2range;
 pub mod public_input;
 pub mod range_check;
 #[cfg(feature = "sha3")]
-pub mod sha3;
+// pub mod sha3;
 pub mod sponge;
 pub mod stdlib;
 pub mod unsafe_conversion;
@@ -59,12 +59,11 @@ pub mod utils {
     }
 
     use ff::PrimeField;
-
     use mdnt_extractor_core::lookups::callbacks::{
         automaton::AutomatonLookup,
         ignore::IgnoreLookup,
         mux::LookupMux,
-        plain_spread::PlainSpreadLookup,
+        plain_spread::{PlainSpreadLookup, PlainSpreadLookupRipeMD160},
         plain_spread3::{
             AnySpread, PlainSpreadLookup3, PlainSpreadLookup3Mode, Spread12, SpreadByTag,
             SpreadByteLookup,
@@ -93,8 +92,9 @@ pub mod utils {
         AutomatonLookup::new(automaton_module, bitsize)
     }
 
-    /// Returns a lookup callback that treats the lookup as a range check of specific bit lengths
-    /// and the spreaded versions (i.e. 2->4, 3->5, 7->21, etc).
+    /// Returns a lookup callback that treats the lookup as a range check of
+    /// specific bit lengths and the spreaded versions (i.e. 2->4, 3->5,
+    /// 7->21, etc).
     ///
     /// Is meant for the lookup used by the Sha256Chip.
     pub fn plain_spread_lookup<F: PrimeField>(
@@ -104,8 +104,17 @@ pub mod utils {
         PlainSpreadLookup::new(spread_module, unspread_module)
     }
 
+    /// Returns RIPEMD160 lookup callback
+    pub fn plain_spread_lookup_ripemd160<F: PrimeField>(
+        spread_module: &'static str,
+        unspread_module: &'static str,
+    ) -> PlainSpreadLookupRipeMD160<F> {
+        PlainSpreadLookupRipeMD160::new(spread_module, unspread_module)
+    }
+
     /// Lookup handler that adds a range check for a plain-spread pair and
-    /// calls a module that declares that the latter is a functional dependency of the former.
+    /// calls a module that declares that the latter is a functional dependency
+    /// of the former.
     pub fn plain_spread_lookup3<M: PlainSpreadLookup3Mode>(
         spread_module: &'static str,
         unspread_module: &'static str,
