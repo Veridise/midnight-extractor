@@ -24,6 +24,7 @@ pub mod hash_to_curve;
 pub mod native;
 pub mod sha256;
 pub mod vector;
+pub mod ripemd160;
 
 /// Implementation of the required trait for [`AssignedField`].
 pub type Mep = MultiEmulationParams;

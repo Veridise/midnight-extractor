@@ -1,5 +1,5 @@
-use crate::utils::{lookup_mux, plain_spread_lookup, range_lookup};
-use mdnt_extractor_core::{chips::sha256::Sha256Adaptor, chips::NG, entry};
+use crate::utils::{lookup_mux, plain_spread_lookup, plain_spread_lookup_ripemd160, range_lookup};
+use mdnt_extractor_core::{chips::{NG, ripemd160::RipeMD160Adaptor, sha256::Sha256Adaptor}, entry};
 use mdnt_extractor_macros::harness;
 use midnight_circuits::{
     hash::poseidon::PoseidonChip,
@@ -21,6 +21,20 @@ pub fn hash_sha256<const N: usize>(
     layouter: &mut impl Layouter<F>,
     buf: [AssignedByte<F>; N],
 ) -> Result<[AssignedByte<F>; 32], Error> {
+    chip.hash(layouter, &buf)
+}
+
+entry!("hash/hash_1/ripemd160/byte", hash_ripemd160::<1>);
+entry!("hash/hash_10/ripemd160/byte", hash_ripemd160::<10>);
+#[harness(lookup_mux::<F>()
+            .with("pow2range column check", range_lookup(8))
+            .with("plain-spreaded lookup",plain_spread_lookup_ripemd160("Spread", "Unspread"))
+)]
+pub fn hash_ripemd160<const N: usize>(
+    chip: &RipeMD160Adaptor<F, NG<F>>,
+    layouter: &mut impl Layouter<F>,
+    buf: [AssignedByte<F>; N],
+) -> Result<[AssignedByte<F>; 20], Error> {
     chip.hash(layouter, &buf)
 }
 
