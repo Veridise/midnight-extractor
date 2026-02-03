@@ -19,6 +19,7 @@ pub struct Ctx<'s> {
     constants: &'s [String],
     debug_comments: bool,
     disable_decomposition_pattern: bool,
+    allow_injected_ir_for_outputs: bool,
 }
 
 impl<'s> Ctx<'s> {
@@ -26,11 +27,13 @@ impl<'s> Ctx<'s> {
         constants: &'s [String],
         debug_comments: bool,
         disable_decomposition_pattern: bool,
+        allow_injected_ir_for_outputs: bool,
     ) -> Self {
         Self {
             constants,
             debug_comments,
             disable_decomposition_pattern,
+            allow_injected_ir_for_outputs,
         }
     }
 
@@ -90,6 +93,10 @@ impl<'s> Ctx<'s> {
 
     pub fn constants(&self) -> &[String] {
         self.constants
+    }
+
+    pub fn allow_injected_ir_for_outputs(&self) -> bool {
+        self.allow_injected_ir_for_outputs
     }
 }
 

@@ -57,6 +57,8 @@ pub struct Cli {
     pub dump_ir: bool,
     #[arg(long)]
     pub list: bool,
+    #[arg(long)]
+    allow_injected_ir_for_outputs: bool,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -162,6 +164,7 @@ impl AppConfig for Cli {
             &self.constants,
             self.debug_comments,
             !self.disable_decomposition_rewrite,
+            self.allow_injected_ir_for_outputs,
         )
     }
 
