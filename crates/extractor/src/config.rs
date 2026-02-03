@@ -90,6 +90,7 @@ pub struct HarnessConfig<'s> {
     constants: &'s [String],
     debug_comments: bool,
     enable_decomposition_rewrite: bool,
+    allow_injected_ir_for_outputs: bool,
 }
 
 impl<'s> HarnessConfig<'s> {
@@ -97,11 +98,13 @@ impl<'s> HarnessConfig<'s> {
         constants: &'s [String],
         debug_comments: bool,
         enable_decomposition_rewrite: bool,
+        allow_injected_ir_for_outputs: bool,
     ) -> Self {
         Self {
             constants,
             debug_comments,
             enable_decomposition_rewrite,
+            allow_injected_ir_for_outputs,
         }
     }
 
@@ -110,6 +113,7 @@ impl<'s> HarnessConfig<'s> {
             self.constants,
             self.debug_comments,
             !self.enable_decomposition_rewrite,
+            self.allow_injected_ir_for_outputs,
         )
     }
 }

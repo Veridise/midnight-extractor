@@ -45,6 +45,7 @@ pub struct FunctionMut;
 pub struct CircuitImpl<'a, F, C, M = Function> {
     abstract_circuit: C,
     constants: &'a [String],
+    allow_injected_ir_for_outputs: bool,
     injected_ir: RefCell<InjectedIR<RegionIndex, Expression<F>>>,
     _mode: PhantomData<M>,
 }
@@ -54,6 +55,7 @@ impl<'a, F, C, M> CircuitImpl<'a, F, C, M> {
         Self {
             abstract_circuit,
             constants: ctx.constants(),
+            allow_injected_ir_for_outputs: ctx.allow_injected_ir_for_outputs(),
             injected_ir: Default::default(),
             _mode: Default::default(),
         }
@@ -135,6 +137,7 @@ where
         cell_type: &'static str,
         chip: &C::Chip,
         layouter: &mut L,
+        do_ir_injection: bool,
     ) -> Result<Load, Error>
     where
         Load: LoadFromCells<F, C::Chip, ExtractionSupport, L>,
@@ -144,6 +147,7 @@ where
     {
         let mut layouter = AdaptsLayouter::new(layouter);
         let mut injected_ir = self.injected_ir.borrow_mut();
+        let mut dummy_injected_ir = InjectedIR::default();
         Load::load(
             &mut ICtx::new(
                 cells
@@ -157,7 +161,11 @@ where
             ),
             chip,
             &mut layouter,
-            &mut injected_ir,
+            if do_ir_injection {
+                &mut injected_ir
+            } else {
+                &mut dummy_injected_ir
+            },
         )
     }
 
@@ -175,7 +183,7 @@ where
     {
         let inputs = config.inputs();
         let n_inputs = inputs.len();
-        let input = self.load(inputs, n_inputs, "Input", chip, layouter);
+        let input = self.load(inputs, n_inputs, "Input", chip, layouter, true);
         contextualize!(input, "Failed to load the inputs").map_err(to_plonk_error)
     }
 
@@ -199,6 +207,7 @@ where
             "Output",
             chip,
             layouter,
+            self.allow_injected_ir_for_outputs,
         );
         contextualize!(output, "Failed to load the outputs").map_err(to_plonk_error)
     }
@@ -221,6 +230,7 @@ where
         // Store the results
         let n_outputs = outputs.len();
         let mut injected_ir = self.injected_ir.borrow_mut();
+        let mut dummy_injected_ir = InjectedIR::default();
         contextualize!(
             output.store(
                 &mut OCtx::new(
@@ -236,7 +246,11 @@ where
                 ),
                 chip,
                 &mut layouter,
-                &mut injected_ir,
+                if self.allow_injected_ir_for_outputs {
+                    &mut injected_ir
+                } else {
+                    &mut dummy_injected_ir
+                },
             ),
             "Failed to write the outputs"
         )
