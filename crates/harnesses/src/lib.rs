@@ -30,7 +30,7 @@ pub mod pow2range;
 pub mod public_input;
 pub mod range_check;
 #[cfg(feature = "sha3")]
-pub mod sha3;
+// pub mod sha3;
 pub mod sponge;
 pub mod stdlib;
 pub mod unsafe_conversion;
@@ -64,7 +64,7 @@ pub mod utils {
         automaton::AutomatonLookup,
         ignore::IgnoreLookup,
         mux::LookupMux,
-        plain_spread::PlainSpreadLookup,
+        plain_spread::{PlainSpreadLookup, PlainSpreadLookupRipeMD160},
         plain_spread3::{
             AnySpread, PlainSpreadLookup3, PlainSpreadLookup3Mode, Spread12, SpreadByTag,
             SpreadByteLookup,
@@ -102,6 +102,14 @@ pub mod utils {
         unspread_module: &'static str,
     ) -> PlainSpreadLookup<F> {
         PlainSpreadLookup::new(spread_module, unspread_module)
+    }
+
+    /// Returns RIPEMD160 lookup callback
+    pub fn plain_spread_lookup_ripemd160<F: PrimeField>(
+        spread_module: &'static str,
+        unspread_module: &'static str,
+    ) -> PlainSpreadLookupRipeMD160<F> {
+        PlainSpreadLookupRipeMD160::new(spread_module, unspread_module)
     }
 
     /// Lookup handler that adds a range check for a plain-spread pair and
