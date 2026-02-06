@@ -5,17 +5,17 @@ use haloumi::Synthesizer;
 use haloumi_core::synthesis::SynthesizerLike;
 use mdnt_support::cells::ctx::LayoutAdaptor;
 use midnight_proofs::{
+    ExtractionSupport,
     circuit::{
-        groups::{self, GroupKeyInstance},
-        layouter::{RegionColumn, RegionLayouter, RegionShape},
         AssignedCell, Cell, Layouter, Region, RegionIndex, RegionStart, Table, TableLayouter,
         Value,
+        groups::{self, GroupKeyInstance},
+        layouter::{RegionColumn, RegionLayouter, RegionShape},
     },
     plonk::{
         Advice, Any, Challenge, Column, Error, Fixed, Instance, Selector, TableColumn, TableError,
     },
     utils::rational::Rational,
-    ExtractionSupport,
 };
 
 #[derive(Debug)]
@@ -86,7 +86,7 @@ impl<F: Field> Layouter<F> for ExtractionLayouter<'_, '_, F> {
         // Assign region cells.
         self.synthesizer
             //.enter_region(name, Some(region_index.into()), Some(region_start.into()));
-            .enter_region(name, None, None);
+            .enter_region(name, None, Some(region_start.into()));
         let mut region = ExtractionLayouterRegion::new(self, region_index.into());
         let result = {
             let region: &mut dyn RegionLayouter<F> = &mut region;
