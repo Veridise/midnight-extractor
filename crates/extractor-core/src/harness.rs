@@ -1,11 +1,11 @@
 use anyhow::Context as _;
 use ff::PrimeField;
-use haloumi::{
-    driver::Driver,
-    ir::{generate::IRGenParamsBuilder, ResolvedIRCircuit},
-    CircuitSynthesis, LookupCallbacks,
-};
+use haloumi::driver::Driver;
 use haloumi_core::info_traits::ConstraintSystemInfo;
+use haloumi_ir_gen::circuit::resolved::ResolvedIRCircuit;
+use haloumi_ir_gen::lookups::callbacks::LookupCallbacks;
+use haloumi_ir_gen::IRGenParams;
+use haloumi_synthesis::CircuitSynthesis;
 use mdnt_support::circuit::ChipArgs;
 use midnight_proofs::plonk::Expression;
 
@@ -54,21 +54,20 @@ impl<'s> Ctx<'s> {
         log::info!("Synthesis completed");
         //std::fs::write("synthesized_circuit.txt", format!("{syn:#?}"))?;
 
-        let mut ir_params = IRGenParamsBuilder::new();
+        let mut ir_params = IRGenParams::new();
 
         let patterns = Patterns {
             decompose_core: !self.disable_decomposition_pattern,
         };
-        ir_params.gate_callbacks(&patterns);
+        ir_params = ir_params.gate_callbacks(&patterns);
         if self.debug_comments {
-            ir_params.with_debug_comments();
+            ir_params = ir_params.with_debug_comments();
         }
         if let Some(lookups) = lookups {
-            ir_params.lookup_callbacks(lookups);
+            ir_params = ir_params.lookup_callbacks(lookups);
         }
 
-        let mut unresolved =
-            driver.generate_ir(&syn, ir_params.build()).context("IR generation failed")?;
+        let mut unresolved = driver.generate_ir(&syn, ir_params).context("IR generation failed")?;
         let status = unresolved.validate();
         if let Err(err) = status {
             log::error!("{err}");

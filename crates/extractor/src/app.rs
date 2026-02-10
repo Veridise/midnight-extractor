@@ -1,7 +1,8 @@
 use std::{borrow::Cow, fmt, fs::File, io::Write as _, path::Path};
 
 use anyhow::{bail, Result};
-use haloumi::{ir::ResolvedIRCircuit, PicusParamsBuilder};
+use haloumi::ir_gen::circuit::resolved::ResolvedIRCircuit;
+use haloumi_picus::PicusParamsBuilder;
 use log::Log;
 
 use crate::{
@@ -121,9 +122,9 @@ where
 
     fn optimize_ir(&self, ir: &mut ResolvedIRCircuit) -> Result<()> {
         ir.constant_fold()?;
-        self.check_validation(ir.validate(), OptStep::ConstantFold)?;
+        self.check_validation(Ok(ir.validate()?), OptStep::ConstantFold)?;
         ir.canonicalize();
-        self.check_validation(ir.validate(), OptStep::Canonicalization)
+        self.check_validation(Ok(ir.validate()?), OptStep::Canonicalization)
     }
 
     fn select_harness(&self) -> Vec<(&'static str, Harness)> {

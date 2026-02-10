@@ -27,6 +27,7 @@ log = "0.4"
 anyhow = "1"
 inventory = "0.3"
 halo2curves.workspace = true
+thiserror = "2"
 
 [dev-dependencies]
 rstest = "0.26"

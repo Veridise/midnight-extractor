@@ -1,4 +1,4 @@
-use haloumi::LookupCallbacks;
+use haloumi_ir_gen::lookups::callbacks::LookupCallbacks;
 use mdnt_extractor_core::{entry as add_entry, fields::Blstrs as F};
 use mdnt_extractor_macros::{entry, harness};
 use midnight_circuits::types::{AssignedByte, InnerValue as _};

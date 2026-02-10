@@ -4,7 +4,7 @@ use ff::PrimeField;
 use haloumi_ir::stmt::IRStmt;
 use haloumi_ir_gen::{
     lookups::{
-        callbacks::{LookupCallbacks, LookupResult},
+        callbacks::{LookupCallbacks, LookupError, LookupResult},
         table::LookupTableGenerator,
     },
     temps::{ExprOrTemp, Temps},
@@ -65,13 +65,13 @@ impl<'a, F: PrimeField> LookupMux<'a, F> {
     fn handler_for<'s, 'n: 's>(
         &'s self,
         name: &'n str,
-    ) -> anyhow::Result<&'s (dyn LookupCallbacks<F, Expression<F>> + 'a)> {
+    ) -> Result<&'s (dyn LookupCallbacks<F, Expression<F>> + 'a), Error> {
         self.handlers
             .iter()
             .find_map(|(n, h)| n.check(name).then_some(h))
             .or(self.fallback.as_ref())
             .map(|b| b.as_ref())
-            .ok_or_else(move || anyhow::anyhow!("Missing handler for lookup '{name}'"))
+            .ok_or_else(|| Error::MissingHandler(name.to_owned()))
     }
 
     fn all_handlers(
@@ -131,10 +131,18 @@ impl<F: PrimeField> LookupCallbacks<F, Expression<F>> for LookupMux<'_, F> {
                     s
                 },
             );
-            anyhow::bail!("Lookups {names} did not match any handler!");
+            return Err(Error::NoHandler(names).into());
         }
         Ok(ir)
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+enum Error {
+    #[error("Lookups {0} did not match any handler!")]
+    NoHandler(String),
+    #[error("Missing handler for lookup '{0}'")]
+    MissingHandler(String),
 }
 
 impl<F: PrimeField> std::fmt::Debug for LookupMux<'_, F> {

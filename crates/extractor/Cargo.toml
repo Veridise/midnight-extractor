@@ -19,6 +19,7 @@ required-features = ["cli"]
 
 [dependencies]
 haloumi.workspace = true
+haloumi-picus.workspace = true
 ff.workspace = true 
 midnight-circuits.workspace = true
 mdnt-support.workspace = true

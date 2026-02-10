@@ -20,12 +20,14 @@ impl fmt::Display for Header {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "; vim: set filetype=scheme :")?;
         writeln!(f, "; Midnight analyzer {}", env!("CARGO_PKG_VERSION"))?;
-        dep_header(
-            f,
-            "Haloumi frontend",
-            env!("HALO2_LLZK_FRONTEND_VERSION"),
-            option_env!("HALO2_LLZK_FRONTEND_CHECKSUM"),
-        )?;
+        if let Some(version) = option_env!("HALO2_LLZK_FRONTEND_VERSION") {
+            dep_header(
+                f,
+                "Haloumi frontend",
+                version,
+                option_env!("HALO2_LLZK_FRONTEND_CHECKSUM"),
+            )?;
+        }
         dep_header(
             f,
             "Midnight circuits",

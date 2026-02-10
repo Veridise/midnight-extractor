@@ -98,11 +98,12 @@ impl<F: PrimeField> LookupCallbacks<F, Expression<F>> for PlainSpreadLookup<F> {
         if lookups.len() != 2 {
             let names = lookups.iter().map(|l| l.name()).collect::<Vec<_>>();
             let names = names.join(", ");
-            anyhow::bail!(
-                "Unexpected input. Was expecting two lookups but got {}: {}",
-                lookups.len(),
-                names
-            );
+            return Err(Error::UnexpectedLookupNumber {
+                expected: 2,
+                actual: lookups.len(),
+                names,
+            }
+            .into());
         }
         let per_lookup_ir = lookups
             .iter()
@@ -132,6 +133,16 @@ impl<F: PrimeField> LookupCallbacks<F, Expression<F>> for PlainSpreadLookup<F> {
         .map(&mut ExprOrTemp::Expr);
         Ok(IRStmt::seq([per_lookup_ir, det_axioms1, det_axioms2]))
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+enum Error {
+    #[error("Unexpected input. Was expecting {expected} lookups but got {actual}: {names:?}")]
+    UnexpectedLookupNumber {
+        expected: usize,
+        actual: usize,
+        names: String,
+    },
 }
 
 #[cfg(test)]

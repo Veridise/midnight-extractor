@@ -1,12 +1,14 @@
 use std::borrow::Cow;
 
 use ff::PrimeField;
-use haloumi::{
-    lookups::{table::LookupTableGenerator, Lookup},
+use haloumi::ir_gen::{
+    lookups::callbacks::LookupCallbacks,
+    lookups::table::LookupTableGenerator,
     temps::{ExprOrTemp, Temps},
-    LookupCallbacks,
 };
 use haloumi_ir::{expr::IRBexpr, stmt::IRStmt};
+use haloumi_ir_gen::lookups::callbacks::LookupResult;
+use haloumi_synthesis::lookups::Lookup;
 use midnight_proofs::plonk::Expression;
 
 /// Lookup callback that handles parsing automata.
@@ -36,7 +38,7 @@ impl<F: PrimeField> LookupCallbacks<F, Expression<F>> for AutomatonLookup {
         lookup: &'syn Lookup<Expression<F>>,
         _table: &dyn LookupTableGenerator<F>,
         temps: &mut Temps,
-    ) -> anyhow::Result<IRStmt<ExprOrTemp<Cow<'syn, Expression<F>>>>> {
+    ) -> LookupResult<'syn, Expression<F>> {
         let call_outs = temps.take(3).collect::<Vec<_>>();
         assert_eq!(call_outs.len(), 3);
         let automaton_call = IRStmt::call(

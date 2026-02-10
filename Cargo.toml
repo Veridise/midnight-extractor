@@ -20,10 +20,11 @@ license-file = "LICENSE"
 [workspace.dependencies]
 ff = "0.13"
 haloumi-ir = "0"
+haloumi-picus = "0"
 haloumi-core = "0"
 haloumi-synthesis = "0"
 haloumi-ir-gen = "0"
-haloumi = "0"
+haloumi = { version = "0", default-features = false, features = ["picus-backend"]}
 inventory = "0"
 anyhow = "1"
 mdnt-support = "0.2"
