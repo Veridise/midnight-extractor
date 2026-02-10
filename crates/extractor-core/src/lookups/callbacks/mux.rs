@@ -1,12 +1,15 @@
 use std::borrow::Cow;
 
 use ff::PrimeField;
-use haloumi::{
-    lookups::{table::LookupTableGenerator, Lookup},
-    temps::{ExprOrTemp, Temps},
-    LookupCallbacks,
-};
 use haloumi_ir::stmt::IRStmt;
+use haloumi_ir_gen::{
+    lookups::{
+        callbacks::{LookupCallbacks, LookupResult},
+        table::LookupTableGenerator,
+    },
+    temps::{ExprOrTemp, Temps},
+};
+use haloumi_synthesis::lookups::Lookup;
 use midnight_proofs::plonk::Expression;
 
 pub trait LookupName: sealed::LookupNameSealed {
@@ -92,7 +95,7 @@ impl<F: PrimeField> LookupCallbacks<F, Expression<F>> for LookupMux<'_, F> {
         lookup: &'syn Lookup<Expression<F>>,
         table: &dyn LookupTableGenerator<F>,
         temps: &mut Temps,
-    ) -> anyhow::Result<IRStmt<ExprOrTemp<Cow<'syn, Expression<F>>>>> {
+    ) -> LookupResult<'syn, Expression<F>> {
         self.handler_for(lookup.name())?.on_lookup(lookup, table, temps)
     }
 
@@ -101,7 +104,7 @@ impl<F: PrimeField> LookupCallbacks<F, Expression<F>> for LookupMux<'_, F> {
         lookups: &[&'syn Lookup<Expression<F>>],
         tables: &[&dyn LookupTableGenerator<F>],
         temps: &mut Temps,
-    ) -> anyhow::Result<IRStmt<ExprOrTemp<Cow<'syn, Expression<F>>>>> {
+    ) -> LookupResult<'syn, Expression<F>> {
         for l in lookups {
             log::debug!("Lookup: '{}'", l.name());
         }

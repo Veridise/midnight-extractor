@@ -19,6 +19,8 @@ mdnt-support = { version = "0.2"}
 num-bigint = "0.4"
 haloumi-ir.workspace =true
 haloumi-core.workspace =true
+haloumi-ir-gen.workspace = true
+haloumi-synthesis.workspace = true
 haloumi.workspace =true
 mdnt-extractor-macros = { path = "../extractor-macros"}
 log = "0.4"

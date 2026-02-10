@@ -1,11 +1,13 @@
 use ff::PrimeField;
-use haloumi::{
-    lookups::{table::LookupTableGenerator, Lookup},
-    temps::{ExprOrTemp, Temp, Temps},
-    LookupCallbacks,
-};
 use haloumi_ir::meta::HasMeta;
 use haloumi_ir::{expr::IRBexpr, stmt::IRStmt};
+use haloumi_ir_gen::lookups::callbacks::LookupResult;
+use haloumi_ir_gen::{
+    lookups::callbacks::LookupCallbacks,
+    lookups::table::LookupTableGenerator,
+    temps::{ExprOrTemp, Temp, Temps},
+};
+use haloumi_synthesis::lookups::Lookup;
 use midnight_proofs::plonk::Expression;
 use std::borrow::Cow;
 
@@ -325,7 +327,7 @@ impl<F: PrimeField, M: PlainSpreadLookup3Mode> LookupCallbacks<F, Expression<F>>
         lookup: &'syn Lookup<Expression<F>>,
         _table: &dyn LookupTableGenerator<F>,
         temps: &mut Temps,
-    ) -> anyhow::Result<IRStmt<ExprOrTemp<Cow<'syn, Expression<F>>>>> {
+    ) -> LookupResult<'syn, Expression<F>> {
         self.mode.validate_lookup(lookup)?;
         let tag = self.mode.tag(lookup);
         let spread = self.mode.spread(lookup);

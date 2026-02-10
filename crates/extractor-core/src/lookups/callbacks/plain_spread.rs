@@ -1,12 +1,15 @@
 use std::borrow::Cow;
 
 use ff::{Field, PrimeField};
-use haloumi::{
-    lookups::{table::LookupTableGenerator, Lookup},
-    temps::{ExprOrTemp, Temps},
-    LookupCallbacks,
-};
 use haloumi_ir::{expr::IRBexpr, stmt::IRStmt};
+use haloumi_ir_gen::{
+    lookups::{
+        callbacks::{LookupCallbacks, LookupResult},
+        table::LookupTableGenerator,
+    },
+    temps::{ExprOrTemp, Temps},
+};
+use haloumi_synthesis::lookups::Lookup;
 use midnight_proofs::plonk::Expression;
 
 use crate::lookups::callbacks::range::TagRangeLookup;
@@ -49,7 +52,7 @@ impl<F: PrimeField> LookupCallbacks<F, Expression<F>> for PlainSpreadLookup<F> {
         lookup: &'syn Lookup<Expression<F>>,
         table: &dyn LookupTableGenerator<F>,
         temps: &mut Temps,
-    ) -> anyhow::Result<IRStmt<ExprOrTemp<Cow<'syn, Expression<F>>>>> {
+    ) -> LookupResult<'syn, Expression<F>> {
         let [plain, spread] = self.range_check.value_exprs(lookup);
         let range_check_ir = self.range_check.on_lookup(lookup, table, temps)?;
         let temp = temps.next().ok_or_else(|| unreachable!())?;
@@ -91,7 +94,7 @@ impl<F: PrimeField> LookupCallbacks<F, Expression<F>> for PlainSpreadLookup<F> {
         lookups: &[&'syn Lookup<Expression<F>>],
         tables: &[&dyn LookupTableGenerator<F>],
         temps: &mut Temps,
-    ) -> anyhow::Result<IRStmt<ExprOrTemp<Cow<'syn, Expression<F>>>>> {
+    ) -> LookupResult<'syn, Expression<F>> {
         if lookups.len() != 2 {
             let names = lookups.iter().map(|l| l.name()).collect::<Vec<_>>();
             let names = names.join(", ");

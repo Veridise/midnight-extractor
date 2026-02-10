@@ -5,11 +5,12 @@ use std::{
     collections::{HashMap, VecDeque},
 };
 
-use haloumi::{
-    gates::GateRewritePattern, gates::GateScope, gates::RewriteError, gates::RewriteOutput,
-};
 use haloumi_core::cmp::CmpOp;
 use haloumi_ir::stmt::IRStmt;
+use haloumi_ir_gen::gates::{
+    rewrite::{GateRewritePattern, Match, RewriteError, RewriteOutput},
+    GateScope,
+};
 use midnight_proofs::{
     plonk::{
         Advice, AdviceQuery, ColumnType, Expression, FirstPhase, Fixed, Instance, SecondPhase,
@@ -40,23 +41,25 @@ type RewriteResult<T> = Result<T, &'static str>;
 pub struct DecomposeCorePattern;
 
 impl<F: PrimeField> GateRewritePattern<F, Expression<F>> for DecomposeCorePattern {
-    fn match_gate(&self, gate: GateScope<'_, '_, F, Expression<F>>) -> Result<(), RewriteError>
+    fn match_gate(&self, gate: GateScope<'_, '_, F, Expression<F>>) -> Result<Match, RewriteError>
     where
         F: Field,
     {
-        if gate.gate_name() == "arith_gate"
-            && gate.region_name() == "decompose core"
-            && gate.polynomials().len() == 1
-        {
-            Ok(())
-        } else {
-            Err(RewriteError::NoMatch)
-        }
+        Ok(
+            if gate.gate_name() == "arith_gate"
+                && gate.region_name() == "decompose core"
+                && gate.polynomials().len() == 1
+            {
+                Match::Match
+            } else {
+                Match::NoMatch
+            },
+        )
     }
     fn rewrite_gate<'a>(
         &self,
         gate: GateScope<'a, '_, F, Expression<F>>,
-    ) -> Result<RewriteOutput<'a, Expression<F>>, anyhow::Error>
+    ) -> Result<RewriteOutput<'a, Expression<F>>, RewriteError>
     where
         F: Field,
     {
