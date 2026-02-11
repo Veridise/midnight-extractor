@@ -1,7 +1,7 @@
 use std::{cell::RefCell, cmp, collections::HashMap};
 
 use ff::Field;
-use haloumi::Synthesizer;
+use haloumi::synthesis::synthesizer::Synthesizer;
 use haloumi_core::synthesis::SynthesizerLike;
 use mdnt_support::cells::ctx::LayoutAdaptor;
 use midnight_proofs::{

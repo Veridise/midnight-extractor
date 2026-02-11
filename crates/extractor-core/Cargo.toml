@@ -19,12 +19,15 @@ mdnt-support = { version = "0.2"}
 num-bigint = "0.4"
 haloumi-ir.workspace =true
 haloumi-core.workspace =true
+haloumi-ir-gen.workspace = true
+haloumi-synthesis.workspace = true
 haloumi.workspace =true
 mdnt-extractor-macros = { path = "../extractor-macros"}
 log = "0.4"
 anyhow = "1"
 inventory = "0.3"
 halo2curves.workspace = true
+thiserror = "2"
 
 [dev-dependencies]
 rstest = "0.26"

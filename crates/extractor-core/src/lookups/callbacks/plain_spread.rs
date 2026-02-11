@@ -1,12 +1,18 @@
 use std::borrow::Cow;
 
 use ff::{Field, PrimeField};
-use haloumi::{
-    lookups::{table::LookupTableGenerator, Lookup},
-    temps::{ExprOrTemp, Temps},
-    LookupCallbacks,
+use haloumi_ir::{
+    expr::IRBexpr,
+    stmt::{EmitIf as _, IRStmt},
 };
-use haloumi_ir::{expr::IRBexpr, stmt::IRStmt};
+use haloumi_ir_gen::{
+    lookups::{
+        callbacks::{LookupCallbacks, LookupResult},
+        table::LookupTableGenerator,
+    },
+    temps::{ExprOrTemp, Temps},
+};
+use haloumi_synthesis::lookups::Lookup;
 use midnight_proofs::plonk::Expression;
 
 use crate::lookups::callbacks::range::TagRangeLookup;
@@ -49,37 +55,31 @@ impl<F: PrimeField> LookupCallbacks<F, Expression<F>> for PlainSpreadLookup<F> {
         lookup: &'syn Lookup<Expression<F>>,
         table: &dyn LookupTableGenerator<F>,
         temps: &mut Temps,
-    ) -> anyhow::Result<IRStmt<ExprOrTemp<Cow<'syn, Expression<F>>>>> {
-        let [plain, spread] = self.range_check.value_exprs(lookup);
+    ) -> LookupResult<'syn, Expression<F>> {
+        let zero = ExprOrTemp::Expr(Cow::Owned(Expression::from(0)));
         let range_check_ir = self.range_check.on_lookup(lookup, table, temps)?;
-        let temp = temps.next().ok_or_else(|| unreachable!())?;
-        let spread_call = IRStmt::call(
-            self.spread_module,
-            [ExprOrTemp::Expr(Cow::Borrowed(plain))],
-            [temp.into()],
-        );
-        let spread_out_constr = IRStmt::eq(
-            ExprOrTemp::Expr(Cow::Borrowed(spread)),
-            ExprOrTemp::Temp(temp),
-        );
-        let temp = temps.next().ok_or_else(|| unreachable!())?;
-        let unspread_call = IRStmt::call(
-            self.unspread_module,
-            [ExprOrTemp::Expr(Cow::Borrowed(spread))],
-            [temp.into()],
-        );
-        let unspread_out_constr = IRStmt::eq(
-            ExprOrTemp::Expr(Cow::Borrowed(plain)),
-            ExprOrTemp::Temp(temp),
-        );
 
-        let mut stmt = IRStmt::seq([
-            range_check_ir,
-            spread_call,
-            spread_out_constr,
-            unspread_call,
-            unspread_out_constr,
-        ]);
+        let [plain, spread] = self.range_check.value_exprs(lookup);
+        let plain_expr = ExprOrTemp::Expr(Cow::Borrowed(plain));
+        let spread_expr = ExprOrTemp::Expr(Cow::Borrowed(spread));
+
+        let spread_block = {
+            let temp = temps.next().ok_or_else(|| unreachable!())?;
+            let spread_call = IRStmt::call(self.spread_module, [plain_expr.clone()], [temp.into()]);
+            let spread_out_constr = IRStmt::eq(spread_expr.clone(), ExprOrTemp::Temp(temp));
+            [spread_call, spread_out_constr]
+                .emit_unless_false(!IRBexpr::eq(plain_expr.clone(), zero.clone()))
+        };
+
+        let unspread_block = {
+            let temp = temps.next().ok_or_else(|| unreachable!())?;
+            let unspread_call =
+                IRStmt::call(self.unspread_module, [spread_expr.clone()], [temp.into()]);
+            let unspread_out_constr = IRStmt::eq(plain_expr, ExprOrTemp::Temp(temp));
+            [unspread_call, unspread_out_constr].emit_unless_false(!IRBexpr::eq(spread_expr, zero))
+        };
+
+        let mut stmt = IRStmt::seq([range_check_ir, spread_block, unspread_block]);
         use haloumi_ir::meta::HasMeta as _;
         stmt.meta_mut().at_lookup(lookup.name(), lookup.idx(), None);
         stmt.propagate_meta();
@@ -91,15 +91,16 @@ impl<F: PrimeField> LookupCallbacks<F, Expression<F>> for PlainSpreadLookup<F> {
         lookups: &[&'syn Lookup<Expression<F>>],
         tables: &[&dyn LookupTableGenerator<F>],
         temps: &mut Temps,
-    ) -> anyhow::Result<IRStmt<ExprOrTemp<Cow<'syn, Expression<F>>>>> {
+    ) -> LookupResult<'syn, Expression<F>> {
         if lookups.len() != 2 {
             let names = lookups.iter().map(|l| l.name()).collect::<Vec<_>>();
             let names = names.join(", ");
-            anyhow::bail!(
-                "Unexpected input. Was expecting two lookups but got {}: {}",
-                lookups.len(),
-                names
-            );
+            return Err(Error::UnexpectedLookupNumber {
+                expected: 2,
+                actual: lookups.len(),
+                names,
+            }
+            .into());
         }
         let per_lookup_ir = lookups
             .iter()
@@ -129,6 +130,16 @@ impl<F: PrimeField> LookupCallbacks<F, Expression<F>> for PlainSpreadLookup<F> {
         .map(&mut ExprOrTemp::Expr);
         Ok(IRStmt::seq([per_lookup_ir, det_axioms1, det_axioms2]))
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+enum Error {
+    #[error("Unexpected input. Was expecting {expected} lookups but got {actual}: {names:?}")]
+    UnexpectedLookupNumber {
+        expected: usize,
+        actual: usize,
+        names: String,
+    },
 }
 
 #[cfg(test)]

@@ -1,12 +1,13 @@
-use std::borrow::Cow;
 
 use ff::PrimeField;
-use haloumi::{
-    lookups::{table::LookupTableGenerator, Lookup},
-    temps::{ExprOrTemp, Temps},
-    LookupCallbacks,
+use haloumi::ir_gen::{
+    lookups::callbacks::LookupCallbacks,
+    lookups::table::LookupTableGenerator,
+    temps::Temps,
 };
 use haloumi_ir::stmt::IRStmt;
+use haloumi_ir_gen::lookups::callbacks::LookupResult;
+use haloumi_synthesis::lookups::Lookup;
 use midnight_proofs::plonk::Expression;
 
 /// Lookup callback that emits an empty statement.
@@ -20,7 +21,7 @@ impl<F: PrimeField> LookupCallbacks<F, Expression<F>> for IgnoreLookup {
         lookup: &'syn Lookup<Expression<F>>,
         _table: &dyn LookupTableGenerator<F>,
         _temps: &mut Temps,
-    ) -> anyhow::Result<IRStmt<ExprOrTemp<Cow<'syn, Expression<F>>>>> {
+    ) -> LookupResult<'syn, Expression<F>> {
         log::debug!("Lookup {} \"{}\" was ignored.", lookup.idx(), lookup.name());
         Ok(IRStmt::empty())
     }

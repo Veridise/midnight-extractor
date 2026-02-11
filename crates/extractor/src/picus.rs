@@ -4,7 +4,8 @@ use std::{
     path::Path,
 };
 
-use haloumi::{driver::Driver, ir::ResolvedIRCircuit, PicusParamsBuilder};
+use haloumi::{driver::Driver, ir_gen::circuit::resolved::ResolvedIRCircuit};
+use haloumi_picus::PicusParamsBuilder;
 use header::Header;
 use prelude::Preludes;
 

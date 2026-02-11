@@ -1,11 +1,14 @@
 use ff::PrimeField;
-use haloumi::{
-    lookups::{table::LookupTableGenerator, Lookup},
-    temps::{ExprOrTemp, Temp, Temps},
-    LookupCallbacks,
-};
 use haloumi_ir::meta::HasMeta;
+use haloumi_ir::stmt::EmitIf as _;
 use haloumi_ir::{expr::IRBexpr, stmt::IRStmt};
+use haloumi_ir_gen::lookups::callbacks::LookupResult;
+use haloumi_ir_gen::{
+    lookups::callbacks::LookupCallbacks,
+    lookups::table::LookupTableGenerator,
+    temps::{ExprOrTemp, Temp, Temps},
+};
+use haloumi_synthesis::lookups::Lookup;
 use midnight_proofs::plonk::Expression;
 use std::borrow::Cow;
 
@@ -54,7 +57,7 @@ mod sealed {
         fn validate_lookup<F: PrimeField>(
             &self,
             lookup: &Lookup<Expression<F>>,
-        ) -> anyhow::Result<()>;
+        ) -> Result<(), Error<F>>;
     }
 }
 
@@ -97,7 +100,10 @@ impl PlainSpreadLookup3ModeImpl for AnySpread {
         ExprOrTemp::Temp(temps.next().unwrap())
     }
 
-    fn validate_lookup<F: PrimeField>(&self, lookup: &Lookup<Expression<F>>) -> anyhow::Result<()> {
+    fn validate_lookup<F: PrimeField>(
+        &self,
+        lookup: &Lookup<Expression<F>>,
+    ) -> Result<(), Error<F>> {
         ensure_lookup_size(lookup, 1)
     }
 }
@@ -141,7 +147,10 @@ impl PlainSpreadLookup3ModeImpl for Spread12 {
         ExprOrTemp::Temp(temps.next().unwrap())
     }
 
-    fn validate_lookup<F: PrimeField>(&self, lookup: &Lookup<Expression<F>>) -> anyhow::Result<()> {
+    fn validate_lookup<F: PrimeField>(
+        &self,
+        lookup: &Lookup<Expression<F>>,
+    ) -> Result<(), Error<F>> {
         ensure_lookup_size(lookup, 2)?;
         ensure_tag_is_constant_value(&lookup.inputs()[0], 12)
     }
@@ -188,7 +197,10 @@ impl PlainSpreadLookup3ModeImpl for SpreadByTag {
         ExprOrTemp::Temp(temps.next().unwrap())
     }
 
-    fn validate_lookup<F: PrimeField>(&self, lookup: &Lookup<Expression<F>>) -> anyhow::Result<()> {
+    fn validate_lookup<F: PrimeField>(
+        &self,
+        lookup: &Lookup<Expression<F>>,
+    ) -> Result<(), Error<F>> {
         ensure_lookup_size(lookup, 2)
     }
 }
@@ -227,7 +239,10 @@ impl PlainSpreadLookup3ModeImpl for SpreadByteLookup {
         ExprOrTemp::Expr(Cow::Borrowed(&lookup.inputs()[1]))
     }
 
-    fn validate_lookup<F: PrimeField>(&self, lookup: &Lookup<Expression<F>>) -> anyhow::Result<()> {
+    fn validate_lookup<F: PrimeField>(
+        &self,
+        lookup: &Lookup<Expression<F>>,
+    ) -> Result<(), Error<F>> {
         ensure_lookup_size(lookup, 3)?;
         ensure_tag_is_constant_value(&lookup.inputs()[0], 8)
     }
@@ -252,15 +267,16 @@ impl<M: PlainSpreadLookup3Mode> PlainSpreadLookup3<M> {
         temps: &mut Temps,
     ) -> IRStmt<ExprOrTemp<Cow<'syn, Expression<F>>>> {
         let (temp, reused) = reuse_temp_or_create(&output, temps);
-        let call = IRStmt::call(name, [input], [temp.into()]);
+        let call = IRStmt::call(name, [input.clone()], [temp.into()]);
 
         let out_constr = if !reused {
-            IRStmt::eq(output, ExprOrTemp::Temp(temp))
+            IRStmt::eq(output.clone(), ExprOrTemp::Temp(temp))
         } else {
             IRStmt::empty()
         };
 
-        IRStmt::seq([call, out_constr])
+        [call, out_constr]
+            .emit_unless_false(!(IRBexpr::eq(input, zero()) & IRBexpr::eq(output, zero())))
     }
 
     fn spread_call<'syn, F: PrimeField>(
@@ -325,7 +341,7 @@ impl<F: PrimeField, M: PlainSpreadLookup3Mode> LookupCallbacks<F, Expression<F>>
         lookup: &'syn Lookup<Expression<F>>,
         _table: &dyn LookupTableGenerator<F>,
         temps: &mut Temps,
-    ) -> anyhow::Result<IRStmt<ExprOrTemp<Cow<'syn, Expression<F>>>>> {
+    ) -> LookupResult<'syn, Expression<F>> {
         self.mode.validate_lookup(lookup)?;
         let tag = self.mode.tag(lookup);
         let spread = self.mode.spread(lookup);
@@ -344,7 +360,7 @@ impl<F: PrimeField, M: PlainSpreadLookup3Mode> LookupCallbacks<F, Expression<F>>
 fn ensure_tag_is_constant_value<F: PrimeField>(
     expr: &Expression<F>,
     value: u64,
-) -> anyhow::Result<()> {
+) -> Result<(), Error<F>> {
     // Evaluate the expression assuming selectors are on.
     let folded = expr.evaluate(
         &|f| Some(f),
@@ -359,20 +375,20 @@ fn ensure_tag_is_constant_value<F: PrimeField>(
         &|lhs, rhs| lhs.map(|lhs| lhs * rhs),
     );
     folded
-        .ok_or_else(|| anyhow::anyhow!("Was expecting a constant expression but got {expr:?}"))
+        .ok_or_else(|| Error::UnexpectedExpr { expr: expr.clone() })
         .and_then(|f| {
-            (f == F::from(value)).then_some(()).ok_or_else(|| {
-                anyhow::anyhow!("Was expecting tag to be equal to {value} but got {f:?}")
-            })
+            (f == F::from(value))
+                .then_some(())
+                .ok_or_else(|| Error::UnexpectedTag { value, f })
         })
 }
 
-fn ensure_lookup_size<E>(lookup: &Lookup<E>, size: usize) -> anyhow::Result<()> {
+fn ensure_lookup_size<E, F: PrimeField>(lookup: &Lookup<E>, size: usize) -> Result<(), Error<F>> {
     if lookup.inputs().len() != size {
-        anyhow::bail!(
-            "Lookup mode expects {size} inputs but got {}",
-            lookup.inputs().len()
-        );
+        return Err(Error::UnexpectedInputs {
+            expected: size,
+            actual: lookup.inputs().len(),
+        });
     }
     Ok(())
 }
@@ -382,4 +398,18 @@ fn reuse_temp_or_create<E>(expr: &ExprOrTemp<E>, temps: &mut Temps) -> (Temp, bo
         ExprOrTemp::Temp(temp) => (*temp, true),
         ExprOrTemp::Expr(_) => (temps.next().unwrap(), false),
     }
+}
+
+fn zero<'syn, F: PrimeField>() -> ExprOrTemp<Cow<'syn, Expression<F>>> {
+    ExprOrTemp::Expr(Cow::Owned(Expression::from(0)))
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error<F: PrimeField> {
+    #[error("Lookup mode expects {expected} inputs but got {actual}")]
+    UnexpectedInputs { expected: usize, actual: usize },
+    #[error("Was expecting tag to be equal to {value} but got {f:?}")]
+    UnexpectedTag { value: u64, f: F },
+    #[error("Was expecting a constant expression but got {expr:?}")]
+    UnexpectedExpr { expr: Expression<F> },
 }

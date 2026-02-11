@@ -6,7 +6,9 @@ use anyhow::{Context, Result};
 use configuration::Config;
 use ff::{Field, PrimeField};
 use haloumi::{
-    expressions::ExpressionInRow, AdviceIO, CircuitIO, CircuitSynthesis, InstanceIO, Synthesizer,
+    ir_gen::expressions::ExpressionInRow, synthesis::error::Error as SynError,
+    synthesis::io::AdviceIO, synthesis::io::CircuitIO, synthesis::io::InstanceIO,
+    synthesis::synthesizer::Synthesizer, synthesis::CircuitSynthesis,
 };
 use haloumi_ir::stmt::IRStmt;
 use mdnt_support::{
@@ -414,11 +416,11 @@ where
         Self::Config::configure(cs)
     }
 
-    fn advice_io(_: &Self::Config) -> anyhow::Result<AdviceIO> {
+    fn advice_io(_: &Self::Config) -> Result<AdviceIO, SynError> {
         Ok(CircuitIO::empty())
     }
 
-    fn instance_io(config: &Self::Config) -> anyhow::Result<InstanceIO> {
+    fn instance_io(config: &Self::Config) -> Result<InstanceIO, SynError> {
         let inputs: Vec<_> = (0..C::Input::SIZE).collect();
         let outputs: Vec<_> = (0..C::Output::SIZE).collect();
 
@@ -470,11 +472,11 @@ where
         Self::Config::configure(cs)
     }
 
-    fn advice_io(_: &Self::Config) -> anyhow::Result<AdviceIO> {
+    fn advice_io(_: &Self::Config) -> Result<AdviceIO, SynError> {
         Ok(CircuitIO::empty())
     }
 
-    fn instance_io(config: &Self::Config) -> anyhow::Result<InstanceIO> {
+    fn instance_io(config: &Self::Config) -> Result<InstanceIO, SynError> {
         let inputs: Vec<_> = (0..C::Input::SIZE).collect();
         let outputs: Vec<_> = (0..C::Output::SIZE).collect();
 
@@ -525,11 +527,11 @@ where
         Self::Config::configure(cs)
     }
 
-    fn advice_io(_: &Self::Config) -> anyhow::Result<AdviceIO> {
+    fn advice_io(_: &Self::Config) -> Result<AdviceIO, SynError> {
         Ok(CircuitIO::empty())
     }
 
-    fn instance_io(config: &Self::Config) -> anyhow::Result<InstanceIO> {
+    fn instance_io(config: &Self::Config) -> Result<InstanceIO, SynError> {
         let inputs: Vec<_> = (0..C::Input::SIZE).collect();
         let outputs: Vec<_> = (0..C::Output::SIZE).collect();
 

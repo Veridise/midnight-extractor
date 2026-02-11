@@ -1,5 +1,5 @@
 use ff::{Field, PrimeField};
-use haloumi::{gates::GateCallbacks, gates::GateRewritePattern};
+use haloumi_ir_gen::{gates::callbacks::GateCallbacks, gates::rewrite::GateRewritePattern};
 
 pub mod decompose_core;
 
