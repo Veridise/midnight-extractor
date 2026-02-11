@@ -1,5 +1,6 @@
 use ff::PrimeField;
 use haloumi_ir::meta::HasMeta;
+use haloumi_ir::stmt::EmitIf as _;
 use haloumi_ir::{expr::IRBexpr, stmt::IRStmt};
 use haloumi_ir_gen::lookups::callbacks::LookupResult;
 use haloumi_ir_gen::{
@@ -266,15 +267,16 @@ impl<M: PlainSpreadLookup3Mode> PlainSpreadLookup3<M> {
         temps: &mut Temps,
     ) -> IRStmt<ExprOrTemp<Cow<'syn, Expression<F>>>> {
         let (temp, reused) = reuse_temp_or_create(&output, temps);
-        let call = IRStmt::call(name, [input], [temp.into()]);
+        let call = IRStmt::call(name, [input.clone()], [temp.into()]);
 
         let out_constr = if !reused {
-            IRStmt::eq(output, ExprOrTemp::Temp(temp))
+            IRStmt::eq(output.clone(), ExprOrTemp::Temp(temp))
         } else {
             IRStmt::empty()
         };
 
-        IRStmt::seq([call, out_constr])
+        [call, out_constr]
+            .emit_unless_false(!(IRBexpr::eq(input, zero()) & IRBexpr::eq(output, zero())))
     }
 
     fn spread_call<'syn, F: PrimeField>(
@@ -396,6 +398,10 @@ fn reuse_temp_or_create<E>(expr: &ExprOrTemp<E>, temps: &mut Temps) -> (Temp, bo
         ExprOrTemp::Temp(temp) => (*temp, true),
         ExprOrTemp::Expr(_) => (temps.next().unwrap(), false),
     }
+}
+
+fn zero<'syn, F: PrimeField>() -> ExprOrTemp<Cow<'syn, Expression<F>>> {
+    ExprOrTemp::Expr(Cow::Owned(Expression::from(0)))
 }
 
 #[derive(Debug, thiserror::Error)]

@@ -648,9 +648,9 @@ dependencies = [
 
 [[package]]
 name = "haloumi"
-version = "0.5.4"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f4a3682bde7199310390f70acf5b94c078ba9f89c0ee61457241825a1c3eabaf"
+checksum = "53ee7f532192ea1be87eba2e9da7200941586317d29fa7c19cab92b13564c953"
 dependencies = [
  "ff",
  "haloumi-core",
@@ -663,9 +663,9 @@ dependencies = [
 
 [[package]]
 name = "haloumi-backend"
-version = "0.5.4"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f467067874fb35145f2e39d7b74c9a6f7349c7ba0019fe7a57be912cbd9ded4"
+checksum = "3cc7e6d75ad305fdd35e6f7c3aca546d99e241d0e3658725d4af3f4cd28985d5"
 dependencies = [
  "disjoint",
  "eqv",
@@ -680,9 +680,9 @@ dependencies = [
 
 [[package]]
 name = "haloumi-core"
-version = "0.5.4"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81e16423e051f950bb58245b63d11080e747201442cf7e3a96f05fa136affbfd"
+checksum = "ecb7fc68791f016b946939656957bf1f8b457a5cc2e156e31ab42d1ef847eb32"
 dependencies = [
  "eqv",
  "ff",
@@ -694,9 +694,9 @@ dependencies = [
 
 [[package]]
 name = "haloumi-ir"
-version = "0.5.4"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d766f36e53e5d195047836cc002d66d0187b06bf3c847c854302684d6c83fa53"
+checksum = "d4c8c04816bec5aeca532fa68d5fed5a9e07379647cb3c7717d3398dd8808825"
 dependencies = [
  "bit-set",
  "eqv",
@@ -711,9 +711,9 @@ dependencies = [
 
 [[package]]
 name = "haloumi-ir-gen"
-version = "0.5.4"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1b8ace082d70ef4aa590f55afdf4b98d098cdd7e4e1d4da54997b9f811a86d3"
+checksum = "8f0ba047a3fd70c9e3878efae1810f5e8578a66bb2a84419b211d80e5156c896"
 dependencies = [
  "ff",
  "haloumi-core",
@@ -725,9 +725,9 @@ dependencies = [
 
 [[package]]
 name = "haloumi-lowering"
-version = "0.5.4"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ccd986a8efcb861d76a52b989f1e0af3bcaa0dc7bfda4be87909bc592c4aa6d7"
+checksum = "cd57e83ace4b7dfd6a9646eb354555d655f4917153666c7c14e6c8b9d47f53ff"
 dependencies = [
  "ff",
  "haloumi-core",
@@ -736,9 +736,9 @@ dependencies = [
 
 [[package]]
 name = "haloumi-picus"
-version = "0.5.4"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06c02da5546d1c09aca46c72f62e59129707aa96a812d2d322293f30bd8c2cb1"
+checksum = "cbf4ac9ec755d8cba9338bfdfe3f459f300c8704db30b4bfed6708c068f29d28"
 dependencies = [
  "anyhow",
  "disjoint",
@@ -757,9 +757,9 @@ dependencies = [
 
 [[package]]
 name = "haloumi-synthesis"
-version = "0.5.4"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30fa98ab3921501784825e5a05a6d469415a3d576b92133d8fc5104f565fd0fb"
+checksum = "08e6f978c2ef2b7a0318b927115d2a0b1f479118143bcc060e12222272421c74"
 dependencies = [
  "bit-set",
  "ff",
