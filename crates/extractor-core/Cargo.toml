@@ -15,7 +15,7 @@ ff.workspace = true
 midnight-proofs.workspace = true
 midnight-circuits.workspace = true
 midnight-curves.workspace = true
-mdnt-support = { version = "0.2"}
+mdnt-support = { version = "0.2" }
 num-bigint = "0.4"
 haloumi-ir.workspace =true
 haloumi-core.workspace =true
@@ -33,3 +33,4 @@ thiserror = "2"
 rstest = "0.26"
 similar-asserts = "1.7"
 simplelog = {version = "0.12", features = ["test"] }
+time = "=0.3.45"

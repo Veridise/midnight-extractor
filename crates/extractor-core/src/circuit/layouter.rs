@@ -5,17 +5,17 @@ use haloumi::synthesis::synthesizer::Synthesizer;
 use haloumi_core::synthesis::SynthesizerLike;
 use mdnt_support::cells::ctx::LayoutAdaptor;
 use midnight_proofs::{
-    ExtractionSupport,
     circuit::{
-        AssignedCell, Cell, Layouter, Region, RegionIndex, RegionStart, Table, TableLayouter,
-        Value,
         groups::{self, GroupKeyInstance},
         layouter::{RegionColumn, RegionLayouter, RegionShape},
+        AssignedCell, Cell, Layouter, Region, RegionIndex, RegionStart, Table, TableLayouter,
+        Value,
     },
     plonk::{
         Advice, Any, Challenge, Column, Error, Fixed, Instance, Selector, TableColumn, TableError,
     },
     utils::rational::Rational,
+    ExtractionSupport,
 };
 
 #[derive(Debug)]
@@ -58,7 +58,7 @@ impl<F: Field> Layouter<F> for ExtractionLayouter<'_, '_, F> {
         let region_index = self.regions.len();
 
         let name: String = name().into();
-        log::info!(
+        log::debug!(
             "{}> Entering region '{name}' ({region_index})",
             "-".repeat(self.group_depth)
         );
@@ -208,19 +208,19 @@ impl<F: Field> Layouter<F> for ExtractionLayouter<'_, '_, F> {
     {
         self.group_depth += 1;
         let name: String = name().into();
-        log::info!("{}> Pushing group '{name}'", "-".repeat(self.group_depth));
+        log::debug!("{}> Pushing group '{name}'", "-".repeat(self.group_depth));
 
         self.synthesizer.enter_group(name, *GroupKeyInstance::from(key));
     }
 
     fn pop_group(&mut self, meta: groups::RegionsGroup) {
-        log::info!("{}> Popping group", "-".repeat(self.group_depth));
-        log::info!(
+        log::debug!("{}> Popping group", "-".repeat(self.group_depth));
+        log::debug!(
             "{}>   Inputs:  {:?}",
             "-".repeat(self.group_depth),
             Vec::from_iter(meta.inputs().map(CellDbg))
         );
-        log::info!(
+        log::debug!(
             "{}>   Outputs: {:?}",
             "-".repeat(self.group_depth),
             Vec::from_iter(meta.outputs().map(CellDbg))
@@ -257,7 +257,7 @@ impl<'a, 'b, F: Field> RegionLayouter<F> for ExtractionLayouterRegion<'_, 'a, 'b
         selector: &Selector,
         offset: usize,
     ) -> Result<(), Error> {
-        log::info!(
+        log::debug!(
             "{}> Enabled selector {} @ R{}+{offset}(={}) (note: {:?})",
             "-".repeat(self.layouter.group_depth),
             selector.index(),
@@ -286,7 +286,7 @@ impl<'a, 'b, F: Field> RegionLayouter<F> for ExtractionLayouterRegion<'_, 'a, 'b
         offset: usize,
         _to: &'v mut (dyn FnMut() -> Value<Rational<F>> + 'v),
     ) -> Result<Cell, Error> {
-        log::info!(
+        log::debug!(
             "{}> Assigned advice to Adv:{} @ R{}+{offset}(={}) (note: {:?})",
             "-".repeat(self.layouter.group_depth),
             column.index(),
@@ -312,7 +312,7 @@ impl<'a, 'b, F: Field> RegionLayouter<F> for ExtractionLayouterRegion<'_, 'a, 'b
         offset: usize,
         constant: Rational<F>,
     ) -> Result<Cell, Error> {
-        log::info!(
+        log::debug!(
             "{}> Assigned advice to Adv:{} @ R{}+{offset}(={}) with constant (note: {:?})",
             "-".repeat(self.layouter.group_depth),
             column.index(),
@@ -335,7 +335,7 @@ impl<'a, 'b, F: Field> RegionLayouter<F> for ExtractionLayouterRegion<'_, 'a, 'b
         advice: Column<Advice>,
         offset: usize,
     ) -> Result<(Cell, Value<F>), Error> {
-        log::info!(
+        log::debug!(
             "{}> Assigned advice to Adv:{} @ R{}+{offset}(={}) with instance (Ins:{}, {row}) (note: {:?})",
             "-".repeat(self.layouter.group_depth),
             advice.index(),
@@ -371,7 +371,7 @@ impl<'a, 'b, F: Field> RegionLayouter<F> for ExtractionLayouterRegion<'_, 'a, 'b
         offset: usize,
         to: &'v mut (dyn FnMut() -> Value<Rational<F>> + 'v),
     ) -> Result<Cell, Error> {
-        log::info!(
+        log::debug!(
             "{}> Assigned fixed to Fix:{} @ R{}+{offset}(={}) (note: {:?})",
             "-".repeat(self.layouter.group_depth),
             column.index(),
@@ -406,7 +406,7 @@ impl<'a, 'b, F: Field> RegionLayouter<F> for ExtractionLayouterRegion<'_, 'a, 'b
     }
 
     fn constrain_equal(&mut self, left: Cell, right: Cell) -> Result<(), Error> {
-        log::info!(
+        log::debug!(
             "{}> {:?}(={}) === {:?}(={})",
             "-".repeat(self.layouter.group_depth),
             CellDbg(left),
