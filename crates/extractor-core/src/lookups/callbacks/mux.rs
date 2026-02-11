@@ -1,13 +1,12 @@
-use std::borrow::Cow;
 
 use ff::PrimeField;
 use haloumi_ir::stmt::IRStmt;
 use haloumi_ir_gen::{
     lookups::{
-        callbacks::{LookupCallbacks, LookupError, LookupResult},
+        callbacks::{LookupCallbacks, LookupResult},
         table::LookupTableGenerator,
     },
-    temps::{ExprOrTemp, Temps},
+    temps::Temps,
 };
 use haloumi_synthesis::lookups::Lookup;
 use midnight_proofs::plonk::Expression;

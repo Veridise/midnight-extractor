@@ -1,10 +1,9 @@
-use std::borrow::Cow;
 
 use ff::PrimeField;
 use haloumi::ir_gen::{
     lookups::callbacks::LookupCallbacks,
     lookups::table::LookupTableGenerator,
-    temps::{ExprOrTemp, Temps},
+    temps::Temps,
 };
 use haloumi_ir::stmt::IRStmt;
 use haloumi_ir_gen::lookups::callbacks::LookupResult;
