@@ -275,8 +275,7 @@ impl<M: PlainSpreadLookup3Mode> PlainSpreadLookup3<M> {
             IRStmt::empty()
         };
 
-        [call, out_constr]
-            .emit_unless_false(!(IRBexpr::eq(input, zero()) & IRBexpr::eq(output, zero())))
+        IRStmt::seq([call, out_constr])
     }
 
     fn spread_call<'syn, F: PrimeField>(
@@ -346,11 +345,20 @@ impl<F: PrimeField, M: PlainSpreadLookup3Mode> LookupCallbacks<F, Expression<F>>
         let tag = self.mode.tag(lookup);
         let spread = self.mode.spread(lookup);
         let dense = self.mode.dense(lookup, temps);
+        let spread_eq_0 = IRBexpr::eq(spread.clone(), zero());
+        let predicate = !match &dense {
+            // If `dense` is a temporary we only check that `spread` is equal to 0.
+            ExprOrTemp::Temp(_) => spread_eq_0,
+            // If `dense` is an expression we check that both are equal to 0.
+            ExprOrTemp::Expr(dense) => {
+                spread_eq_0.and(IRBexpr::eq(ExprOrTemp::Expr(dense.clone()), zero()))
+            }
+        };
         let spread_call = self.spread_call(spread.clone(), dense.clone(), temps);
         let unspread_call = self.unspread_call(spread.clone(), dense.clone(), temps);
         let inequalities = self.inequalities(tag, dense, spread);
 
-        let mut stmt = IRStmt::seq([inequalities, spread_call, unspread_call]);
+        let mut stmt = [inequalities, spread_call, unspread_call].emit_unless_false(predicate);
         stmt.meta_mut().at_lookup(lookup.name(), lookup.idx(), None);
         stmt.propagate_meta();
         Ok(stmt)

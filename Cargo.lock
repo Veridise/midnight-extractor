@@ -260,9 +260,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.57"
+version = "4.5.58"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6899ea499e3fb9305a65d5ebf6e3d2248c5fab291f300ad0a704fbe142eae31a"
+checksum = "63be97961acde393029492ce0be7a1af7e323e6bae9511ebfac33751be5e6806"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -270,9 +270,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.5.57"
+version = "4.5.58"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b12c8b680195a62a8364d16b8447b01b6c2c8f9aaf68bee653be34d4245e238"
+checksum = "7f13174bda5dfd69d7e947827e5af4b0f2f94a4a3ee92912fba07a66150f21e2"
 dependencies = [
  "anstream",
  "anstyle",
@@ -294,9 +294,9 @@ dependencies = [
 
 [[package]]
 name = "clap_lex"
-version = "0.7.7"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3e64b0cc0439b12df2fa678eae89a1c56a529fd067a9115f7827f1fffd22b32"
+checksum = "3a822ea5bc7590f9d40f1ba12c0dc3c2760f3482c6984db1573ad11031420831"
 
 [[package]]
 name = "colorchoice"
@@ -429,9 +429,9 @@ checksum = "34aa73646ffb006b8f5147f3dc182bd4bcb190227ce861fc4a4844bf8e3cb2c0"
 
 [[package]]
 name = "env_filter"
-version = "0.1.4"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1bf3c259d255ca70051b30e2e95b5446cdb8949ac4cd22c0d7fd634d89f568e2"
+checksum = "7a1c3cc8e57274ec99de65301228b537f1e4eedc1b8e0f9411c6caac8ae7308f"
 dependencies = [
  "log",
  "regex",
@@ -439,9 +439,9 @@ dependencies = [
 
 [[package]]
 name = "env_logger"
-version = "0.11.8"
+version = "0.11.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13c863f0904021b108aa8b2f55046443e6b1ebde8fd4a15c399893aae4fa069f"
+checksum = "b2daee4ea451f429a58296525ddf28b45a3b64f1acf6587e2067437bb11e218d"
 dependencies = [
  "anstream",
  "anstyle",
@@ -648,9 +648,9 @@ dependencies = [
 
 [[package]]
 name = "haloumi"
-version = "0.5.6"
+version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "53ee7f532192ea1be87eba2e9da7200941586317d29fa7c19cab92b13564c953"
+checksum = "3c71c3286b1c1b3132fd6942f8da1d53f774e42d1e3b5bdfeff6afd849a2a7b1"
 dependencies = [
  "ff",
  "haloumi-core",
@@ -694,9 +694,9 @@ dependencies = [
 
 [[package]]
 name = "haloumi-ir"
-version = "0.5.6"
+version = "0.5.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4c8c04816bec5aeca532fa68d5fed5a9e07379647cb3c7717d3398dd8808825"
+checksum = "87e3f98f9044f75f5c658d0673491f1e9131cddff8c4cbd4dd885576261f4947"
 dependencies = [
  "bit-set",
  "eqv",
@@ -711,9 +711,9 @@ dependencies = [
 
 [[package]]
 name = "haloumi-ir-gen"
-version = "0.5.6"
+version = "0.5.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f0ba047a3fd70c9e3878efae1810f5e8578a66bb2a84419b211d80e5156c896"
+checksum = "85c07bc35ef47ca30d96d5d8d88766905dbb1634d333a279613561a23a031946"
 dependencies = [
  "ff",
  "haloumi-core",
@@ -1118,6 +1118,7 @@ dependencies = [
  "similar-asserts",
  "simplelog",
  "thiserror",
+ "time",
 ]
 
 [[package]]
